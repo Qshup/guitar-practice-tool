@@ -149,9 +149,19 @@
   .zappa-tag { font-family: Arial, sans-serif; font-size: 7px; color: #ccb84a; letter-spacing: .08em; }
 
   /* ── Nav Bar (5-mode) ────────────────────────────────────── */
+  .nav-row {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+  }
+  .nav-progress-btn {
+    padding: 8px 14px; font-size: 10px; font-family: Arial, sans-serif; font-weight: bold;
+    border: 1px solid #333; background: #1a1a1a; color: #888; cursor: pointer;
+    letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  }
+  .nav-progress-btn:hover { color: #fff; border-color: #666; }
   .nav-bar {
     display: flex; align-items: center; gap: 0;
-    margin-bottom: 16px; border: 1px solid #333; width: fit-content;
+    border: 1px solid #333; width: fit-content;
     max-width: 100%; overflow-x: auto;
   }
   .nav-btn {
@@ -172,6 +182,17 @@
   .mode-panel { display: none; }
   .mode-panel.active { display: block; animation: modeFadeIn .2s ease; }
   @keyframes modeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* ── Persistent Metronome Bar (visible in every mode) ───────── */
+  .metronome-bar {
+    background: #0d1a0d; border: 1px solid #1e3a1e; padding: 10px 14px; margin-bottom: 16px;
+  }
+  .metronome-bar-header {
+    display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none;
+  }
+  .metronome-bar-header h2 { margin-bottom: 0; }
+  .metronome-bar-chevron { color: #4caf50; font-size: 10px; }
+  .metronome-bar-body { margin-top: 10px; }
 
   /* chord fretboard overlay dots */
   .note-dot.chord-dot {
@@ -903,7 +924,12 @@
 /* ═══════════════════════════════════════════════════════════════
      PRACTICE PROGRESS TRACKER
 ═══════════════════════════════════════════════════════════════ */
-  .progress-panel { background: #0d0d0d; border: 1px solid #222; margin-bottom: 18px; }
+  .progress-panel {
+    position: fixed; top: 56px; right: 20px; width: min(420px, 92vw); max-height: 80vh;
+    overflow-y: auto; z-index: 90; background: #0d0d0d; border: 1px solid #333;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.6); display: none;
+  }
+  .progress-panel.open { display: block; }
   .progress-panel-header {
     display: flex; justify-content: space-between; align-items: center;
     padding: 9px 14px; cursor: pointer; user-select: none;

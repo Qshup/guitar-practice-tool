@@ -454,3 +454,18 @@ document.getElementById('pos-btns') && document.addEventListener('click', e => {
 
 // Init beat display
 buildBeatDisplay(4);
+
+// ── Metronome bar collapse (persistent across all modes) ──────────────────
+function applyMetronomeBarCollapsedState(collapsed) {
+  const body = document.getElementById('metronome-bar-body');
+  const chevron = document.getElementById('metronome-bar-chevron');
+  if (body) body.style.display = collapsed ? 'none' : '';
+  if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
+}
+
+function toggleMetronomeBar() {
+  const data = loadProgress();
+  data.ui.metronomeCollapsed = !data.ui.metronomeCollapsed;
+  saveProgress(data);
+  applyMetronomeBarCollapsedState(data.ui.metronomeCollapsed);
+}

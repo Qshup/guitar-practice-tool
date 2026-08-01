@@ -16,7 +16,7 @@ function defaultFretboardQuizProgress() {
 }
 
 function defaultProgress() {
-  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress() };
+  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: true, metronomeCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress() };
 }
 
 function loadProgress() {
@@ -29,10 +29,11 @@ function loadProgress() {
   if (!data.days) data.days = {};
   if (!data.chordPairs) data.chordPairs = {};
   if (!data.riffTotals) data.riffTotals = {};
-  if (!data.ui) data.ui = { panelCollapsed: false };
+  if (!data.ui) data.ui = { panelCollapsed: true, metronomeCollapsed: false };
   if (data.ui.activeNavMode === undefined) data.ui.activeNavMode = 'scales';
   if (data.ui.activeChordSubtab === undefined) data.ui.activeChordSubtab = 'reference';
   if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
+  if (data.ui.metronomeCollapsed === undefined) data.ui.metronomeCollapsed = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
@@ -183,10 +184,12 @@ function renderHeatmap(data) {
   }
 }
 
-// ── Collapsible panel ────────────────────────────────────────────────────
+// ── Progress popover (toggled by the nav bar's Progress button) ───────────
 function applyPanelCollapsedState(collapsed) {
+  const panel = document.getElementById('progress-panel');
   const body = document.getElementById('progress-panel-body');
   const chevron = document.getElementById('progress-panel-chevron');
+  if (panel) panel.classList.toggle('open', !collapsed);
   if (body) body.style.display = collapsed ? 'none' : '';
   if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
 }
@@ -200,5 +203,6 @@ function toggleProgressPanel() {
 
 // ── Init ──────────────────────────────────────────────────────────────────
 applyPanelCollapsedState(loadProgress().ui.panelCollapsed);
+if (typeof applyMetronomeBarCollapsedState === 'function') applyMetronomeBarCollapsedState(loadProgress().ui.metronomeCollapsed);
 renderProgressPanel();
 setInterval(renderProgressPanel, 1000); // keeps the live scale-time ticking while a session runs

@@ -48,13 +48,66 @@
 <div class="subtitle">Numbers = play order · White = root · Dashed line = ascending path · Gold border = Zappa scale · Circle updates live</div>
 
 <!-- ── NAV BAR ── -->
-<nav class="nav-bar" id="nav-bar">
-  <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')">Scales</button>
-  <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')">Chords</button>
-  <button class="nav-btn" data-mode="study" onclick="switchMode('study')">Study</button>
-  <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')">Riffs</button>
-  <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')">Songs</button>
-</nav>
+<div class="nav-row">
+  <nav class="nav-bar" id="nav-bar">
+    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')">Scales</button>
+    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')">Chords</button>
+    <button class="nav-btn" data-mode="study" onclick="switchMode('study')">Study</button>
+    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')">Riffs</button>
+    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')">Songs</button>
+  </nav>
+  <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress">Progress</button>
+</div>
+
+<!-- ── METRONOME + BACKING TRACK (persistent across all modes) ── -->
+<div class="metronome-bar" id="metronome-bar">
+  <div class="metronome-bar-header" onclick="toggleMetronomeBar()">
+    <h2>▶ Metronome &amp; Backing Track</h2>
+    <span class="metronome-bar-chevron" id="metronome-bar-chevron">▾</span>
+  </div>
+  <div class="metronome-bar-body" id="metronome-bar-body">
+    <div class="prac-row">
+      <span class="prac-label">BPM</span>
+      <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="document.getElementById('bpm-val').textContent=this.value">
+      <span class="prac-val" id="bpm-val">80</span>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Time sig</span>
+      <div class="time-sig-row">
+        <select id="time-sig">
+          <option value="4">4/4</option>
+          <option value="3">3/4</option>
+          <option value="6">6/8</option>
+          <option value="7">7/8 ★</option>
+          <option value="5">5/4 ★</option>
+          <option value="11">11/8 ★</option>
+        </select>
+        <span style="font-family:Arial;font-size:8px;color:#444;margin-left:6px">★ = Zappa</span>
+      </div>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Vamp</span>
+      <select id="vamp-style">
+        <option value="drone">Drone (root only)</option>
+        <option value="blues">Blues shuffle</option>
+        <option value="minor">Minor vamp (i–VII)</option>
+        <option value="mixo">Mixolydian (I–VII)</option>
+        <option value="zappa">Zappa (I–II vamp)</option>
+        <option value="none">Click only</option>
+      </select>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Volume</span>
+      <input type="range" id="vol-slider" min="0" max="100" value="60" oninput="document.getElementById('vol-val').textContent=this.value+'%'">
+      <span class="prac-val" id="vol-val">60%</span>
+    </div>
+    <div class="prac-row">
+      <button class="big-btn btn-go" id="metro-btn" onclick="toggleMetronome()">▶ START</button>
+      <div class="beat-display" id="beat-display"></div>
+    </div>
+    <div class="chord-display" id="chord-display"></div>
+  </div>
+</div>
 
 <!-- ═══════════════════════════════════════════════════════════════
      SCALES MODE
@@ -102,51 +155,6 @@
   <div class="zappa-banner" id="zappa-banner"></div>
 
   <div class="practice-bar">
-
-    <!-- METRONOME + BACKING TRACK -->
-    <div class="practice-panel">
-      <h2>▶ Metronome &amp; Backing Track</h2>
-      <div class="prac-row">
-        <span class="prac-label">BPM</span>
-        <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="document.getElementById('bpm-val').textContent=this.value">
-        <span class="prac-val" id="bpm-val">80</span>
-      </div>
-      <div class="prac-row">
-        <span class="prac-label">Time sig</span>
-        <div class="time-sig-row">
-          <select id="time-sig">
-            <option value="4">4/4</option>
-            <option value="3">3/4</option>
-            <option value="6">6/8</option>
-            <option value="7">7/8 ★</option>
-            <option value="5">5/4 ★</option>
-            <option value="11">11/8 ★</option>
-          </select>
-          <span style="font-family:Arial;font-size:8px;color:#444;margin-left:6px">★ = Zappa</span>
-        </div>
-      </div>
-      <div class="prac-row">
-        <span class="prac-label">Vamp</span>
-        <select id="vamp-style">
-          <option value="drone">Drone (root only)</option>
-          <option value="blues">Blues shuffle</option>
-          <option value="minor">Minor vamp (i–VII)</option>
-          <option value="mixo">Mixolydian (I–VII)</option>
-          <option value="zappa">Zappa (I–II vamp)</option>
-          <option value="none">Click only</option>
-        </select>
-      </div>
-      <div class="prac-row">
-        <span class="prac-label">Volume</span>
-        <input type="range" id="vol-slider" min="0" max="100" value="60" oninput="document.getElementById('vol-val').textContent=this.value+'%'">
-        <span class="prac-val" id="vol-val">60%</span>
-      </div>
-      <div class="prac-row">
-        <button class="big-btn btn-go" id="metro-btn" onclick="toggleMetronome()">▶ START</button>
-        <div class="beat-display" id="beat-display"></div>
-      </div>
-      <div class="chord-display" id="chord-display"></div>
-    </div>
 
     <!-- SCALE RUN-THROUGH -->
     <div class="practice-panel run-panel" id="scale-run-panel">
