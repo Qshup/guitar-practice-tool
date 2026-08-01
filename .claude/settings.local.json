@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(winget *)",
+      "PowerShell(git *)",
+      "PowerShell($gitPath = \"C:\\\\Program Files\\\\Git\\\\cmd\"; if \\(Test-Path \"$gitPath\\\\git.exe\"\\) { \"found: $gitPath\" } else { Get-ChildItem \"C:\\\\Program Files\\\\Git\" -ErrorAction SilentlyContinue })"
+    ]
+  }
+}
