@@ -24,7 +24,7 @@ D|--------------------7---5---7---|
 A|--------------------------------|
 E|--------------------------------|`,
         notes: [
-          {si:3,f:7,dur:500,t:'bend'},{si:3,f:7,dur:200,t:'pick'},{si:3,f:5,dur:200,t:'pick'},
+          {si:3,f:7,dur:500,t:'bend',bendTo:2},{si:3,f:7,dur:200,t:'pick'},{si:3,f:5,dur:200,t:'pick'},
           {si:2,f:7,dur:180,t:'pick'},{si:2,f:5,dur:180,t:'pick'},{si:2,f:7,dur:300,t:'pick'}
         ]
       },
@@ -60,7 +60,7 @@ D|-----------------------|
 A|-----------------------|
 E|-----------------------|`,
         notes: [
-          {si:5,f:0,dur:200,t:'pick'},{si:4,f:0,dur:200,t:'pick'},{si:5,f:3,dur:600,t:'bend'},
+          {si:5,f:0,dur:200,t:'pick'},{si:4,f:0,dur:200,t:'pick'},{si:5,f:3,dur:600,t:'bend',bendTo:1},
           {si:5,f:3,dur:200,t:'pick'},{si:5,f:0,dur:400,t:'pick'},
           {si:4,f:0,dur:600,t:'vibrato'},
         ]
@@ -127,7 +127,7 @@ D|-----------------------------------|
 A|-----------------------------------|
 E|-----------------------------------|`,
         notes: [
-          {si:4,f:5,dur:200,t:'pick'},{si:4,f:6,dur:400,t:'bend'},
+          {si:4,f:5,dur:200,t:'pick'},{si:4,f:6,dur:400,t:'bend',bendTo:0.5},
           {si:4,f:6,dur:200,t:'pick'},{si:4,f:5,dur:200,t:'pick'},
           {si:4,f:3,dur:200,t:'pick'},{si:4,f:5,dur:200,t:'pick'},{si:4,f:3,dur:400,t:'pick'},
         ]
@@ -144,7 +144,7 @@ D|------------------------------------|
 A|------------------------------------|
 E|------------------------------------|`,
         notes: [
-          {si:5,f:8,dur:800,t:'bend'},{si:5,f:8,dur:300,t:'vibrato'},
+          {si:5,f:8,dur:800,t:'bend',bendTo:2},{si:5,f:8,dur:300,t:'vibrato'},
           {si:5,f:8,dur:250,t:'pick'},{si:5,f:5,dur:250,t:'pick'},
           {si:4,f:8,dur:250,t:'pick'},{si:4,f:5,dur:250,t:'pick'},{si:4,f:8,dur:600,t:'vibrato'},
         ]
@@ -562,9 +562,9 @@ D|---0---2---3---2---0---|
 A|---0---2---3---2---0---|
 E|---0---3---4---3---0---|`,
         notes: [
-          {si:0,f:0,dur:150},{si:0,f:3,dur:150},{si:0,f:4,dur:200,t:'bend'},
+          {si:0,f:0,dur:150},{si:0,f:3,dur:150},{si:0,f:4,dur:200,t:'bend',bendTo:0.5},
           {si:0,f:3,dur:150},{si:0,f:0,dur:400,t:'vibrato'},
-          {si:5,f:0,dur:150},{si:5,f:3,dur:150},{si:5,f:4,dur:200,t:'bend'},
+          {si:5,f:0,dur:150},{si:5,f:3,dur:150},{si:5,f:4,dur:200,t:'bend',bendTo:0.5},
           {si:5,f:3,dur:150},{si:5,f:0,dur:500,t:'vibrato'},
         ]
       },
@@ -680,35 +680,9 @@ function startRiffPlay(riffId) {
     const noteVol = technique === 'bend' ? vol*0.9 : technique === 'vibrato' ? vol*0.85 : vol*0.75;
 
     if (technique === 'bend') {
-      // Simulate bend with frequency ramp
-      const osc = ctx.createOscillator();
-      const env = ctx.createGain();
-      const filt = ctx.createBiquadFilter();
-      osc.connect(filt); filt.connect(env); env.connect(ctx.destination);
-      osc.type = 'sawtooth';
-      filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = 12;
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      osc.frequency.linearRampToValueAtTime(freq * 1.122, ctx.currentTime + (dur/1000)*0.4);
-      env.gain.setValueAtTime(noteVol*0.6, ctx.currentTime);
-      env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur/1000*0.9);
-      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur/1000 + 0.05);
+      playBendNote(ctx.currentTime, freq, dur/1000, noteVol, note.bendTo);
     } else if (technique === 'vibrato') {
-      const osc = ctx.createOscillator();
-      const vib = ctx.createOscillator();
-      const vibGain = ctx.createGain();
-      const env = ctx.createGain();
-      const filt = ctx.createBiquadFilter();
-      vib.connect(vibGain); vibGain.connect(osc.frequency);
-      osc.connect(filt); filt.connect(env); env.connect(ctx.destination);
-      osc.type = 'sawtooth'; vib.type = 'sine';
-      filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = 12;
-      osc.frequency.value = freq; vib.frequency.value = 5.5;
-      vibGain.gain.value = freq * 0.018;
-      env.gain.setValueAtTime(noteVol*0.6, ctx.currentTime);
-      env.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur/1000*0.95);
-      osc.start(ctx.currentTime); vib.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + dur/1000 + 0.05);
-      vib.stop(ctx.currentTime + dur/1000 + 0.05);
+      playVibratoNote(ctx.currentTime, freq, dur/1000, noteVol);
     } else {
       playPluck(ctx.currentTime, freq, noteVol);
     }

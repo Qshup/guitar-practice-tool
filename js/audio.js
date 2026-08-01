@@ -12,9 +12,57 @@ let runTimeout = null;
 let runIdx = 0;
 let runNotes = [];
 
+// ── Tone.js voices (guitar-quality synthesis) ──────────────────────────────
+// pluckVoice: real Karplus-Strong plucked string (scale run, chord strum, chord vamp)
+// bassVoice: filtered sawtooth bass for the metronome backing track
+// chordVoice: triangle pad for backing-track chord stabs
+// bendVoice + vibratoFx: pitch-automatable voice for riff bends/vibrato (see riffs.js)
+let toneReady = false;
+let bassVoice, chordVoice, bendVoice, vibratoFx, reverbBus;
+// Tone.PluckSynth doesn't extend Monophonic, so Tone.PolySynth can't wrap it —
+// a small hand-rolled voice pool gives it polyphony (needed for strummed chords).
+const PLUCK_POOL_SIZE = 8;
+let pluckPool = [];
+let pluckPoolIdx = 0;
+
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (!toneReady) {
+    Tone.setContext(audioCtx);
+    Tone.start();
+
+    reverbBus = new Tone.Freeverb({ roomSize: 0.6, dampening: 4000 }).toDestination();
+    reverbBus.wet.value = 0.13; // slight room tone, not washy — keeps fast runs legible
+
+    pluckPool = [];
+    for (let i = 0; i < PLUCK_POOL_SIZE; i++) {
+      pluckPool.push(new Tone.PluckSynth({ attackNoise: 1, dampening: 6000, resonance: 0.92 }).connect(reverbBus));
+    }
+
+    bassVoice = new Tone.MonoSynth({
+      oscillator: { type: 'sawtooth' },
+      filter: { type: 'lowpass', frequency: 300, rolloff: -12 },
+      filterEnvelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.8, baseFrequency: 300, octaves: 1 },
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.7, release: 0.5 }
+    }).connect(Tone.getDestination()); // dry — reverb on bass builds mud
+
+    chordVoice = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: 'triangle' },
+      envelope: { attack: 0.01, decay: 0.25, sustain: 0.5, release: 0.6 }
+    }).connect(Tone.getDestination()); // dry — rhythm-section backing, not the lead voice
+
+    bendVoice = new Tone.MonoSynth({
+      oscillator: { type: 'sawtooth' },
+      filter: { type: 'bandpass', Q: 10 },
+      filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.3, baseFrequency: 800, octaves: 2 },
+      envelope: { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.4 }
+    });
+    vibratoFx = new Tone.Vibrato({ frequency: 5.5, depth: 0.15, wet: 0 });
+    bendVoice.chain(vibratoFx, reverbBus);
+
+    toneReady = true;
+  }
   return audioCtx;
 }
 
@@ -53,48 +101,42 @@ function playClick(time, isAccent, vol) {
 }
 
 function playBass(time, freq, dur, vol) {
-  const ctx = getAudioCtx();
-  const osc = ctx.createOscillator();
-  const env = ctx.createGain();
-  const filt = ctx.createBiquadFilter();
-  osc.connect(filt); filt.connect(env); env.connect(ctx.destination);
-  osc.type = 'sawtooth';
-  osc.frequency.value = freq / 2; // one octave down
-  filt.type = 'lowpass'; filt.frequency.value = 300;
-  env.gain.setValueAtTime(vol * 0.35, time);
-  env.gain.exponentialRampToValueAtTime(0.001, time + dur * 0.8);
-  osc.start(time); osc.stop(time + dur);
+  getAudioCtx();
+  bassVoice.triggerAttackRelease(freq / 2, dur * 0.8, time, Math.min(1, vol * 0.9));
 }
 
 function playChord(time, freqs, dur, vol) {
-  const ctx = getAudioCtx();
+  getAudioCtx();
   freqs.forEach(freq => {
-    const osc = ctx.createOscillator();
-    const env = ctx.createGain();
-    osc.connect(env); env.connect(ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.value = freq;
-    env.gain.setValueAtTime(vol * 0.12, time);
-    env.gain.exponentialRampToValueAtTime(0.001, time + dur * 0.7);
-    osc.start(time); osc.stop(time + dur);
+    chordVoice.triggerAttackRelease(freq, dur * 0.7, time, Math.min(1, vol * 0.35));
   });
 }
 
 function playPluck(time, freq, vol) {
-  // Karplus-Strong-ish pluck using noise + filter
-  const ctx = getAudioCtx();
-  const buf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const filt = ctx.createBiquadFilter();
-  filt.type = 'bandpass'; filt.frequency.value = freq; filt.Q.value = 15;
-  const env = ctx.createGain();
-  src.connect(filt); filt.connect(env); env.connect(ctx.destination);
-  env.gain.setValueAtTime(vol * 0.7, time);
-  env.gain.exponentialRampToValueAtTime(0.001, time + 0.6);
-  src.start(time); src.stop(time + 0.65);
+  getAudioCtx();
+  const v = pluckPool[pluckPoolIdx];
+  pluckPoolIdx = (pluckPoolIdx + 1) % pluckPool.length;
+  v.volume.value = Tone.gainToDb(Math.max(0.001, Math.min(1, vol * 0.85)));
+  v.triggerAttack(freq, time);
+}
+
+// ── Riff bend/vibrato voices ────────────────────────────────────────────────
+// semitones: how far the bend travels above the fretted pitch (e.g. 2 = whole step).
+// Defaults to 2 (whole step) when a riff note doesn't specify bendTo.
+function playBendNote(time, freq, dur, vol, semitones) {
+  getAudioCtx();
+  vibratoFx.wet.value = 0;
+  const target = freq * Math.pow(2, (semitones == null ? 2 : semitones) / 12);
+  bendVoice.triggerAttack(freq, time, Math.min(1, vol));
+  bendVoice.frequency.setValueAtTime(freq, time);
+  bendVoice.frequency.rampTo(target, Math.max(0.05, dur * 0.4), time);
+  bendVoice.triggerRelease(time + dur);
+}
+
+function playVibratoNote(time, freq, dur, vol) {
+  getAudioCtx();
+  vibratoFx.wet.value = 1;
+  bendVoice.triggerAttackRelease(freq, dur, time, Math.min(1, vol));
 }
 
 function playSine(time, freq, vol) {

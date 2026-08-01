@@ -8,5 +8,8 @@
   },
   "devDependencies": {
     "live-server": "^1.2.2"
+  },
+  "dependencies": {
+    "tone": "^15.1.22"
   }
 }
