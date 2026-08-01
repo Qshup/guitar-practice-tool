@@ -7,6 +7,43 @@
 </head>
 <body>
 
+<div class="progress-panel" id="progress-panel">
+  <div class="progress-panel-header" id="progress-panel-toggle" onclick="toggleProgressPanel()">
+    <span class="progress-panel-title">Practice Progress</span>
+    <span class="progress-panel-chevron" id="progress-panel-chevron">▾</span>
+  </div>
+  <div class="progress-panel-body" id="progress-panel-body">
+    <div class="progress-stats-row">
+      <div class="progress-stat-block">
+        <div class="progress-stat-label">Scale Time Today</div>
+        <div class="progress-stat-val" id="prog-scale-time">0m 0s</div>
+      </div>
+      <div class="progress-stat-block">
+        <div class="progress-stat-label">Scales Today</div>
+        <div class="progress-stat-val" id="prog-scales-list" style="font-size:10px">—</div>
+      </div>
+      <div class="progress-stat-block">
+        <div class="progress-stat-label">Riffs Today</div>
+        <div class="progress-stat-val" id="prog-riffs-list" style="font-size:10px">—</div>
+      </div>
+      <div class="progress-stat-block">
+        <div class="progress-stat-label">Game Sessions Today</div>
+        <div class="progress-stat-val" id="prog-game-sessions">0</div>
+      </div>
+    </div>
+    <div class="progress-cols">
+      <div class="progress-col">
+        <div class="progress-col-title">Chord Pair Best Streaks</div>
+        <div id="prog-chord-pairs"></div>
+      </div>
+      <div class="progress-col">
+        <div class="progress-col-title">Last 30 Days</div>
+        <div class="heatmap-grid" id="practice-heatmap"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <h1>Guitar Scale Reference — Fretboard & Circle of 5ths</h1>
 <div class="subtitle">Numbers = play order · White = root · Dashed line = ascending path · Gold border = Zappa scale · Circle updates live</div>
 
@@ -584,5 +621,6 @@
 <script src="js/caged.js"></script>
 <script src="js/riffs.js"></script>
 <script src="js/game.js"></script>
+<script src="js/progress.js"></script>
 </body>
 </html>

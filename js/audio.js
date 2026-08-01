@@ -12,6 +12,23 @@ let runTimeout = null;
 let runIdx = 0;
 let runNotes = [];
 
+// ── Practice-time tracking (for the progress panel, see progress.js) ──────
+// Counts time while the scale run-through and/or metronome are actively running.
+// Refcounted so running both at once doesn't double-count or stop early.
+let scaleTimerStart = null;
+let activeScaleTimers = 0;
+function startScaleTimer() {
+  if (activeScaleTimers++ === 0) scaleTimerStart = Date.now();
+}
+function stopScaleTimer() {
+  activeScaleTimers = Math.max(0, activeScaleTimers - 1);
+  if (activeScaleTimers === 0 && scaleTimerStart) {
+    const elapsedSec = Math.round((Date.now() - scaleTimerStart) / 1000);
+    scaleTimerStart = null;
+    if (elapsedSec > 0 && typeof recordScaleTime === 'function') recordScaleTime(elapsedSec);
+  }
+}
+
 // ── Tone.js voices (guitar-quality synthesis) ──────────────────────────────
 // pluckVoice: real Karplus-Strong plucked string (scale run, chord strum, chord vamp)
 // bassVoice: filtered sawtooth bass for the metronome backing track
@@ -24,6 +41,7 @@ let bassVoice, chordVoice, bendVoice, vibratoFx, reverbBus;
 const PLUCK_POOL_SIZE = 8;
 let pluckPool = [];
 let pluckPoolIdx = 0;
+let pluckPoolLastTime = [];
 
 function getAudioCtx() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -36,8 +54,10 @@ function getAudioCtx() {
     reverbBus.wet.value = 0.13; // slight room tone, not washy — keeps fast runs legible
 
     pluckPool = [];
+    pluckPoolLastTime = [];
     for (let i = 0; i < PLUCK_POOL_SIZE; i++) {
       pluckPool.push(new Tone.PluckSynth({ attackNoise: 1, dampening: 6000, resonance: 0.92 }).connect(reverbBus));
+      pluckPoolLastTime.push(0);
     }
 
     bassVoice = new Tone.MonoSynth({
@@ -114,10 +134,15 @@ function playChord(time, freqs, dur, vol) {
 
 function playPluck(time, freq, vol) {
   getAudioCtx();
-  const v = pluckPool[pluckPoolIdx];
+  const i = pluckPoolIdx;
   pluckPoolIdx = (pluckPoolIdx + 1) % pluckPool.length;
+  const v = pluckPool[i];
+  // Each PluckSynth voice needs strictly increasing trigger times — guard against
+  // reusing a voice at/before its last scheduled time (e.g. rapid chord-game skips).
+  const safeTime = Math.max(time, pluckPoolLastTime[i] + 0.001);
+  pluckPoolLastTime[i] = safeTime;
   v.volume.value = Tone.gainToDb(Math.max(0.001, Math.min(1, vol * 0.85)));
-  v.triggerAttack(freq, time);
+  v.triggerAttack(freq, safeTime);
 }
 
 // ── Riff bend/vibrato voices ────────────────────────────────────────────────
@@ -278,6 +303,7 @@ function toggleMetronome() {
     document.getElementById('chord-display').textContent = '';
     // Clear beat dots
     document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('active'));
+    stopScaleTimer();
   } else {
     const ctx = getAudioCtx();
     const beats = parseInt(document.getElementById('time-sig').value);
@@ -287,6 +313,7 @@ function toggleMetronome() {
     metroRunning = true;
     btn.textContent = '■ STOP';
     btn.classList.add('running');
+    startScaleTimer();
     scheduleMetro();
     metroScheduler = setInterval(scheduleMetro, SCHEDULE_INTERVAL);
   }
@@ -385,6 +412,7 @@ function stopRun() {
   btn.textContent = '▶ RUN SCALE';
   btn.classList.remove('running');
   document.getElementById('run-display').textContent = 'Run complete. Press again to repeat.';
+  stopScaleTimer();
 }
 
 function toggleRun() {
@@ -403,6 +431,8 @@ function toggleRun() {
     runIdx = 0;
     btn.textContent = '■ STOP';
     btn.classList.add('running');
+    startScaleTimer();
+    if (typeof recordScalePracticed === 'function') recordScalePracticed(currentScale().name);
     runStep();
   }
 }

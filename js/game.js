@@ -561,6 +561,7 @@ function scheduleGameBeat() {
 }
 
 const advanceGameChord = function() {
+  gamePrevChord = gameCurrentChord;
   gameChordIndex = (gameChordIndex + 1) % gameDeck.length;
   gameTotalSwitched++;
   flashArena();
@@ -587,6 +588,9 @@ const advanceGameChord = function() {
 }
 
 function gradeSwitch(success) {
+  if (gamePrevChord && gameCurrentChord && typeof recordChordPairResult === 'function') {
+    recordChordPairResult(gamePrevChord, gameCurrentChord, success);
+  }
   if (success) {
     gameStreak++;
     gameGot++;
@@ -650,6 +654,7 @@ function toggleGame() {
 function startGame() {
   getAudioCtx();
   rebuildGameDeck();
+  if (typeof recordGameSession === 'function') recordGameSession();
   gameRunning=true;
   gameBeat=0;
   gameChordIndex=0;

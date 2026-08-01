@@ -776,3 +776,47 @@
   .game-message.ready { color: #5c8fff; }
   .game-message.go { color: #4caf50; font-weight: bold; font-size: 18px; }
   .game-message.change { color: #fb8c00; font-weight: bold; }
+
+/* ═══════════════════════════════════════════════════════════════
+     PRACTICE PROGRESS TRACKER
+═══════════════════════════════════════════════════════════════ */
+  .progress-panel { background: #0d0d0d; border: 1px solid #222; margin-bottom: 18px; }
+  .progress-panel-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 9px 14px; cursor: pointer; user-select: none;
+  }
+  .progress-panel-header:hover { background: #131313; }
+  .progress-panel-title {
+    font-family: Arial, sans-serif; font-size: 11px; font-weight: bold;
+    letter-spacing: .12em; text-transform: uppercase; color: #fff;
+  }
+  .progress-panel-chevron { color: #666; font-size: 10px; }
+  .progress-panel-body { padding: 0 14px 14px; border-top: 1px solid #1a1a1a; }
+  .progress-stats-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+    margin-top: 12px; margin-bottom: 14px;
+  }
+  .progress-stat-block { background: #111; border: 1px solid #1a1a1a; padding: 7px 9px; }
+  .progress-stat-label {
+    font-family: Arial, sans-serif; font-size: 8px; color: #555;
+    letter-spacing: .08em; text-transform: uppercase; margin-bottom: 3px;
+  }
+  .progress-stat-val { font-family: 'Courier New', monospace; font-size: 13px; color: #4caf50; }
+  .progress-cols { display: flex; gap: 16px; flex-wrap: wrap; }
+  .progress-col { flex: 1; min-width: 220px; }
+  .progress-col-title {
+    font-family: Arial, sans-serif; font-size: 9px; color: #666;
+    letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .prog-pair-row {
+    display: flex; justify-content: space-between; gap: 8px;
+    font-family: 'Courier New', monospace; font-size: 9px; color: #999;
+    padding: 3px 0; border-bottom: 1px solid #161616;
+  }
+  .prog-pair-name { color: #5c8fff; font-weight: bold; }
+  .heatmap-grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 3px; max-width: 240px; }
+  .heatmap-cell { aspect-ratio: 1; border-radius: 2px; background: #1a1a1a; }
+  .heatmap-cell[data-level="1"] { background: #0d4429; }
+  .heatmap-cell[data-level="2"] { background: #006d32; }
+  .heatmap-cell[data-level="3"] { background: #26a641; }
+  .heatmap-cell[data-level="4"] { background: #39d353; }

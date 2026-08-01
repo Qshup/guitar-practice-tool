@@ -654,6 +654,7 @@ function toggleRiffPlay(riffId) {
 function startRiffPlay(riffId) {
   const [gi, ri] = riffId.split('-').map(Number);
   const riff = RIFF_LIBRARY[gi].riffs[ri];
+  if (typeof recordRiffPlayed === 'function') recordRiffPlayed(riffId, riff.title);
   const btn = document.getElementById(`riff-btn-${riffId}`);
   const speedEl = document.getElementById(`riff-speed-${riffId}`);
   const speed = speedEl ? parseFloat(speedEl.value) : 1.0;
