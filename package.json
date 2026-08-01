@@ -1,0 +1,12 @@
+{
+  "name": "guitar-practice-tool",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Guitar scale/chord/riff practice tool",
+  "scripts": {
+    "start": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --open=index.html --browser=\"C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe\""
+  },
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}
