@@ -148,21 +148,30 @@
   .scale-entry-note { font-family: Arial, sans-serif; font-size: 8px; color: #555; font-style: italic; }
   .zappa-tag { font-family: Arial, sans-serif; font-size: 7px; color: #ccb84a; letter-spacing: .08em; }
 
-  /* ── Mode Toggle ─────────────────────────────────────────── */
-  .mode-toggle-bar {
+  /* ── Nav Bar (5-mode) ────────────────────────────────────── */
+  .nav-bar {
     display: flex; align-items: center; gap: 0;
     margin-bottom: 16px; border: 1px solid #333; width: fit-content;
+    max-width: 100%; overflow-x: auto;
   }
-  .mode-toggle-btn {
-    padding: 8px 22px; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold;
-    border: none; cursor: pointer; letter-spacing: .06em; text-transform: uppercase;
-    transition: all .2s; background: #1a1a1a; color: #444;
+  .nav-btn {
+    padding: 10px 24px; font-size: 11px; font-family: Arial, sans-serif; font-weight: bold;
+    border: none; cursor: pointer; letter-spacing: .08em; text-transform: uppercase;
+    transition: all .2s; background: #1a1a1a; color: #444; white-space: nowrap;
+    border-right: 1px solid #2a2a2a;
   }
-  .mode-toggle-btn.active { background: #fff; color: #000; }
-  .mode-toggle-btn.chord-mode-btn.active { background: #5c8fff; color: #000; }
-  .mode-divider {
-    width: 1px; background: #333; align-self: stretch;
-  }
+  .nav-btn:last-child { border-right: none; }
+  .nav-btn:hover { color: #ccc; }
+  .nav-btn.active { background: #fff; color: #000; }
+  .nav-btn.active[data-mode="chords"] { background: #5c8fff; color: #000; }
+  .nav-btn.active[data-mode="study"] { background: #ccb84a; color: #000; }
+  .nav-btn.active[data-mode="riffs"] { background: #4caf50; color: #000; }
+  .nav-btn.active[data-mode="songs"] { background: #e53935; color: #fff; }
+
+  /* ── Mode Panels ─────────────────────────────────────────── */
+  .mode-panel { display: none; }
+  .mode-panel.active { display: block; animation: modeFadeIn .2s ease; }
+  @keyframes modeFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   /* chord fretboard overlay dots */
   .note-dot.chord-dot {
@@ -194,23 +203,17 @@
   }
   .chord-seq-pill.done-chord { background: #1a2a1a; color: #4caf50; border-color: #2a4a2a; }
 
-  /* chord mode legend */
+  /* chord mode legend (always visible within the Chords mode-panel) */
   .chord-legend {
-    display: none; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;
+    display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; align-items: center;
     background: #0a0a14; border: 1px solid #1a1a3a; padding: 6px 10px;
   }
-  .chord-legend.visible { display: flex; }
 
-  /* chord controls strip (hidden in scale mode) */
+  /* chord controls strip (always visible within the Chords mode-panel) */
   .chord-controls-strip {
-    display: none; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-start;
+    display: flex; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; align-items: flex-start;
     background: #0d0d1a; border: 1px solid #1a1a3a; padding: 10px 14px;
   }
-  .chord-controls-strip.visible { display: flex; }
-
-  /* scale mode controls (hidden in chord mode) */
-  .scale-mode-only { transition: opacity .2s; }
-  .scale-mode-only.hidden { display: none; }
 
   /* ── Practice Tools ─────────────────────────────────────── */
   .practice-bar {

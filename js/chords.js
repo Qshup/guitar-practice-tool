@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// MODE TOGGLE — Scale Mode ↔ Chord Mode
+// CHORDS MODE — chord fretboard overlay, chord run-through
+// (top-level Scales↔Chords↔Study↔Riffs↔Songs navigation lives in js/nav.js)
 // ═══════════════════════════════════════════════════════════════════════════
-let appMode = 'scale'; // 'scale' | 'chord'
 
 // Chord mode state
 let chordModeState = {
@@ -19,37 +19,6 @@ const CHORD_TYPE_LIST = [
   {id:'power',label:'5th'},
 ];
 const SHAPE_COLORS_MAP = {C:'#e53935',A:'#fb8c00',G:'#c8b800',E:'#43a047',D:'#1e88e5'};
-
-function setMode(mode) {
-  appMode = mode;
-  const isChord = mode === 'chord';
-
-  document.getElementById('mode-scale-btn').classList.toggle('active', !isChord);
-  document.getElementById('mode-chord-btn').classList.toggle('active', isChord);
-
-  // Toggle visibility of scale-only elements
-  document.querySelectorAll('.scale-mode-only').forEach(el => {
-    el.classList.toggle('hidden', isChord);
-  });
-
-  // Chord controls strip
-  document.getElementById('chord-controls').classList.toggle('visible', isChord);
-  document.getElementById('chord-legend').classList.toggle('visible', isChord);
-
-  // Swap run panels
-  ges('scale-run-panel').style.display = isChord ? 'none' : '';
-  ges('chord-run-panel').style.display = isChord ? '' : 'none';
-
-  // Stop any running animation
-  if (runRunning) stopRun();
-  if (chordRunRunning) stopChordRun();
-
-  if (isChord) {
-    renderChordFretboard();
-  } else {
-    render();
-  }
-}
 
 // ── Build chord mode controls ─────────────────────────────────────────────
 function buildChordModeControls() {
@@ -178,7 +147,7 @@ const CHORD_INTERVALS_MAP = {
 };
 
 function renderChordFretboard() {
-  const fb = document.getElementById('fretboard');
+  const fb = document.getElementById('chord-fretboard');
   fb.querySelectorAll('.string-row,.fret-numbers').forEach(e=>e.remove());
 
   const frets = getChordFrets();
@@ -254,7 +223,7 @@ function renderChordFretboard() {
   });
 
   // Canvas arrows — highlight barre range
-  const canvas = document.getElementById('arrow-canvas');
+  const canvas = document.getElementById('chord-arrow-canvas');
   canvas.width = fb.offsetWidth||900; canvas.height = fb.offsetHeight||300;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0,0,canvas.width,canvas.height);

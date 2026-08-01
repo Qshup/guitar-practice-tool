@@ -20,6 +20,7 @@ function loadProgress() {
   if (!data.chordPairs) data.chordPairs = {};
   if (!data.riffTotals) data.riffTotals = {};
   if (!data.ui) data.ui = { panelCollapsed: false };
+  if (data.ui.activeNavMode === undefined) data.ui.activeNavMode = 'scales';
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
 }
