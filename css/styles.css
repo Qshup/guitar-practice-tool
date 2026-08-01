@@ -823,6 +823,36 @@
   .game-drawer .game-layout { grid-template-columns: 1fr; gap: 16px; }
 
 /* ═══════════════════════════════════════════════════════════════
+     FRETBOARD QUIZ
+═══════════════════════════════════════════════════════════════ */
+  .quiz-header-row {
+    display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .quiz-prompt-box { flex: 1; min-width: 260px; }
+  .quiz-prompt {
+    font-family: Arial, sans-serif; font-size: 15px; font-weight: bold; color: #fff;
+    line-height: 1.4; margin-bottom: 6px;
+  }
+  .quiz-explanation {
+    font-family: 'Courier New', monospace; font-size: 10px; color: #ccb84a; line-height: 1.6; min-height: 14px;
+  }
+  .fq-accuracy-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .fq-type-stat {
+    background: #111; border: 1px solid #1a1a1a; padding: 5px 10px;
+    font-family: 'Courier New', monospace; font-size: 9px; color: #888; display: flex; gap: 6px;
+  }
+  .fq-type-label { color: #5c8fff; font-weight: bold; }
+
+  /* quiz fretboard dot states */
+  .note-dot.quiz-blank { border: 1.5px dashed #333; background: transparent; cursor: pointer; }
+  .note-dot.quiz-blank:hover { border-color: #777; background: #1a1a1a; }
+  .note-dot.quiz-given { background: #2a2a2a; color: #999; border-color: #444; cursor: default; }
+  .note-dot.quiz-correct { background: #4caf50 !important; color: #000 !important; border-color: #4caf50 !important; }
+  .note-dot.quiz-wrong { background: #e53935 !important; color: #fff !important; border-color: #e53935 !important; }
+  .note-dot.quiz-reveal { background: #ccb84a !important; color: #000 !important; border-color: #ccb84a !important; }
+
+/* ═══════════════════════════════════════════════════════════════
      PRACTICE PROGRESS TRACKER
 ═══════════════════════════════════════════════════════════════ */
   .progress-panel { background: #0d0d0d; border: 1px solid #222; margin-bottom: 18px; }

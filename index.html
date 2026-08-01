@@ -679,12 +679,42 @@
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       FRETBOARD QUIZ (placeholder — built out in a later phase)
+       FRETBOARD QUIZ — note / scale-position / chord-position identification
   ═══════════════════════════════════════════════════════════════ -->
   <div class="subtab-panel" id="study-subtab-quiz">
-    <div style="font-family:Arial,sans-serif;color:#555;padding:60px 20px;text-align:center;font-size:12px">
-      Fretboard Quiz — note/scale-position/chord-position identification with a streak-driven
-      difficulty ladder — is coming in the next phase.
+    <div class="quiz-header-row">
+      <div class="quiz-prompt-box">
+        <div class="quiz-prompt" id="quiz-prompt">Press Start to begin</div>
+        <div class="quiz-explanation" id="quiz-explanation"></div>
+      </div>
+      <div class="game-score-row">
+        <div class="score-block">
+          <div class="score-val" id="fq-streak">0</div>
+          <div class="score-label">Streak</div>
+        </div>
+        <div class="score-block">
+          <div class="score-val" id="fq-best">0</div>
+          <div class="score-label">Best</div>
+        </div>
+        <div class="score-block">
+          <div class="score-val" id="fq-level">1</div>
+          <div class="score-label">Level</div>
+        </div>
+        <div class="score-block">
+          <div class="score-val" id="fq-accuracy">—</div>
+          <div class="score-label">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fq-accuracy-row" id="fq-accuracy-by-type"></div>
+
+    <button class="big-btn btn-run" id="fq-start-btn" onclick="toggleFretboardQuiz()">▶ START QUIZ</button>
+
+    <div class="fretboard-wrap">
+      <div class="fretboard" id="quiz-fretboard">
+        <div class="nut"></div>
+      </div>
     </div>
   </div>
 
@@ -737,6 +767,7 @@
 <script src="js/game.js"></script>
 <script src="js/progress.js"></script>
 <script src="js/study.js"></script>
+<script src="js/quiz.js"></script>
 <script src="js/nav.js"></script>
 </body>
 </html>

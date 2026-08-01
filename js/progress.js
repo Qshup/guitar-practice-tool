@@ -5,8 +5,18 @@
 const PROGRESS_KEY = 'gpt_progress';
 const PROGRESS_VERSION = 1;
 
+function defaultFretboardQuizProgress() {
+  return {
+    accuracyByType: { note:{correct:0,attempts:0}, scalePos:{correct:0,attempts:0}, chordPos:{correct:0,attempts:0} },
+    missedItems: {},
+    bestStreak: 0,
+    tierUnlocked: { note:true, scalePos:false, chordPos:false },
+    totalQuestions: 0,
+  };
+}
+
 function defaultProgress() {
-  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: false } };
+  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress() };
 }
 
 function loadProgress() {
@@ -23,8 +33,25 @@ function loadProgress() {
   if (data.ui.activeNavMode === undefined) data.ui.activeNavMode = 'scales';
   if (data.ui.activeChordSubtab === undefined) data.ui.activeChordSubtab = 'reference';
   if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
+  if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
+}
+
+function recordFretboardQuizAnswer(tier, correct, itemKey, itemLabel) {
+  const data = loadProgress();
+  const fq = data.fretboardQuiz;
+  fq.totalQuestions++;
+  const stat = fq.accuracyByType[tier];
+  stat.attempts++;
+  if (correct) {
+    stat.correct++;
+  } else {
+    const m = fq.missedItems[itemKey] || (fq.missedItems[itemKey] = { missCount: 0, label: itemLabel });
+    m.missCount++;
+    m.label = itemLabel;
+  }
+  saveProgress(data);
 }
 
 function saveProgress(data) {
