@@ -862,6 +862,45 @@
   .note-dot.quiz-reveal { background: #ccb84a !important; color: #000 !important; border-color: #ccb84a !important; }
 
 /* ═══════════════════════════════════════════════════════════════
+     SONGS MODE
+═══════════════════════════════════════════════════════════════ */
+  .songs-status {
+    display: none; font-family: 'Courier New', monospace; font-size: 10px; color: #ccb84a;
+    background: #1a1600; border: 1px solid #443a00; padding: 8px 12px; margin-bottom: 14px;
+  }
+  .songs-status.visible { display: block; }
+  .songs-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px;
+  }
+  .song-card {
+    background: #111; border: 1px solid #222; padding: 16px; cursor: pointer;
+    transition: border-color .15s; position: relative;
+  }
+  .song-card:hover { border-color: #555; }
+  .song-card-title {
+    font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; color: #fff; margin-bottom: 4px;
+  }
+  .song-card-artist {
+    font-family: Arial, sans-serif; font-size: 10px; color: #888; margin-bottom: 12px;
+  }
+  .song-card-meta { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .song-card-key {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #5c8fff;
+    border: 1px solid #1a1a3a; background: #0a0a14; padding: 2px 8px;
+  }
+  .song-card-difficulty {
+    font-family: Arial, sans-serif; font-size: 8px; letter-spacing: .06em; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 2px;
+  }
+  .song-diff-beginner { background: #0d1a0d; color: #4caf50; border: 1px solid #1e3a1e; }
+  .song-diff-intermediate { background: #1a1600; color: #ccb84a; border: 1px solid #443a00; }
+  .song-diff-advanced { background: #2a1a1a; color: #e53935; border: 1px solid #4a2a2a; }
+  .song-card-coming {
+    font-family: Arial, sans-serif; font-size: 8px; letter-spacing: .1em; text-transform: uppercase;
+    color: #444; border-top: 1px solid #1a1a1a; padding-top: 8px;
+  }
+
+/* ═══════════════════════════════════════════════════════════════
      PRACTICE PROGRESS TRACKER
 ═══════════════════════════════════════════════════════════════ */
   .progress-panel { background: #0d0d0d; border: 1px solid #222; margin-bottom: 18px; }

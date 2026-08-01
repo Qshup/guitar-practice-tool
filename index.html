@@ -789,9 +789,13 @@
      SONGS MODE (placeholder — built out in a later phase)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-songs">
-  <div style="font-family:Arial,sans-serif;color:#555;padding:60px 20px;text-align:center;font-size:12px">
-    Songs mode is coming soon.
-  </div>
+  <div class="riff-title">Song Library</div>
+  <div class="riff-subtitle">Full-song practice mode — pick a song below. Each one launches a dedicated practice
+    flow in a future update; for now, click a card to see what's coming.</div>
+
+  <div class="songs-status" id="songs-status"></div>
+
+  <div class="songs-grid" id="songs-grid"></div>
 </div>
 
 <script src="js/vendor/Tone.js"></script>
@@ -804,6 +808,7 @@
 <script src="js/progress.js"></script>
 <script src="js/study.js"></script>
 <script src="js/quiz.js"></script>
+<script src="js/songs.js"></script>
 <script src="js/nav.js"></script>
 </body>
 </html>
