@@ -85,22 +85,28 @@ let cagedState = {
   type: 'maj',
 };
 
-// Build key buttons for CAGED
+// Build key buttons for CAGED — one row lives in Chords/Reference (#caged-key-btns),
+// a second lives in Study/Flashcards (#study-flashcard-key-btns) since the quiz moved
+// to a different mode than the shape/theory viewer. Both rows stay in sync by key value.
 const cagedKeys = ['C','G','D','A','E','B','F#','Bb','Eb','Ab','Db','F'];
-const cagedKeyBtns = document.getElementById('caged-key-btns');
-cagedKeys.forEach((k,i) => {
-  const b = document.createElement('button');
-  b.textContent = k; b.dataset.group = 'caged-key';
-  if (i===0) b.classList.add('active');
-  b.onclick = () => {
-    document.querySelectorAll('[data-group="caged-key"]').forEach(x=>x.classList.remove('active'));
-    b.classList.add('active');
-    cagedState.key = k;
-    renderCaged();
-    buildQuizDeck();
-  };
-  cagedKeyBtns.appendChild(b);
-});
+function buildCagedKeyRow(containerId) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = '';
+  cagedKeys.forEach(k => {
+    const b = document.createElement('button');
+    b.textContent = k; b.dataset.group = 'caged-key'; b.dataset.key = k;
+    if (k === cagedState.key) b.classList.add('active');
+    b.onclick = () => {
+      cagedState.key = k;
+      document.querySelectorAll('[data-group="caged-key"]').forEach(x => x.classList.toggle('active', x.dataset.key === k));
+      renderCaged();
+      buildQuizDeck();
+    };
+    el.appendChild(b);
+  });
+}
+buildCagedKeyRow('caged-key-btns');
 
 // Build chord type buttons
 const typeRow = document.getElementById('chord-type-btns');
@@ -544,3 +550,4 @@ function setQuizMode(mode, btn) {
 // ── Init CAGED ─────────────────────────────────────────────────────────────
 renderCaged();
 buildQuizDeck();
+buildCagedKeyRow('study-flashcard-key-btns');

@@ -264,8 +264,9 @@ function buildScalesList() {
 }
 
 // ── Circle of 5ths ────────────────────────────────────────────────────────────
-function renderCircle(scaleNotes) {
-  const svg = document.getElementById('circle-svg');
+function renderCircle(scaleNotes, svgId, legendId) {
+  svgId = svgId || 'circle-svg'; legendId = legendId || 'circle-legend';
+  const svg = document.getElementById(svgId);
   const cx=110,cy=110,R=78,labelR=98;
   function circIdx(n) {
     const nn=norm(n); let i=CIRCLE_ORDER.indexOf(nn);
@@ -310,7 +311,7 @@ function renderCircle(scaleNotes) {
   out+=`<text x="${cx}" y="${cy-5}" text-anchor="middle" font-size="9" fill="#333" font-family="Arial">Circle</text>`;
   out+=`<text x="${cx}" y="${cy+7}" text-anchor="middle" font-size="9" fill="#333" font-family="Arial">of 5ths</text>`;
   svg.innerHTML=out;
-  document.getElementById('circle-legend').innerHTML=
+  document.getElementById(legendId).innerHTML=
     `<span style="color:${sc&&sc.zappa?'#ccb84a':'#fff'}">●</span> Root &nbsp;<span style="color:#999">●</span> Scale notes in order<br>${sc&&sc.zappa?'<span style="color:#ccb84a">★ Zappa scale active</span>':'Lines connect active notes'}`;
 }
 
@@ -429,8 +430,8 @@ function drawArrow(ctx,x1,y1,x2,y2,color,width){
 }
 
 // ── Info Cards ────────────────────────────────────────────────────────────────
-function renderInfo(sc,scaleNotes) {
-  const box=document.getElementById('info-box');
+function renderInfo(sc,scaleNotes,boxId) {
+  const box=document.getElementById(boxId||'info-box');
   const moods={
     minpent:'Dark, emotional, bluesy. Backbone of Hazel, Ronson, Dean Ween. Zappa\'s own foundation.',
     majpent:'Bright, open, melodic. Knopfler lives here. Country-tinged and resolved.',

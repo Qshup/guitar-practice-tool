@@ -22,6 +22,7 @@ function loadProgress() {
   if (!data.ui) data.ui = { panelCollapsed: false };
   if (data.ui.activeNavMode === undefined) data.ui.activeNavMode = 'scales';
   if (data.ui.activeChordSubtab === undefined) data.ui.activeChordSubtab = 'reference';
+  if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
 }

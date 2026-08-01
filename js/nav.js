@@ -32,6 +32,7 @@ function switchMode(mode) {
     renderChordFretboard();
     if (typeof switchChordSubtab === 'function') switchChordSubtab(data.ui.activeChordSubtab);
   }
+  if (mode === 'study' && typeof switchStudySubtab === 'function') switchStudySubtab(data.ui.activeStudySubtab);
 
   data.ui.activeNavMode = mode;
   saveProgress(data);

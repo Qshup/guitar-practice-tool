@@ -330,43 +330,6 @@
         </div>
       </div>
 
-      <!-- Flashcard quiz (moves to Study mode in a later phase) -->
-      <div class="quiz-panel">
-        <h3>
-          <span>Chord Flashcard Quiz</span>
-          <div style="display:flex;gap:6px">
-            <button class="quiz-mode-btn active" id="qm-name" onclick="setQuizMode('name',this)">Name→Shape</button>
-            <button class="quiz-mode-btn" id="qm-notes" onclick="setQuizMode('notes',this)">Notes→Chord</button>
-            <button class="quiz-mode-btn" id="qm-caged" onclick="setQuizMode('caged',this)">CAGED position</button>
-          </div>
-        </h3>
-        <div class="quiz-inner">
-          <div>
-            <div class="flashcard" id="flashcard" onclick="revealCard()">
-              <div class="fc-question" id="fc-q">?</div>
-              <div class="fc-sub" id="fc-sub">Click to reveal</div>
-              <div class="fc-answer" id="fc-ans"></div>
-            </div>
-            <div class="quiz-nav">
-              <button onclick="prevCard()">← Prev</button>
-              <button onclick="nextCard()">Next →</button>
-              <button onclick="shuffleCards()">Shuffle</button>
-            </div>
-            <div class="quiz-result" id="quiz-result"></div>
-          </div>
-          <div class="quiz-controls">
-            <div class="ctrl-label" style="font-family:Arial;font-size:9px;color:#555;letter-spacing:.1em">SELF GRADE</div>
-            <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="gradeCard(true)">✓ Got it</button>
-            <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="gradeCard(false)">✗ Missed</button>
-            <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
-            <div style="font-family:Arial;font-size:9px;color:#333;margin-top:8px;line-height:1.6">
-              Cards cycle through<br>all chord types<br>in the current key.<br><br>
-              Missed cards repeat<br>more often.
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- CAGED explainer -->
       <div class="caged-explainer" style="margin-top:14px">
         <h3>What is the CAGED System?</h3>
@@ -659,13 +622,88 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
-     STUDY MODE (placeholder — Flashcards/Fretboard Quiz/Theory sub-tabs
-     are built out in a later phase)
+     STUDY MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-study">
-  <div style="font-family:Arial,sans-serif;color:#555;padding:60px 20px;text-align:center;font-size:12px">
-    Study mode — Flashcards, Fretboard Quiz, and Theory sub-tabs are coming in the next phase.
+
+  <div class="subtab-bar">
+    <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
+    <button class="subtab-btn" data-subtab="quiz" onclick="switchStudySubtab('quiz')">Fretboard Quiz</button>
+    <button class="subtab-btn" data-subtab="theory" onclick="switchStudySubtab('theory')">Theory</button>
   </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FLASHCARDS — chord flashcard quiz (relocated from CAGED/Reference)
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="subtab-panel active" id="study-subtab-flashcards">
+    <div class="ctrl-group" style="margin-bottom:14px">
+      <div class="ctrl-label">Key</div>
+      <div class="btn-row" id="study-flashcard-key-btns"></div>
+    </div>
+
+    <div class="quiz-panel">
+      <h3>
+        <span>Chord Flashcard Quiz</span>
+        <div style="display:flex;gap:6px">
+          <button class="quiz-mode-btn active" id="qm-name" onclick="setQuizMode('name',this)">Name→Shape</button>
+          <button class="quiz-mode-btn" id="qm-notes" onclick="setQuizMode('notes',this)">Notes→Chord</button>
+          <button class="quiz-mode-btn" id="qm-caged" onclick="setQuizMode('caged',this)">CAGED position</button>
+        </div>
+      </h3>
+      <div class="quiz-inner">
+        <div>
+          <div class="flashcard" id="flashcard" onclick="revealCard()">
+            <div class="fc-question" id="fc-q">?</div>
+            <div class="fc-sub" id="fc-sub">Click to reveal</div>
+            <div class="fc-answer" id="fc-ans"></div>
+          </div>
+          <div class="quiz-nav">
+            <button onclick="prevCard()">← Prev</button>
+            <button onclick="nextCard()">Next →</button>
+            <button onclick="shuffleCards()">Shuffle</button>
+          </div>
+          <div class="quiz-result" id="quiz-result"></div>
+        </div>
+        <div class="quiz-controls">
+          <div class="ctrl-label" style="font-family:Arial;font-size:9px;color:#555;letter-spacing:.1em">SELF GRADE</div>
+          <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="gradeCard(true)">✓ Got it</button>
+          <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="gradeCard(false)">✗ Missed</button>
+          <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
+          <div style="font-family:Arial;font-size:9px;color:#333;margin-top:8px;line-height:1.6">
+            Cards cycle through<br>all chord types<br>in the current key.<br><br>
+            Missed cards repeat<br>more often.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       FRETBOARD QUIZ (placeholder — built out in a later phase)
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="subtab-panel" id="study-subtab-quiz">
+    <div style="font-family:Arial,sans-serif;color:#555;padding:60px 20px;text-align:center;font-size:12px">
+      Fretboard Quiz — note/scale-position/chord-position identification with a streak-driven
+      difficulty ladder — is coming in the next phase.
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       THEORY — circle of 5ths, key relationships, scale theory cards
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="subtab-panel" id="study-subtab-theory">
+    <div class="bottom-section" style="margin-top:0">
+      <div class="circle-panel">
+        <h2>Circle of 5ths</h2>
+        <svg id="theory-circle-svg" width="220" height="220"></svg>
+        <div id="theory-circle-legend" style="font-family:Arial,sans-serif;font-size:9px;color:#555;margin-top:8px;line-height:1.7;"></div>
+      </div>
+      <div class="right-panel">
+        <div class="info-box" id="theory-info-box"></div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -698,6 +736,7 @@
 <script src="js/riffs.js"></script>
 <script src="js/game.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/study.js"></script>
 <script src="js/nav.js"></script>
 </body>
 </html>
