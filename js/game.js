@@ -739,35 +739,61 @@ function drawGuitarNeck() {
   const W = canvas.width, H = canvas.height;
   ctx.clearRect(0, 0, W, H);
 
-  // ── Guitar body silhouette ──
+  // ── Guitar body silhouette ── Strat/Pacifica-style double cutaway, not a soundhole acoustic blob
   const neckW = 36, neckX = W/2 - neckW/2;
   const headX = W/2 - 20, headW = 40;
   const neckTop = 60, neckBottom = 380;
-  const bodyY = 340, bodyH = 120, bodyW = 110;
+  const bodyY = 340;
   const bridgeY = neckBottom + 22;
+  const bx = W/2;
 
-  // Body (waisted guitar shape using bezier)
+  const bodyTop = bodyY;
+  const bodyBottom = H - 20;
+  const waistY = bodyTop + (bodyBottom - bodyTop) * 0.28;
+  const lowerY = bodyTop + (bodyBottom - bodyTop) * 0.62;
+  const upperBoutHalfW = 46;
+  const waistHalfW = 40;
+  const lowerBoutHalfW = 62;
+  const hornTipHalfW = 56;
+  const hornLeftLen = 24;  // upper (bass-side) horn — shorter, like a real offset double-cutaway
+  const hornRightLen = 38; // lower (treble-side) horn — longer, gives upper-fret access
+
   ctx.fillStyle = '#1a1200';
   ctx.strokeStyle = '#4a3a10';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  const bx = W/2;
-  ctx.moveTo(bx - neckW/2, bodyY);
-  ctx.bezierCurveTo(bx - bodyW/2, bodyY, bx - bodyW/2, bodyY + bodyH*0.3, bx - bodyW/2, bodyY + bodyH*0.5);
-  ctx.bezierCurveTo(bx - bodyW/2, bodyY + bodyH*0.8, bx - bodyW*0.4, bodyY + bodyH, bx, bodyY + bodyH);
-  ctx.bezierCurveTo(bx + bodyW*0.4, bodyY + bodyH, bx + bodyW/2, bodyY + bodyH*0.8, bx + bodyW/2, bodyY + bodyH*0.5);
-  ctx.bezierCurveTo(bx + bodyW/2, bodyY + bodyH*0.3, bx + bodyW/2, bodyY, bx + neckW/2, bodyY);
+  ctx.moveTo(bx - neckW/2, bodyTop);
+  ctx.bezierCurveTo(bx - neckW/2 - 6, bodyTop - hornLeftLen*0.5, bx - hornTipHalfW*0.6, bodyTop - hornLeftLen, bx - hornTipHalfW, bodyTop - hornLeftLen*0.6);
+  ctx.bezierCurveTo(bx - upperBoutHalfW, bodyTop, bx - waistHalfW, waistY - 10, bx - waistHalfW, waistY);
+  ctx.bezierCurveTo(bx - waistHalfW - 4, waistY + 20, bx - lowerBoutHalfW, lowerY - 10, bx - lowerBoutHalfW, lowerY);
+  ctx.bezierCurveTo(bx - lowerBoutHalfW, bodyBottom - 10, bx - lowerBoutHalfW*0.5, bodyBottom, bx, bodyBottom);
+  ctx.bezierCurveTo(bx + lowerBoutHalfW*0.5, bodyBottom, bx + lowerBoutHalfW, bodyBottom - 10, bx + lowerBoutHalfW, lowerY);
+  ctx.bezierCurveTo(bx + lowerBoutHalfW, waistY + 20, bx + waistHalfW + 4, waistY - 10, bx + waistHalfW, waistY);
+  ctx.bezierCurveTo(bx + waistHalfW, bodyTop - 5, bx + upperBoutHalfW, bodyTop - hornRightLen*0.7, bx + hornTipHalfW, bodyTop - hornRightLen);
+  ctx.bezierCurveTo(bx + hornTipHalfW*0.5, bodyTop - hornRightLen*0.5, bx + neckW/2 + 10, bodyTop - hornRightLen*0.3, bx + neckW/2, bodyTop);
   ctx.closePath();
   ctx.fill(); ctx.stroke();
 
-  // Soundhole
-  const shY = bodyY + bodyH*0.38, shR = 18;
-  ctx.strokeStyle='#6a5020'; ctx.lineWidth=1.5;
-  ctx.beginPath(); ctx.arc(bx, shY, shR, 0, Math.PI*2); ctx.stroke();
+  // Pickups (3 single-coils, HSS/SSS-ish layout) between the bridge and neck join
+  ctx.fillStyle = '#0a0a0a'; ctx.strokeStyle = '#333';
+  [0.18, 0.36, 0.52].forEach(t => {
+    const py = bodyTop + (bodyBottom - bodyTop) * t;
+    ctx.beginPath();
+    ctx.roundRect(bx - 16, py, 32, 9, 3);
+    ctx.fill(); ctx.stroke();
+  });
 
-  // Bridge
+  // Control knobs
+  ctx.fillStyle = '#ddd'; ctx.strokeStyle = '#888';
+  [[bx - 22, bodyTop + (bodyBottom-bodyTop)*0.72], [bx + 22, bodyTop + (bodyBottom-bodyTop)*0.72], [bx, bodyTop + (bodyBottom-bodyTop)*0.82]].forEach(([kx,ky]) => {
+    ctx.beginPath(); ctx.arc(kx, ky, 4, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+  });
+
+  // Bridge with individual saddles
   ctx.fillStyle='#3a2a08'; ctx.strokeStyle='#6a5020'; ctx.lineWidth=1;
   ctx.fillRect(bx-25, bridgeY, 50, 6); ctx.strokeRect(bx-25, bridgeY, 50, 6);
+  ctx.fillStyle = '#999';
+  for (let i=0;i<6;i++) { ctx.fillRect(bx-22+i*8, bridgeY+1.5, 4, 3); }
 
   // Neck background
   ctx.fillStyle='#2a1a06';
@@ -809,11 +835,14 @@ function drawGuitarNeck() {
   ctx.fillRect(bx-neckTopW/2-1, neckTop-2, neckTopW+2, 4);
 
   // ── Frets ──
+  // Physically-accurate spacing: fret n sits at 1 - 1/2^(n/12) of the scale length
+  // (frets compress logarithmically toward the body), normalized so fret NUM_FRETS
+  // still lands exactly at neckBottom.
   const NUM_FRETS = 15;
   const fretPositions = []; // y positions of frets
-  // Frets narrow as they go up the neck
+  const maxFretRatio = 1 - 1 / Math.pow(2, NUM_FRETS / 12);
   for (let f=0; f<=NUM_FRETS; f++) {
-    const ratio = f / NUM_FRETS;
+    const ratio = (1 - 1 / Math.pow(2, f / 12)) / maxFretRatio;
     const y = neckTop + ratio * (neckBottom - neckTop);
     fretPositions.push(y);
     if (f > 0) {
@@ -904,7 +933,12 @@ function drawGuitarNeck() {
   // Draw chord dots on neck
   const rootNote = chordName.replace(/m$|7$|maj7$|m7$|dim$|aug$/,'');
   const rootMidi = CHROMATIC.indexOf(norm(rootNote));
-  const chordIntervals = CHORD_INTERVALS_MAP[chord.type || 'maj'] || [0,4,7];
+  // GAME_CHORDS entries have no .type field — quality is only encoded in the name
+  // suffix (bare/m/7). Derive it from the name itself rather than a field that's
+  // always undefined (which silently made every chord color as if it were major).
+  const chordIntervals = /7$/.test(chordName) ? CHORD_INTERVALS_MAP['7']
+                        : /m$/.test(chordName) ? CHORD_INTERVALS_MAP['min']
+                        : CHORD_INTERVALS_MAP['maj'];
 
   const dotColors = { root:'#fff', third:'#5c8fff', fifth:'#4caf50', seventh:'#fb8c00', other:'#aaa' };
 
@@ -912,10 +946,9 @@ function drawGuitarNeck() {
     const nMidi = CHROMATIC.indexOf(norm(noteName));
     const diff = (nMidi - rootMidi + 12) % 12;
     if (diff===0) return dotColors.root;
-    const intervals = CHORD_INTERVALS_MAP[chordName.includes('m')&&!chordName.includes('maj')?'min':'maj'] || [0,4,7];
-    if (diff===intervals[1]) return dotColors.third;
-    if (diff===intervals[2]) return dotColors.fifth;
-    if (intervals[3] && diff===intervals[3]) return dotColors.seventh;
+    if (diff===chordIntervals[1]) return dotColors.third;
+    if (diff===chordIntervals[2]) return dotColors.fifth;
+    if (chordIntervals[3] && diff===chordIntervals[3]) return dotColors.seventh;
     return dotColors.other;
   }
 
