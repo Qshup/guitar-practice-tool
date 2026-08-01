@@ -315,60 +315,73 @@ function renderCircle(scaleNotes, svgId, legendId) {
     `<span style="color:${sc&&sc.zappa?'#ccb84a':'#fff'}">●</span> Root &nbsp;<span style="color:#999">●</span> Scale notes in order<br>${sc&&sc.zappa?'<span style="color:#ccb84a">★ Zappa scale active</span>':'Lines connect active notes'}`;
 }
 
+// ── Fret grid builder (shared DOM-building boilerplate) ────────────────────
+// Clears container, builds the fret-number row and 6 string rows of
+// .fret-cell > .note-dot, and calls decorate(cell, dot, string, fret) for
+// each cell so the caller supplies note/highlight content. Returns the
+// visual string order (high e on top) used for arrow/coordinate math.
+function buildFretGrid(container, decorate, fretsCount) {
+  fretsCount = fretsCount || FRETS;
+  container.querySelectorAll('.string-row,.fret-numbers').forEach(e=>e.remove());
+  const fnRow=document.createElement('div'); fnRow.className='fret-numbers';
+  for(let f=0;f<fretsCount;f++){
+    const d=document.createElement('div'); d.className='fret-num'; d.style.width=FRET_W+'px';
+    d.textContent=[0,3,5,7,9,12,15].includes(f)?f:''; fnRow.appendChild(d);
+  }
+  container.insertBefore(fnRow,container.querySelector('.nut').nextSibling);
+
+  const stringOrder=[5,4,3,2,1,0];
+  stringOrder.forEach(si=>{
+    const row=document.createElement('div'); row.className='string-row';
+    const label=document.createElement('div'); label.className='string-name'; label.textContent=STRING_LABELS[si]; row.appendChild(label);
+    const sl=document.createElement('div'); sl.className='string-line'; row.appendChild(sl);
+    const fd=document.createElement('div'); fd.className='frets';
+    for(let f=0;f<fretsCount;f++){
+      const cell=document.createElement('div'); cell.className='fret-cell'; cell.style.width=FRET_W+'px';
+      const dot=document.createElement('div'); dot.className='note-dot';
+      decorate(cell,dot,si,f);
+      cell.appendChild(dot); fd.appendChild(cell);
+    }
+    row.appendChild(fd); container.appendChild(row);
+  });
+  return stringOrder;
+}
+
 // ── Fretboard ─────────────────────────────────────────────────────────────────
 function render() {
   const sc=currentScale();
   const fb=document.getElementById('fretboard');
-  fb.querySelectorAll('.string-row,.fret-numbers').forEach(e=>e.remove());
   const allNotes=allScaleFrets(state.key,sc.intervals);
   const boxNotes=getBoxNotes(state.key,sc.intervals,state.pos);
   const boxMap={},allMap={};
   boxNotes.forEach(n=>{boxMap[`${n.string}-${n.fret}`]=n;});
   allNotes.forEach(n=>{allMap[`${n.string}-${n.fret}`]=n;});
 
-  const fnRow=document.createElement('div'); fnRow.className='fret-numbers';
-  for(let f=0;f<FRETS;f++){
-    const d=document.createElement('div'); d.className='fret-num'; d.style.width=FRET_W+'px';
-    d.textContent=[0,3,5,7,9,12,15].includes(f)?f:''; fnRow.appendChild(d);
-  }
-  fb.insertBefore(fnRow,fb.querySelector('.nut').nextSibling);
-
-  const stringOrder=[5,4,3,2,1,0];
   const fingerMap = state.showFingers ? assignFingers(boxNotes) : {};
 
-  stringOrder.forEach(si=>{
-    const row=document.createElement('div'); row.className='string-row';
-    const label=document.createElement('div'); label.className='string-name'; label.textContent=STRING_LABELS[si]; row.appendChild(label);
-    const sl=document.createElement('div'); sl.className='string-line'; row.appendChild(sl);
-    const fd=document.createElement('div'); fd.className='frets';
-    for(let f=0;f<FRETS;f++){
-      const cell=document.createElement('div'); cell.className='fret-cell'; cell.style.width=FRET_W+'px';
-      const dot=document.createElement('div'); dot.className='note-dot';
-      const k=`${si}-${f}`, bn=boxMap[k], an=allMap[k];
-      if(bn){
-        dot.classList.add(`order-${bn.order}`);
-        dot.textContent=bn.note;
-        if(sc.zappa) dot.classList.add('zappa-note');
-        // Finger badge
-        if(state.showFingers){
-          const finger = fingerMap[k];
-          if(finger && finger > 0){
-            dot.classList.add('finger-mode');
-            dot.style.position = 'relative';
-            const badge = document.createElement('div');
-            badge.className = `finger-badge finger-${finger}`;
-            badge.textContent = finger;
-            dot.appendChild(badge);
-          }
+  const stringOrder = buildFretGrid(fb, (cell,dot,si,f) => {
+    const k=`${si}-${f}`, bn=boxMap[k], an=allMap[k];
+    if(bn){
+      dot.classList.add(`order-${bn.order}`);
+      dot.textContent=bn.note;
+      if(sc.zappa) dot.classList.add('zappa-note');
+      // Finger badge
+      if(state.showFingers){
+        const finger = fingerMap[k];
+        if(finger && finger > 0){
+          dot.classList.add('finger-mode');
+          dot.style.position = 'relative';
+          const badge = document.createElement('div');
+          badge.className = `finger-badge finger-${finger}`;
+          badge.textContent = finger;
+          dot.appendChild(badge);
         }
-      } else if(an){
-        dot.classList.add('scale-note'); dot.textContent=an.note;
-      } else {
-        dot.classList.add('empty');
       }
-      cell.appendChild(dot); fd.appendChild(cell);
+    } else if(an){
+      dot.classList.add('scale-note'); dot.textContent=an.note;
+    } else {
+      dot.classList.add('empty');
     }
-    row.appendChild(fd); fb.appendChild(row);
   });
 
   const canvas=document.getElementById('arrow-canvas');
