@@ -744,8 +744,44 @@
     <div class="riff-title">Scale Riff Library</div>
     <div class="riff-subtitle">Themed riffs for each scale — press ▶ Play to hear them, follow the tab, then incorporate into your own playing</div>
 
+    <div class="riff-controls">
+      <div class="riff-filter-group">
+        <span class="riff-filter-label">Player</span>
+        <select id="riff-filter-player" onchange="applyRiffFilters()">
+          <option value="all">All Players</option>
+          <option value="Dean Ween">Dean Ween</option>
+          <option value="Ronson">Mick Ronson</option>
+          <option value="Hazel">Eddie Hazel</option>
+          <option value="Knopfler">Mark Knopfler</option>
+          <option value="Zappa">Frank Zappa</option>
+        </select>
+      </div>
+      <div class="riff-filter-group">
+        <span class="riff-filter-label">Scale</span>
+        <select id="riff-filter-scale" onchange="applyRiffFilters()">
+          <option value="all">All Scales</option>
+        </select>
+      </div>
+      <div class="riff-filter-group">
+        <span class="riff-filter-label">Technique</span>
+        <select id="riff-filter-tag" onchange="applyRiffFilters()">
+          <option value="all">All Techniques</option>
+          <option value="bend">Bend</option>
+          <option value="vibrato">Vibrato</option>
+          <option value="fingerpicking">Fingerpicking</option>
+          <option value="whammy">Whammy</option>
+          <option value="space">Space</option>
+        </select>
+      </div>
+      <button class="riff-filter-clear" onclick="clearRiffFilters()">Clear Filters</button>
+    </div>
+
     <div class="riff-scale-tabs" id="riff-scale-tabs"></div>
     <div id="riff-panels"></div>
+    <div class="riff-panel" id="riff-filtered-panel" style="display:none">
+      <div class="riff-grid" id="riff-filtered-grid"></div>
+      <div id="riff-filtered-empty" style="display:none;font-family:Arial,sans-serif;font-size:10px;color:#555;padding:20px;text-align:center">No riffs match these filters yet.</div>
+    </div>
   </div>
 </div>
 

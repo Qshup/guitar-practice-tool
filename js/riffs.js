@@ -15,6 +15,7 @@ const RIFF_LIBRARY = [
       {
         title: 'Classic Blues-Rock Lick',
         key: 'E', mood: ['Blues','Rock','Hazel','Ronson'],
+        player: ['Ronson','Hazel','Dean Ween'], tags: ['bend','vibrato'],
         description: 'The most essential minor pentatonic lick. Bend the 7th fret on the G string up a whole step — that\'s the money note. Let it ring with vibrato at the top. This is the foundation of Ronson, Hazel, and Dean Ween\'s entire vocabulary.',
         techniques: ['Whole step bend','Vibrato','Pull-off'],
         tab: `e|--------------------------------|
@@ -31,6 +32,7 @@ E|--------------------------------|`,
       {
         title: 'Pentatonic Box Climb',
         key: 'A', mood: ['Rock','Exercise','Dean Ween'],
+        player: ['Dean Ween'], tags: ['vibrato'],
         description: 'Runs straight up and down position 1 in A minor pentatonic. Use this as your warm-up. Keep each note even — use a metronome. Once clean, add a slight rake and let notes slightly overlap for a bluesier feel.',
         techniques: ['Alternate picking','Position 1 box'],
         tab: `e|---5---8---|
@@ -51,6 +53,7 @@ E|---5---8---|`,
       {
         title: 'Call and Response Phrase',
         key: 'E', mood: ['Expressive','Space','Knopfler-style'],
+        player: ['Hazel','Knopfler'], tags: ['bend','vibrato','space'],
         description: 'Play the first phrase — pause 2 full seconds — then answer it. The silence is as important as the notes. This teaches Hazel and Knopfler\'s most important skill: space. Do not fill the gap.',
         techniques: ['Space','Vibrato','Dynamic control'],
         tab: `e|---0---3b4~~---3---0---|  (pause 2 sec)
@@ -76,6 +79,7 @@ E|-----------------------|`,
       {
         title: 'Knopfler Country Phrase',
         key: 'G', mood: ['Country','Melodic','Knopfler'],
+        player: ['Knopfler'], tags: ['fingerpicking','vibrato'],
         description: 'No pick — fingers only. Thumb on the low strings, index and middle on the treble. This is Knopfler\'s exact approach. Let every note ring and bleed into the next. The open G string drone underneath makes it sing.',
         techniques: ['Fingerpicking','Open string drone','Major pentatonic'],
         tab: `e|---3---5---3---0---|
@@ -93,6 +97,7 @@ E|---3---3---3---2---|`,
       {
         title: 'Bright Ascending Run',
         key: 'D', mood: ['Bright','Uplifting','Major feel'],
+        player: ['Knopfler'], tags: ['vibrato'],
         description: 'Pure major pentatonic brightness. This phrase resolves upward — it sounds finished and arrived. Notice how different it feels compared to the minor pentatonic. This is the sound of Sultans of Swing and Romeo and Juliet.',
         techniques: ['Ascending run','Major resolution'],
         tab: `e|---------10---12---14---|
@@ -118,6 +123,7 @@ E|---10---12--------------|`,
       {
         title: 'The Blue Note Bend',
         key: 'E', mood: ['Blues','Tension','Grit'],
+        player: ['Hazel','Dean Ween'], tags: ['bend'],
         description: 'The flat 5 (Bb) is the blue note — fret 6 on the B string. Bend it up slightly (quarter step, not a full half step) and let it clash. Then release to A. That dissonance is the entire sound of blues guitar. Hazel and Dean Ween both use this constantly.',
         techniques: ['Quarter bend','Blue note','b5 tension'],
         tab: `e|-----------------------------------|
@@ -135,6 +141,7 @@ E|-----------------------------------|`,
       {
         title: 'Slow Blues Cry',
         key: 'A', mood: ['Slow Blues','Hazel','Emotional'],
+        player: ['Hazel'], tags: ['bend','vibrato'],
         description: 'This is Maggot Brain territory. Play each note at half the speed you think is right. The bend on fret 8 should take a full second to arrive at the top — then hold it there with wide, slow vibrato. Count to 3 before the next note.',
         techniques: ['Slow bend','Wide vibrato','Space'],
         tab: `e|---8b10~~~~~~~~~~---8---5-----------|
@@ -152,6 +159,7 @@ E|------------------------------------|`,
       {
         title: 'Shuffle Turnaround',
         key: 'E', mood: ['Shuffle','12-bar','Rock'],
+        player: [], tags: ['vibrato'],
         description: 'Classic 12-bar blues turnaround. The rhythm is shuffle — long-short, long-short. Feel the swing in it. This is the backbone of every blues and rock rhythm part ever recorded.',
         techniques: ['Shuffle feel','Turnaround','Rhythm'],
         tab: `e|--------------------------------|
@@ -178,6 +186,7 @@ E|---0---0---0---0---0---0---0----|`,
       {
         title: 'Aeolian Descending Phrase',
         key: 'E', mood: ['Dark','Melodic','Mournful'],
+        player: ['Ronson'], tags: ['vibrato'],
         description: 'Descends through the full natural minor scale. The F# and C give it a more complete melodic character than the pentatonic — more notes to work with, more color. This is the phrasing style Ronson used in his composed solos.',
         techniques: ['Full scale run','Melodic descend','Classical phrasing'],
         tab: `e|---12---13---12---10---8---7---5---3---0---|
@@ -194,6 +203,7 @@ E|-------------------------------------------|`,
       {
         title: 'Dark Melodic Phrase',
         key: 'A', mood: ['Minor','Ronson','Tense'],
+        player: ['Ronson'], tags: ['vibrato'],
         description: 'Moves through the i, VI, VII progression (Am, F, G) using natural minor scale tones. This is the harmonic movement underneath a lot of classic rock — Bowie, Knopfler, Zappa all used it. The C note on the B string is what makes it feel minor and dark.',
         techniques: ['Position shift','i-VI-VII movement','Legato'],
         tab: `e|---8---10---8---5-----------5---8---|
@@ -219,6 +229,7 @@ E|------------------------------------|`,
       {
         title: 'Sultans of Swing Intro Feel',
         key: 'D', mood: ['Knopfler','Fingerpicking','Harp-like'],
+        player: ['Knopfler'], tags: ['fingerpicking','vibrato'],
         description: 'Based on Knopfler\'s approach on Sultans of Swing — open string drone on D while the melody climbs above it. Use your fingers, no pick. Thumb on the low D string, index and middle on the melody. Let strings ring into each other.',
         techniques: ['Fingerpicking','Open string drone','Pull-off'],
         tab: `e|---10---12---14---14---12---10---|
@@ -236,6 +247,7 @@ E|---------------------------------|`,
       {
         title: 'Classical Ascending Sequence',
         key: 'G', mood: ['Classical','Bright','Ronson'],
+        player: ['Ronson'], tags: ['vibrato'],
         description: 'Sequences through the G major scale in thirds — every two notes skip a scale degree. This is a classical technique that Ronson used to give his solos that composed, hymn-like quality. Practice slowly until the pattern feels automatic.',
         techniques: ['Diatonic thirds','Sequence','Classical movement'],
         tab: `e|---3---5---5---7---7---8---8---10---|
@@ -262,6 +274,7 @@ E|------------------------------------|`,
       {
         title: 'Rock Vamp Phrase',
         key: 'A', mood: ['Rock','Zappa','Knopfler','Bluesy'],
+        player: ['Zappa','Knopfler'], tags: ['vibrato'],
         description: 'The flat 7 (G note) is what makes this Mixolydian and not just major. Emphasize it. This is the sound of hard rock guitar — one foot in major brightness, one foot in blues darkness. Zappa used this exact sound on Yo Mama.',
         techniques: ['b7 emphasis','Mixolydian character','Rock phrasing'],
         tab: `e|---5---7---8---7---5---7---5--------|
@@ -279,6 +292,7 @@ E|------------------------------------|`,
       {
         title: 'Celtic Mixolydian Flow',
         key: 'D', mood: ['Celtic','Knopfler','Telegraph Road'],
+        player: ['Knopfler'], tags: ['vibrato'],
         description: 'Knopfler\'s Telegraph Road uses this exact Mixolydian color. The G natural note (b7 of A Mixolydian) against the D bass creates that uniquely bittersweet folk-rock feeling. Play it fingerstyle with a slight swing.',
         techniques: ['b7 color','Celtic phrasing','Fingerstyle'],
         tab: `e|---10---12---10---9---10---12---14---|
@@ -305,6 +319,7 @@ E|-------------------------------------|`,
       {
         title: 'Hazel Vamp Line',
         key: 'E', mood: ['Psychedelic','Hazel','Soulful','Hopeful'],
+        player: ['Hazel'], tags: ['vibrato'],
         description: 'The raised 6th (C#) is what makes Dorian sound soulful rather than just dark. Land on it — feel how it lifts the phrase. This is the note Hazel keeps coming back to in his Maggot Brain solo. Play it slow and let every note breathe.',
         techniques: ['Dorian raised 6th','Sustain','Hazel space'],
         tab: `e|---0---2---3---2---0---------------|
@@ -322,6 +337,7 @@ E|-----------------------------------|`,
       {
         title: 'Funk-Rock Dorian Groove',
         key: 'A', mood: ['Funk','Groove','Dorian'],
+        player: [], tags: ['vibrato'],
         description: 'Dorian over a static A bass note — this is the harmonic world of a huge amount of rock and funk. The F# is the raised 6th that separates Dorian from natural minor. Snap the notes rhythmically — mute between notes with your palm for a choppier feel.',
         techniques: ['Palm mute','Rhythmic groove','Dorian color'],
         tab: `e|--------------------------------------|
@@ -348,6 +364,7 @@ E|--------------------------------------|`,
       {
         title: 'Dark Tension Riff',
         key: 'E', mood: ['Dark','Exotic','Zappa','Atmospheric'],
+        player: ['Zappa'], tags: ['vibrato'],
         description: 'The flat 2nd (F natural) is the defining interval of Phrygian — that half-step above the root creates immediate tension and danger. Zappa used this for his darkest, most atmospheric passages. Let the F note ring and feel the unease.',
         techniques: ['b2 tension','Phrygian character','Dark atmosphere'],
         tab: `e|---0---1---0---3---0---1---0--------|
@@ -367,6 +384,7 @@ E|---0---0---0---0---0---0---0--------|`,
       {
         title: 'Spanish-Flamenco Phrase',
         key: 'E', mood: ['Spanish','Exotic','Flamenco-rock'],
+        player: [], tags: ['vibrato'],
         description: 'Phrygian has a natural Spanish/flamenco quality because flamenco music is built on it. This riff uses the classic Phrygian descend (E-D-C-B-Am) heard in countless metal and exotic rock passages. Fast pull-offs on the way down.',
         techniques: ['Pull-offs','Phrygian descend','Spanish character'],
         tab: `e|---0---0---0---0---0---0---0---0----|
@@ -393,6 +411,7 @@ E|---0---0---3---0---2---0---1---0----|`,
       {
         title: 'Watermelon in Easter Hay Feel',
         key: 'E', mood: ['Zappa','Floating','Otherworldly','Emotional'],
+        player: ['Zappa'], tags: ['vibrato','whammy'],
         description: 'The #4 (A# instead of A) is what makes Lydian sound like it\'s floating above the ground. This is the scale Zappa used for Watermelon in Easter Hay — his most emotional piece. Each note should feel weightless. Play it slowly with your eyes closed.',
         techniques: ['#4 Lydian tone','Sustain','Zappa floating quality'],
         tab: `e|---4---6---4---2---4---6---9---11---|
@@ -410,6 +429,7 @@ E|------------------------------------|`,
       {
         title: 'Lydian Shimmer Arpeggio',
         key: 'G', mood: ['Bright','Floating','Dreamy'],
+        player: ['Zappa'], tags: ['vibrato'],
         description: 'The Lydian mode\'s raised 4th creates a shimmer and brightness that major scale can\'t match. Each note here is chosen to emphasize that #4 (C#). Play it slowly, let each note ring into the next, and feel the floating quality Zappa chased his whole career.',
         techniques: ['Arpeggio','Lydian #4','Floating quality'],
         tab: `e|---3---5---6---7---5---3---2---3---|
@@ -435,6 +455,7 @@ E|---3---3---3---3---3---3---3---3---|`,
       {
         title: 'Ronson Classical Phrase',
         key: 'E', mood: ['Classical','Dramatic','Ronson','Tension'],
+        player: ['Ronson'], tags: ['vibrato'],
         description: 'The raised 7th (D#) creates a dramatic pull back to the root. This is the note that makes harmonic minor sound classical and theatrical — the interval between the b6 and the raised 7th is an augmented 2nd, the most exotic interval in Western music.',
         techniques: ['Augmented 2nd','D# raised 7th','Classical drama'],
         tab: `e|---0---1---3---4---3---1---0---------|
@@ -452,6 +473,7 @@ E|---0---0---0---0---0---0---0---------|`,
       {
         title: 'Middle Eastern Sweep',
         key: 'A', mood: ['Exotic','Dramatic','Harmonic Minor'],
+        player: ['Zappa'], tags: ['vibrato'],
         description: 'The augmented 2nd between G (b7) and G# (raised 7th) in A harmonic minor creates that distinctly Middle Eastern / classical sound. Emphasize the jump between those two notes. This phrase was a Zappa compositional device — the exotic pull.',
         techniques: ['Augmented 2nd jump','Exotic color','Position 1'],
         tab: `e|---5---7---8---9---8---7---5--------|
@@ -477,6 +499,7 @@ E|---5---7---8---9---8---7---5--------|`,
       {
         title: 'Zappa Advanced Vamp Phrase',
         key: 'E', mood: ['Zappa','Advanced','Bright-Bluesy'],
+        player: ['Zappa'], tags: ['vibrato'],
         description: 'Lydian Dominant = Lydian #4 + flat 7. Bright but unresolved. This is Zappa\'s most advanced scalar blend — it sounds both colorful and bluesy simultaneously. The A# (#4) and D (b7) together create his signature late-period harmonic flavor.',
         techniques: ['#4 Lydian','b7 Mixolydian','Zappa blend'],
         tab: `e|---4---6---9---11---9---6---4---2---|
@@ -502,6 +525,7 @@ E|------------------------------------|`,
       {
         title: 'Zappa Angular Run',
         key: 'E', mood: ['Angular','Atonal','Zappa','Outside'],
+        player: ['Zappa'], tags: ['vibrato','whammy'],
         description: 'The half-whole diminished scale is symmetrical — the same pattern repeats every 3 frets. This creates a disorienting, angular quality Zappa loved. The run sounds "outside" and unsettling. Play it fast and confidently — commit to the weirdness.',
         techniques: ['Symmetrical scale','Outside playing','Rapid run'],
         tab: `e|---0---1---3---4---6---7---9---10---|
@@ -528,6 +552,7 @@ E|---0---1---3---4---6---7---9---10---|`,
       {
         title: 'Floating Zappa Phrase',
         key: 'C', mood: ['Dreamy','Zappa','Floating','Surreal'],
+        player: ['Zappa'], tags: ['vibrato'],
         description: 'Every interval is equal — there is no sense of gravity or resolution. The whole tone scale floats permanently. Zappa used this for surreal, dreamlike passages. Play it slowly and let each note blur into the next. There is no "home" — that is the point.',
         techniques: ['Whole tone equality','No resolution','Sustained blur'],
         tab: `e|---3---5---7---9---11---3---5---7---|
@@ -553,6 +578,7 @@ E|---3---5---7---9----11--3---5---7---|`,
       {
         title: 'Full Blues Vocabulary',
         key: 'E', mood: ['Blues','Full vocabulary','Passing tones'],
+        player: [], tags: ['bend','vibrato'],
         description: 'This uses all the passing tones of the extended blues scale — the chromatic movement between Bb and B is where the tension and release lives. Play the Bb as a quarter-tone bend (barely push it up). The C is a passing tone — don\'t land on it, use it as a bridge.',
         techniques: ['Chromatic passing','Quarter bend','Bb-B movement'],
         tab: `e|---0---3---4---3---0---|
@@ -608,6 +634,8 @@ function buildRiffLibrary() {
       const riffId = `${gi}-${ri}`;
       const card = document.createElement('div');
       card.className = 'riff-card';
+      card.dataset.riffId = riffId;
+      card.dataset.homePanel = panel.id;
 
       const moodTags = riff.mood.map(m=>`<span class="riff-mood-tag">${m}</span>`).join('');
       const techList = riff.techniques.map(t=>`<span class="technique">${t}</span>`).join(' · ');
@@ -638,6 +666,60 @@ function buildRiffLibrary() {
     panel.appendChild(grid);
     panelsEl.appendChild(panel);
   });
+}
+
+// ── Filter bar ──────────────────────────────────────────────────────────────
+// Filtering reparents existing .riff-card elements (built once above) into a
+// flat grid rather than cloning them — every card keeps its original
+// riff-btn-*/riff-tab-* ids wherever it currently lives, so the playback
+// engine below needs no changes and there's never a duplicate-id risk.
+function populateRiffFilterScaleOptions() {
+  const sel = document.getElementById('riff-filter-scale');
+  RIFF_LIBRARY.forEach(g => {
+    const opt = document.createElement('option');
+    opt.value = g.scaleId; opt.textContent = g.scaleName;
+    sel.appendChild(opt);
+  });
+}
+
+function applyRiffFilters() {
+  const player = document.getElementById('riff-filter-player').value;
+  const scaleId = document.getElementById('riff-filter-scale').value;
+  const tag = document.getElementById('riff-filter-tag').value;
+  const anyActive = player !== 'all' || scaleId !== 'all' || tag !== 'all';
+
+  document.getElementById('riff-scale-tabs').style.display = anyActive ? 'none' : '';
+  document.getElementById('riff-panels').style.display = anyActive ? 'none' : '';
+  document.getElementById('riff-filtered-panel').style.display = anyActive ? 'block' : 'none';
+
+  const filteredGrid = document.getElementById('riff-filtered-grid');
+
+  document.querySelectorAll('.riff-card[data-riff-id]').forEach(card => {
+    const [gi, ri] = card.dataset.riffId.split('-').map(Number);
+    const group = RIFF_LIBRARY[gi];
+    const riff = group.riffs[ri];
+    const matches = anyActive
+      && (scaleId === 'all' || group.scaleId === scaleId)
+      && (player === 'all' || (riff.player || []).includes(player))
+      && (tag === 'all' || (riff.tags || []).includes(tag));
+    if (matches) {
+      filteredGrid.appendChild(card); // moves the node — no clone, no duplicate id
+    } else {
+      const home = document.getElementById(card.dataset.homePanel);
+      if (home) home.querySelector('.riff-grid').appendChild(card);
+    }
+  });
+
+  const matchCount = filteredGrid.querySelectorAll('.riff-card').length;
+  const emptyEl = document.getElementById('riff-filtered-empty');
+  emptyEl.style.display = anyActive && !matchCount ? 'block' : 'none';
+}
+
+function clearRiffFilters() {
+  document.getElementById('riff-filter-player').value = 'all';
+  document.getElementById('riff-filter-scale').value = 'all';
+  document.getElementById('riff-filter-tag').value = 'all';
+  applyRiffFilters();
 }
 
 // ── Riff playback engine ──────────────────────────────────────────────────
@@ -706,3 +788,4 @@ function stopRiffPlay(riffId) {
 }
 
 buildRiffLibrary();
+populateRiffFilterScaleOptions();
