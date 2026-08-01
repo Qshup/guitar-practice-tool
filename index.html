@@ -229,396 +229,430 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-chords">
 
-  <div class="chord-controls-strip" id="chord-controls">
-    <div class="ctrl-group">
-      <div class="ctrl-label">Key</div>
-      <div class="btn-row" id="chord-key-btns"></div>
-    </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">CAGED Shape</div>
-      <div class="btn-row" id="chord-shape-btns"></div>
-    </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">Chord Type</div>
-      <div class="btn-row" id="chord-type-btns2"></div>
-    </div>
-    <div class="ctrl-group">
-      <div class="ctrl-label">Sequence</div>
-      <div class="btn-row" id="chord-seq-btns"></div>
-    </div>
-  </div>
-
-  <div class="chord-legend" id="chord-legend">
-    <span style="font-family:Arial;font-size:9px;color:#888;margin-right:4px;">CHORD TONES:</span>
-    <div class="legend-item"><div class="legend-dot" style="background:#fff;color:#000;border:1px solid #fff">R</div>Root</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#5c8fff;color:#000">3</div>3rd</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#4caf50;color:#000">5</div>5th</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#fb8c00;color:#000">7</div>7th</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#555;color:#ddd;border:1px solid #666">ext</div>Extension</div>
-    <div class="legend-item"><div class="legend-dot" style="background:transparent;color:#333;border:1px solid #222">×</div>Muted</div>
-  </div>
-
-  <div class="practice-bar">
-    <!-- CHORD RUN-THROUGH -->
-    <div class="practice-panel chord-run-panel" id="chord-run-panel">
-      <h2>♬ Chord Run-Through</h2>
-      <div class="prac-row">
-        <span class="prac-label">Speed</span>
-        <input type="range" id="chord-run-speed" min="300" max="4000" value="2000" oninput="document.getElementById('chord-run-speed-val').textContent=(this.value/1000).toFixed(1)+'s'">
-        <span class="prac-val" id="chord-run-speed-val">2.0s</span>
-      </div>
-      <div class="prac-row">
-        <span class="prac-label">Order</span>
-        <select id="chord-run-order">
-          <option value="caged">CAGED order (C→A→G→E→D)</option>
-          <option value="random">Random shapes</option>
-          <option value="types">Cycle chord types</option>
-          <option value="keys">All keys same shape</option>
-        </select>
-      </div>
-      <div class="prac-row">
-        <span class="prac-label">Sound</span>
-        <select id="chord-run-sound">
-          <option value="strum">Strum (arpeggiated)</option>
-          <option value="block">Block chord</option>
-          <option value="muted">Visual only</option>
-        </select>
-      </div>
-      <div class="prac-row">
-        <button class="big-btn btn-run" id="chord-run-btn" onclick="toggleChordRun()">▶ RUN CHORDS</button>
-      </div>
-      <div class="chord-run-display" id="chord-run-display">Select a key/shape/type above and press Run Chords</div>
-      <div class="chord-seq-display" id="chord-seq-display"></div>
-    </div>
-  </div>
-
-  <div class="fretboard-wrap">
-    <div class="fretboard" id="chord-fretboard">
-      <div class="nut"></div>
-      <canvas class="arrow-canvas" id="chord-arrow-canvas"></canvas>
-    </div>
+  <div class="subtab-bar">
+    <button class="subtab-btn active" data-subtab="reference" onclick="switchChordSubtab('reference')">Reference</button>
+    <button class="subtab-btn" data-subtab="practice" onclick="switchChordSubtab('practice')">Practice</button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       CAGED SYSTEM + CHORD MEMORIZATION
+       REFERENCE — chord diagrams, CAGED neck view, theory
   ═══════════════════════════════════════════════════════════════ -->
-  <div class="caged-section">
-    <div class="caged-title">CAGED System & Chord Memorization</div>
-    <div class="caged-subtitle">5 chord shapes that cover the entire neck · Click any shape to see it in any key · Flashcard quiz to test yourself</div>
+  <div class="subtab-panel active" id="chords-subtab-reference">
 
-    <div class="caged-controls">
-      <div class="ctrl-group">
-        <div class="ctrl-label">CAGED Shape</div>
-        <div class="caged-shape-btns">
-          <button class="caged-shape-btn active" data-shape="C" onclick="selectCagedShape('C',this)">C</button>
-          <button class="caged-shape-btn" data-shape="A" onclick="selectCagedShape('A',this)">A</button>
-          <button class="caged-shape-btn" data-shape="G" onclick="selectCagedShape('G',this)">G</button>
-          <button class="caged-shape-btn" data-shape="E" onclick="selectCagedShape('E',this)">E</button>
-          <button class="caged-shape-btn" data-shape="D" onclick="selectCagedShape('D',this)">D</button>
-        </div>
-      </div>
+    <div class="chord-controls-strip" id="chord-controls">
       <div class="ctrl-group">
         <div class="ctrl-label">Key</div>
-        <div class="btn-row" id="caged-key-btns"></div>
+        <div class="btn-row" id="chord-key-btns"></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">CAGED Shape</div>
+        <div class="btn-row" id="chord-shape-btns"></div>
       </div>
       <div class="ctrl-group">
         <div class="ctrl-label">Chord Type</div>
-        <div class="chord-type-row" id="chord-type-btns"></div>
+        <div class="btn-row" id="chord-type-btns2"></div>
+      </div>
+      <div class="ctrl-group">
+        <div class="ctrl-label">Sequence</div>
+        <div class="btn-row" id="chord-seq-btns"></div>
       </div>
     </div>
 
-    <div class="caged-main">
-      <!-- Chord diagram -->
-      <div class="chord-diagram-wrap">
-        <div class="chord-name-big" id="caged-chord-name">C</div>
-        <div class="chord-shape-tag" id="caged-shape-tag" style="color:#e53935">C SHAPE</div>
-        <canvas class="chord-canvas" id="chord-canvas" width="160" height="200"></canvas>
-        <div style="font-family:Arial;font-size:9px;color:#444;margin-top:4px" id="caged-barre-note"></div>
-      </div>
+    <div class="chord-legend" id="chord-legend">
+      <span style="font-family:Arial;font-size:9px;color:#888;margin-right:4px;">CHORD TONES:</span>
+      <div class="legend-item"><div class="legend-dot" style="background:#fff;color:#000;border:1px solid #fff">R</div>Root</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#5c8fff;color:#000">3</div>3rd</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4caf50;color:#000">5</div>5th</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fb8c00;color:#000">7</div>7th</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#555;color:#ddd;border:1px solid #666">ext</div>Extension</div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;color:#333;border:1px solid #222">×</div>Muted</div>
+    </div>
 
-      <!-- Info panel -->
-      <div class="chord-info-panel">
-        <h3>Chord Notes & Theory</h3>
-        <div class="cinfo-row">Notes: <span id="ci-notes">—</span></div>
-        <div class="cinfo-row">Formula: <span id="ci-formula">—</span></div>
-        <div class="cinfo-row">Root string: <span id="ci-rootstr">—</span></div>
-        <div class="cinfo-row">Barre fret: <span id="ci-barre">—</span></div>
-        <div class="cinfo-row" style="margin-top:6px">CAGED order for <span id="ci-key-label">C</span>:</div>
-        <div class="caged-chain" id="caged-chain"></div>
-        <div class="cinfo-row" style="margin-top:6px">Tip: <span id="ci-tip">—</span></div>
-      </div>
-
-      <!-- Mini neck showing all 5 shapes -->
-      <div class="caged-fretboard-wrap">
-        <h3>All 5 CAGED shapes on the neck — <span id="caged-neck-key">C</span> major</h3>
-        <canvas class="caged-fb-canvas" id="caged-fb-canvas" width="700" height="160"></canvas>
-        <div style="font-family:Arial;font-size:9px;color:#444;margin-top:6px">Each coloured block = one CAGED shape position · Root notes shown as filled dots</div>
+    <div class="fretboard-wrap">
+      <div class="fretboard" id="chord-fretboard">
+        <div class="nut"></div>
+        <canvas class="arrow-canvas" id="chord-arrow-canvas"></canvas>
       </div>
     </div>
 
-    <!-- Flashcard quiz -->
-    <div class="quiz-panel">
-      <h3>
-        <span>Chord Flashcard Quiz</span>
-        <div style="display:flex;gap:6px">
-          <button class="quiz-mode-btn active" id="qm-name" onclick="setQuizMode('name',this)">Name→Shape</button>
-          <button class="quiz-mode-btn" id="qm-notes" onclick="setQuizMode('notes',this)">Notes→Chord</button>
-          <button class="quiz-mode-btn" id="qm-caged" onclick="setQuizMode('caged',this)">CAGED position</button>
-        </div>
-      </h3>
-      <div class="quiz-inner">
-        <div>
-          <div class="flashcard" id="flashcard" onclick="revealCard()">
-            <div class="fc-question" id="fc-q">?</div>
-            <div class="fc-sub" id="fc-sub">Click to reveal</div>
-            <div class="fc-answer" id="fc-ans"></div>
-          </div>
-          <div class="quiz-nav">
-            <button onclick="prevCard()">← Prev</button>
-            <button onclick="nextCard()">Next →</button>
-            <button onclick="shuffleCards()">Shuffle</button>
-          </div>
-          <div class="quiz-result" id="quiz-result"></div>
-        </div>
-        <div class="quiz-controls">
-          <div class="ctrl-label" style="font-family:Arial;font-size:9px;color:#555;letter-spacing:.1em">SELF GRADE</div>
-          <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="gradeCard(true)">✓ Got it</button>
-          <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="gradeCard(false)">✗ Missed</button>
-          <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
-          <div style="font-family:Arial;font-size:9px;color:#333;margin-top:8px;line-height:1.6">
-            Cards cycle through<br>all chord types<br>in the current key.<br><br>
-            Missed cards repeat<br>more often.
+    <!-- CAGED SYSTEM + CHORD MEMORIZATION -->
+    <div class="caged-section">
+      <div class="caged-title">CAGED System & Chord Memorization</div>
+      <div class="caged-subtitle">5 chord shapes that cover the entire neck · Click any shape to see it in any key · Flashcard quiz to test yourself</div>
+
+      <div class="caged-controls">
+        <div class="ctrl-group">
+          <div class="ctrl-label">CAGED Shape</div>
+          <div class="caged-shape-btns">
+            <button class="caged-shape-btn active" data-shape="C" onclick="selectCagedShape('C',this)">C</button>
+            <button class="caged-shape-btn" data-shape="A" onclick="selectCagedShape('A',this)">A</button>
+            <button class="caged-shape-btn" data-shape="G" onclick="selectCagedShape('G',this)">G</button>
+            <button class="caged-shape-btn" data-shape="E" onclick="selectCagedShape('E',this)">E</button>
+            <button class="caged-shape-btn" data-shape="D" onclick="selectCagedShape('D',this)">D</button>
           </div>
         </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Key</div>
+          <div class="btn-row" id="caged-key-btns"></div>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Chord Type</div>
+          <div class="chord-type-row" id="chord-type-btns"></div>
+        </div>
+      </div>
+
+      <div class="caged-main">
+        <!-- Chord diagram -->
+        <div class="chord-diagram-wrap">
+          <div class="chord-name-big" id="caged-chord-name">C</div>
+          <div class="chord-shape-tag" id="caged-shape-tag" style="color:#e53935">C SHAPE</div>
+          <canvas class="chord-canvas" id="chord-canvas" width="160" height="200"></canvas>
+          <div style="font-family:Arial;font-size:9px;color:#444;margin-top:4px" id="caged-barre-note"></div>
+        </div>
+
+        <!-- Info panel -->
+        <div class="chord-info-panel">
+          <h3>Chord Notes & Theory</h3>
+          <div class="cinfo-row">Notes: <span id="ci-notes">—</span></div>
+          <div class="cinfo-row">Formula: <span id="ci-formula">—</span></div>
+          <div class="cinfo-row">Root string: <span id="ci-rootstr">—</span></div>
+          <div class="cinfo-row">Barre fret: <span id="ci-barre">—</span></div>
+          <div class="cinfo-row" style="margin-top:6px">CAGED order for <span id="ci-key-label">C</span>:</div>
+          <div class="caged-chain" id="caged-chain"></div>
+          <div class="cinfo-row" style="margin-top:6px">Tip: <span id="ci-tip">—</span></div>
+        </div>
+
+        <!-- Mini neck showing all 5 shapes -->
+        <div class="caged-fretboard-wrap">
+          <h3>All 5 CAGED shapes on the neck — <span id="caged-neck-key">C</span> major</h3>
+          <canvas class="caged-fb-canvas" id="caged-fb-canvas" width="700" height="160"></canvas>
+          <div style="font-family:Arial;font-size:9px;color:#444;margin-top:6px">Each coloured block = one CAGED shape position · Root notes shown as filled dots</div>
+        </div>
+      </div>
+
+      <!-- Flashcard quiz (moves to Study mode in a later phase) -->
+      <div class="quiz-panel">
+        <h3>
+          <span>Chord Flashcard Quiz</span>
+          <div style="display:flex;gap:6px">
+            <button class="quiz-mode-btn active" id="qm-name" onclick="setQuizMode('name',this)">Name→Shape</button>
+            <button class="quiz-mode-btn" id="qm-notes" onclick="setQuizMode('notes',this)">Notes→Chord</button>
+            <button class="quiz-mode-btn" id="qm-caged" onclick="setQuizMode('caged',this)">CAGED position</button>
+          </div>
+        </h3>
+        <div class="quiz-inner">
+          <div>
+            <div class="flashcard" id="flashcard" onclick="revealCard()">
+              <div class="fc-question" id="fc-q">?</div>
+              <div class="fc-sub" id="fc-sub">Click to reveal</div>
+              <div class="fc-answer" id="fc-ans"></div>
+            </div>
+            <div class="quiz-nav">
+              <button onclick="prevCard()">← Prev</button>
+              <button onclick="nextCard()">Next →</button>
+              <button onclick="shuffleCards()">Shuffle</button>
+            </div>
+            <div class="quiz-result" id="quiz-result"></div>
+          </div>
+          <div class="quiz-controls">
+            <div class="ctrl-label" style="font-family:Arial;font-size:9px;color:#555;letter-spacing:.1em">SELF GRADE</div>
+            <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="gradeCard(true)">✓ Got it</button>
+            <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="gradeCard(false)">✗ Missed</button>
+            <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
+            <div style="font-family:Arial;font-size:9px;color:#333;margin-top:8px;line-height:1.6">
+              Cards cycle through<br>all chord types<br>in the current key.<br><br>
+              Missed cards repeat<br>more often.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CAGED explainer -->
+      <div class="caged-explainer" style="margin-top:14px">
+        <h3>What is the CAGED System?</h3>
+        <div class="caged-exp-grid" id="caged-exp-grid"></div>
       </div>
     </div>
 
-    <!-- CAGED explainer -->
-    <div class="caged-explainer" style="margin-top:14px">
-      <h3>What is the CAGED System?</h3>
-      <div class="caged-exp-grid" id="caged-exp-grid"></div>
-    </div>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
-       CHORD SWITCHING MINI-GAME (moves into its own drawer in a later phase)
+       PRACTICE — chord run-through, key practice status, launch the game
   ═══════════════════════════════════════════════════════════════ -->
-  <div class="game-section">
-    <div class="game-title">Chord Switching Game</div>
-    <div class="game-subtitle">Chords flash on screen — switch in time with the beat · Self-grade your switch · Build speed over time</div>
+  <div class="subtab-panel" id="chords-subtab-practice">
 
-    <div class="game-layout">
-
-      <!-- Settings -->
-      <div class="game-settings">
-        <h3>Settings</h3>
-
-        <div class="gs-row">
-          <div class="gs-label">Tempo (BPM)</div>
-          <input type="range" id="game-bpm" min="20" max="160" value="60"
-            oninput="document.getElementById('game-bpm-val').textContent=this.value">
-          <div class="gs-val" id="game-bpm-val">60 BPM</div>
+    <div class="practice-bar">
+      <!-- CHORD RUN-THROUGH -->
+      <div class="practice-panel chord-run-panel" id="chord-run-panel">
+        <h2>♬ Chord Run-Through</h2>
+        <div class="prac-row">
+          <span class="prac-label">Speed</span>
+          <input type="range" id="chord-run-speed" min="300" max="4000" value="2000" oninput="document.getElementById('chord-run-speed-val').textContent=(this.value/1000).toFixed(1)+'s'">
+          <span class="prac-val" id="chord-run-speed-val">2.0s</span>
         </div>
-
-        <div class="gs-row">
-          <div class="gs-label">Beats per chord</div>
-          <input type="range" id="game-beats" min="1" max="8" value="4"
-            oninput="document.getElementById('game-beats-val').textContent=this.value+' beats'">
-          <div class="gs-val" id="game-beats-val">4 beats</div>
-        </div>
-
-        <div class="gs-row">
-          <div class="gs-label">Practice Mode</div>
-          <div class="chord-set-grid" id="game-chord-sets">
-            <div class="chord-set-pill active" data-set="key_practice" onclick="selectChordSet('key_practice',this)">★ Key Practice</div>
-            <div class="chord-set-pill" data-set="open" onclick="selectChordSet('open',this)">Open Chords</div>
-            <div class="chord-set-pill" data-set="minor" onclick="selectChordSet('minor',this)">Minor Chords</div>
-            <div class="chord-set-pill" data-set="barre_e" onclick="selectChordSet('barre_e',this)">E Barre</div>
-            <div class="chord-set-pill" data-set="barre_a" onclick="selectChordSet('barre_a',this)">A Barre</div>
-            <div class="chord-set-pill" data-set="dom7" onclick="selectChordSet('dom7',this)">Dom 7ths</div>
-            <div class="chord-set-pill" data-set="custom" onclick="selectChordSet('custom',this)">Custom</div>
-          </div>
-        </div>
-
-        <!-- KEY PRACTICE PANEL -->
-        <div id="key-practice-panel" style="background:#0d0d1a;border:1px solid #1a1a3a;padding:10px;margin-top:2px">
-          <div class="gs-label" style="margin-bottom:6px;color:#5c8fff">SELECT KEYS TO PRACTICE</div>
-
-          <!-- Key toggles grid -->
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px" id="key-toggle-grid"></div>
-
-          <!-- Scale quality per key -->
-          <div class="gs-label" style="margin-bottom:4px">Include chord qualities</div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="quality-toggles">
-            <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
-              <input type="checkbox" id="q-major" checked onchange="rebuildGameDeck()"> Major (I)
-            </label>
-            <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
-              <input type="checkbox" id="q-minor" checked onchange="rebuildGameDeck()"> Minor (ii iii vi)
-            </label>
-            <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
-              <input type="checkbox" id="q-dom7" onchange="rebuildGameDeck()"> Dom 7 (V7)
-            </label>
-            <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
-              <input type="checkbox" id="q-dim" onchange="rebuildGameDeck()"> Dim (vii°)
-            </label>
-          </div>
-
-          <!-- Current deck preview -->
-          <div class="gs-label" style="margin-bottom:3px">Active chord deck</div>
-          <div id="deck-preview" style="font-family:'Courier New',monospace;font-size:9px;color:#5c8fff;line-height:1.7;min-height:16px;word-break:break-all"></div>
-
-          <!-- Key info -->
-          <div id="key-info-box" style="margin-top:6px;font-family:Arial,sans-serif;font-size:9px;color:#444;line-height:1.7;border-top:1px solid #1a1a2a;padding-top:5px"></div>
-        </div>
-
-        <div class="gs-row" id="caged-key-game-row" style="display:none">
-          <div class="gs-label">Key for CAGED</div>
-          <select id="game-caged-key" onchange="rebuildGameDeck()">
-            <option>C</option><option>G</option><option>D</option><option selected>A</option>
-            <option>E</option><option>B</option><option>F#</option>
-            <option>Bb</option><option>Eb</option><option>F</option>
+        <div class="prac-row">
+          <span class="prac-label">Order</span>
+          <select id="chord-run-order">
+            <option value="caged">CAGED order (C→A→G→E→D)</option>
+            <option value="random">Random shapes</option>
+            <option value="types">Cycle chord types</option>
+            <option value="keys">All keys same shape</option>
           </select>
         </div>
-
-        <div class="gs-row" id="custom-chord-row" style="display:none">
-          <div class="gs-label">Custom chord list</div>
-          <input type="text" id="custom-chord-input" placeholder="e.g. C,Am,F,G"
-            style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 6px;font-size:9px;font-family:'Courier New',monospace;width:100%"
-            oninput="rebuildGameDeck()">
-        </div>
-
-        <div class="gs-row">
-          <div class="gs-label">Order</div>
-          <select id="game-order" onchange="rebuildGameDeck()">
-            <option value="random">Random</option>
-            <option value="sequential">Sequential</option>
-            <option value="circle5">Circle of 5ths</option>
-            <option value="hardest">Hardest first</option>
+        <div class="prac-row">
+          <span class="prac-label">Sound</span>
+          <select id="chord-run-sound">
+            <option value="strum">Strum (arpeggiated)</option>
+            <option value="block">Block chord</option>
+            <option value="muted">Visual only</option>
           </select>
         </div>
-
-        <div class="gs-checkrow">
-          <input type="checkbox" id="game-sound" checked>
-          <label for="game-sound">Metronome click</label>
+        <div class="prac-row">
+          <button class="big-btn btn-run" id="chord-run-btn" onclick="toggleChordRun()">▶ RUN CHORDS</button>
         </div>
-        <div class="gs-checkrow">
-          <input type="checkbox" id="game-strum" checked>
-          <label for="game-strum">Strum chord on change</label>
-        </div>
-        <div class="gs-checkrow">
-          <input type="checkbox" id="game-warn">
-          <label for="game-warn">Warning beat highlight</label>
-        </div>
-        <div class="gs-checkrow">
-          <input type="checkbox" id="game-autoadvance" checked>
-          <label for="game-autoadvance">Auto-advance chords</label>
-        </div>
-
-        <div class="gs-row" style="margin-top:4px;border-top:1px solid #1a1a1a;padding-top:8px">
-          <div class="gs-label">Fretboard mode</div>
-          <select id="game-fret-mode">
-            <option value="static">Static (show chord shape)</option>
-            <option value="progress">Progress up neck</option>
-            <option value="caged_walk">Walk CAGED shapes</option>
-            <option value="all_pos">Highlight all positions</option>
-          </select>
-        </div>
+        <div class="chord-run-display" id="chord-run-display">Select a key/shape/type in Reference, then press Run Chords</div>
+        <div class="chord-seq-display" id="chord-seq-display"></div>
       </div>
 
-      <!-- Game Arena -->
-      <div class="game-arena" id="game-arena">
-        <div class="game-flash" id="game-flash"></div>
-
-        <!-- Score row -->
-        <div class="game-score-row">
-          <div class="score-block">
-            <div class="score-val" id="game-streak">0</div>
-            <div class="score-label">Streak</div>
-          </div>
-          <div class="score-block">
-            <div class="score-val" id="game-best">0</div>
-            <div class="score-label">Best</div>
-          </div>
-          <div class="score-block">
-            <div class="score-val" id="game-total-switched">0</div>
-            <div class="score-label">Switched</div>
-          </div>
-          <div class="score-block">
-            <div class="score-val" id="game-accuracy">—</div>
-            <div class="score-label">Accuracy</div>
-          </div>
-        </div>
-
-        <!-- Chord display -->
-        <div class="chord-cards-row" id="chord-cards-row">
-          <!-- Built dynamically -->
-        </div>
-
-        <!-- Timer ring + beat dots -->
-        <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
-          <div class="timer-ring-wrap" id="timer-ring">
-            <svg width="80" height="80" viewBox="0 0 80 80">
-              <circle class="timer-ring-bg" cx="40" cy="40" r="34"/>
-              <circle class="timer-ring-fill" id="ring-fill" cx="40" cy="40" r="34"
-                stroke-dasharray="213.6" stroke-dashoffset="0"/>
-            </svg>
-            <div class="timer-ring-text" id="ring-text">—</div>
-          </div>
-          <div class="beat-bar-wrap">
-            <div class="beat-bar-label" id="beat-bar-label">Press START to begin</div>
-            <div class="beat-dots-row" id="game-beat-dots"></div>
-          </div>
-        </div>
-
-        <!-- Action buttons -->
-        <div class="game-btn-row">
-          <button class="game-btn game-btn-start" id="game-start-btn" onclick="toggleGame()">▶ START</button>
-          <button class="game-btn game-btn-skip" onclick="skipChord()" style="display:none" id="game-skip-btn">Skip →</button>
-        </div>
-        <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="grade-btns" style="display:none">
-          <button class="game-btn game-btn-got" onclick="gradeSwitch(true)" style="display:none;padding:6px 18px;font-size:11px" id="btn-got">✓ Got it</button>
-          <button class="game-btn game-btn-missed" onclick="gradeSwitch(false)" style="display:none;padding:6px 18px;font-size:11px" id="btn-missed">✗ Missed</button>
-        </div>
-
-        <div class="game-message ready" id="game-message">Choose your settings and press START</div>
+      <!-- CHORD SWITCHING GAME LAUNCHER -->
+      <div class="practice-panel run-panel">
+        <h2>▶ Chord Switching Game</h2>
+        <p style="font-family:Arial,sans-serif;font-size:9px;color:#666;line-height:1.6;margin-bottom:10px">
+          Chords flash on screen, switch in time with the beat, self-grade, build speed over time.
+          Opens as a side panel so you can still see the chord reference.
+        </p>
+        <div id="chord-practice-status" style="font-family:'Courier New',monospace;font-size:9px;color:#5c8fff;margin-bottom:10px;min-height:14px"></div>
+        <button class="big-btn btn-run" onclick="openGameDrawer()">▶ Launch Chord Switching Game</button>
       </div>
+    </div>
 
-      <!-- Stats panel -->
-      <div class="game-stats">
-        <h3>Stats</h3>
-        <div class="stat-row"><span class="sname">Session time</span><span class="sval" id="stat-time">0:00</span></div>
-        <div class="stat-row"><span class="sname">Chords played</span><span class="sval" id="stat-played">0</span></div>
-        <div class="stat-row"><span class="sname">Got it</span><span class="sval good" id="stat-got">0</span></div>
-        <div class="stat-row"><span class="sname">Missed</span><span class="sval bad" id="stat-missed">0</span></div>
-        <div class="stat-row"><span class="sname">Best streak</span><span class="sval" id="stat-best">0</span></div>
-        <div class="stat-row"><span class="sname">Hardest chord</span><span class="sval" id="stat-hardest">—</span></div>
-        <div class="stat-row"><span class="sname">Current BPM</span><span class="sval" id="stat-bpm">—</span></div>
+  </div>
 
-        <h3 style="margin-top:8px">History</h3>
-        <div class="history-log" id="history-log">Game not started</div>
-      </div>
+  <!-- ═══════════════════════════════════════════════════════════════
+       CHORD SWITCHING MINI-GAME — floating drawer, launched from Practice
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="game-drawer" id="game-drawer">
+    <div class="game-drawer-header">
+      <span class="game-drawer-title">Chord Switching Game</span>
+      <button class="game-drawer-close" onclick="closeGameDrawer()">✕</button>
+    </div>
 
-      <!-- Guitar neck panel -->
-      <div class="guitar-neck-panel">
-        <h3>Guitar Neck</h3>
-        <div class="fret-mode-row">
-          <button class="fret-mode-btn active" data-fm="static" onclick="setFretMode('static',this)">Shape</button>
-          <button class="fret-mode-btn" data-fm="progress" onclick="setFretMode('progress',this)">Progress</button>
-          <button class="fret-mode-btn" data-fm="caged_walk" onclick="setFretMode('caged_walk',this)">CAGED Walk</button>
-          <button class="fret-mode-btn" data-fm="all_pos" onclick="setFretMode('all_pos',this)">All Pos</button>
+    <div class="game-section">
+      <div class="game-subtitle">Chords flash on screen — switch in time with the beat · Self-grade your switch · Build speed over time</div>
+
+      <div class="game-layout">
+
+        <!-- Settings -->
+        <div class="game-settings">
+          <h3>Settings</h3>
+
+          <div class="gs-row">
+            <div class="gs-label">Tempo (BPM)</div>
+            <input type="range" id="game-bpm" min="20" max="160" value="60"
+              oninput="document.getElementById('game-bpm-val').textContent=this.value">
+            <div class="gs-val" id="game-bpm-val">60 BPM</div>
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Beats per chord</div>
+            <input type="range" id="game-beats" min="1" max="8" value="4"
+              oninput="document.getElementById('game-beats-val').textContent=this.value+' beats'">
+            <div class="gs-val" id="game-beats-val">4 beats</div>
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Practice Mode</div>
+            <div class="chord-set-grid" id="game-chord-sets">
+              <div class="chord-set-pill active" data-set="key_practice" onclick="selectChordSet('key_practice',this)">★ Key Practice</div>
+              <div class="chord-set-pill" data-set="open" onclick="selectChordSet('open',this)">Open Chords</div>
+              <div class="chord-set-pill" data-set="minor" onclick="selectChordSet('minor',this)">Minor Chords</div>
+              <div class="chord-set-pill" data-set="barre_e" onclick="selectChordSet('barre_e',this)">E Barre</div>
+              <div class="chord-set-pill" data-set="barre_a" onclick="selectChordSet('barre_a',this)">A Barre</div>
+              <div class="chord-set-pill" data-set="dom7" onclick="selectChordSet('dom7',this)">Dom 7ths</div>
+              <div class="chord-set-pill" data-set="custom" onclick="selectChordSet('custom',this)">Custom</div>
+            </div>
+          </div>
+
+          <!-- KEY PRACTICE PANEL -->
+          <div id="key-practice-panel" style="background:#0d0d1a;border:1px solid #1a1a3a;padding:10px;margin-top:2px">
+            <div class="gs-label" style="margin-bottom:6px;color:#5c8fff">SELECT KEYS TO PRACTICE</div>
+
+            <!-- Key toggles grid -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px" id="key-toggle-grid"></div>
+
+            <!-- Scale quality per key -->
+            <div class="gs-label" style="margin-bottom:4px">Include chord qualities</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="quality-toggles">
+              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+                <input type="checkbox" id="q-major" checked onchange="rebuildGameDeck()"> Major (I)
+              </label>
+              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+                <input type="checkbox" id="q-minor" checked onchange="rebuildGameDeck()"> Minor (ii iii vi)
+              </label>
+              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+                <input type="checkbox" id="q-dom7" onchange="rebuildGameDeck()"> Dom 7 (V7)
+              </label>
+              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+                <input type="checkbox" id="q-dim" onchange="rebuildGameDeck()"> Dim (vii°)
+              </label>
+            </div>
+
+            <!-- Current deck preview -->
+            <div class="gs-label" style="margin-bottom:3px">Active chord deck</div>
+            <div id="deck-preview" style="font-family:'Courier New',monospace;font-size:9px;color:#5c8fff;line-height:1.7;min-height:16px;word-break:break-all"></div>
+
+            <!-- Key info -->
+            <div id="key-info-box" style="margin-top:6px;font-family:Arial,sans-serif;font-size:9px;color:#444;line-height:1.7;border-top:1px solid #1a1a2a;padding-top:5px"></div>
+          </div>
+
+          <div class="gs-row" id="caged-key-game-row" style="display:none">
+            <div class="gs-label">Key for CAGED</div>
+            <select id="game-caged-key" onchange="rebuildGameDeck()">
+              <option>C</option><option>G</option><option>D</option><option selected>A</option>
+              <option>E</option><option>B</option><option>F#</option>
+              <option>Bb</option><option>Eb</option><option>F</option>
+            </select>
+          </div>
+
+          <div class="gs-row" id="custom-chord-row" style="display:none">
+            <div class="gs-label">Custom chord list</div>
+            <input type="text" id="custom-chord-input" placeholder="e.g. C,Am,F,G"
+              style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 6px;font-size:9px;font-family:'Courier New',monospace;width:100%"
+              oninput="rebuildGameDeck()">
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Order</div>
+            <select id="game-order" onchange="rebuildGameDeck()">
+              <option value="random">Random</option>
+              <option value="sequential">Sequential</option>
+              <option value="circle5">Circle of 5ths</option>
+              <option value="hardest">Hardest first</option>
+            </select>
+          </div>
+
+          <div class="gs-checkrow">
+            <input type="checkbox" id="game-sound" checked>
+            <label for="game-sound">Metronome click</label>
+          </div>
+          <div class="gs-checkrow">
+            <input type="checkbox" id="game-strum" checked>
+            <label for="game-strum">Strum chord on change</label>
+          </div>
+          <div class="gs-checkrow">
+            <input type="checkbox" id="game-warn">
+            <label for="game-warn">Warning beat highlight</label>
+          </div>
+          <div class="gs-checkrow">
+            <input type="checkbox" id="game-autoadvance" checked>
+            <label for="game-autoadvance">Auto-advance chords</label>
+          </div>
+
+          <div class="gs-row" style="margin-top:4px;border-top:1px solid #1a1a1a;padding-top:8px">
+            <div class="gs-label">Fretboard mode</div>
+            <select id="game-fret-mode">
+              <option value="static">Static (show chord shape)</option>
+              <option value="progress">Progress up neck</option>
+              <option value="caged_walk">Walk CAGED shapes</option>
+              <option value="all_pos">Highlight all positions</option>
+            </select>
+          </div>
         </div>
-        <div class="fret-position-label" id="fret-pos-label">Fret 0 (open)</div>
-        <canvas id="guitar-full-canvas" width="180" height="520"></canvas>
-        <div class="guitar-neck-legend">
-          <div class="gnl-item"><div class="gnl-dot" style="background:#fff"></div>Root</div>
-          <div class="gnl-item"><div class="gnl-dot" style="background:#5c8fff"></div>3rd</div>
-          <div class="gnl-item"><div class="gnl-dot" style="background:#4caf50"></div>5th</div>
-          <div class="gnl-item"><div class="gnl-dot" style="background:#fb8c00"></div>7th</div>
-          <div class="gnl-item"><div class="gnl-dot" style="background:#e53935;border-radius:3px;width:14px;height:8px"></div>Barre</div>
-        </div>
-      </div>
 
+        <!-- Game Arena -->
+        <div class="game-arena" id="game-arena">
+          <div class="game-flash" id="game-flash"></div>
+
+          <!-- Score row -->
+          <div class="game-score-row">
+            <div class="score-block">
+              <div class="score-val" id="game-streak">0</div>
+              <div class="score-label">Streak</div>
+            </div>
+            <div class="score-block">
+              <div class="score-val" id="game-best">0</div>
+              <div class="score-label">Best</div>
+            </div>
+            <div class="score-block">
+              <div class="score-val" id="game-total-switched">0</div>
+              <div class="score-label">Switched</div>
+            </div>
+            <div class="score-block">
+              <div class="score-val" id="game-accuracy">—</div>
+              <div class="score-label">Accuracy</div>
+            </div>
+          </div>
+
+          <!-- Chord display -->
+          <div class="chord-cards-row" id="chord-cards-row">
+            <!-- Built dynamically -->
+          </div>
+
+          <!-- Timer ring + beat dots -->
+          <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+            <div class="timer-ring-wrap" id="timer-ring">
+              <svg width="80" height="80" viewBox="0 0 80 80">
+                <circle class="timer-ring-bg" cx="40" cy="40" r="34"/>
+                <circle class="timer-ring-fill" id="ring-fill" cx="40" cy="40" r="34"
+                  stroke-dasharray="213.6" stroke-dashoffset="0"/>
+              </svg>
+              <div class="timer-ring-text" id="ring-text">—</div>
+            </div>
+            <div class="beat-bar-wrap">
+              <div class="beat-bar-label" id="beat-bar-label">Press START to begin</div>
+              <div class="beat-dots-row" id="game-beat-dots"></div>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="game-btn-row">
+            <button class="game-btn game-btn-start" id="game-start-btn" onclick="toggleGame()">▶ START</button>
+            <button class="game-btn game-btn-skip" onclick="skipChord()" style="display:none" id="game-skip-btn">Skip →</button>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="grade-btns" style="display:none">
+            <button class="game-btn game-btn-got" onclick="gradeSwitch(true)" style="display:none;padding:6px 18px;font-size:11px" id="btn-got">✓ Got it</button>
+            <button class="game-btn game-btn-missed" onclick="gradeSwitch(false)" style="display:none;padding:6px 18px;font-size:11px" id="btn-missed">✗ Missed</button>
+          </div>
+
+          <div class="game-message ready" id="game-message">Choose your settings and press START</div>
+        </div>
+
+        <!-- Stats panel -->
+        <div class="game-stats">
+          <h3>Stats</h3>
+          <div class="stat-row"><span class="sname">Session time</span><span class="sval" id="stat-time">0:00</span></div>
+          <div class="stat-row"><span class="sname">Chords played</span><span class="sval" id="stat-played">0</span></div>
+          <div class="stat-row"><span class="sname">Got it</span><span class="sval good" id="stat-got">0</span></div>
+          <div class="stat-row"><span class="sname">Missed</span><span class="sval bad" id="stat-missed">0</span></div>
+          <div class="stat-row"><span class="sname">Best streak</span><span class="sval" id="stat-best">0</span></div>
+          <div class="stat-row"><span class="sname">Hardest chord</span><span class="sval" id="stat-hardest">—</span></div>
+          <div class="stat-row"><span class="sname">Current BPM</span><span class="sval" id="stat-bpm">—</span></div>
+
+          <h3 style="margin-top:8px">History</h3>
+          <div class="history-log" id="history-log">Game not started</div>
+        </div>
+
+        <!-- Guitar neck panel -->
+        <div class="guitar-neck-panel">
+          <h3>Guitar Neck</h3>
+          <div class="fret-mode-row">
+            <button class="fret-mode-btn active" data-fm="static" onclick="setFretMode('static',this)">Shape</button>
+            <button class="fret-mode-btn" data-fm="progress" onclick="setFretMode('progress',this)">Progress</button>
+            <button class="fret-mode-btn" data-fm="caged_walk" onclick="setFretMode('caged_walk',this)">CAGED Walk</button>
+            <button class="fret-mode-btn" data-fm="all_pos" onclick="setFretMode('all_pos',this)">All Pos</button>
+          </div>
+          <div class="fret-position-label" id="fret-pos-label">Fret 0 (open)</div>
+          <canvas id="guitar-full-canvas" width="180" height="520"></canvas>
+          <div class="guitar-neck-legend">
+            <div class="gnl-item"><div class="gnl-dot" style="background:#fff"></div>Root</div>
+            <div class="gnl-item"><div class="gnl-dot" style="background:#5c8fff"></div>3rd</div>
+            <div class="gnl-item"><div class="gnl-dot" style="background:#4caf50"></div>5th</div>
+            <div class="gnl-item"><div class="gnl-dot" style="background:#fb8c00"></div>7th</div>
+            <div class="gnl-item"><div class="gnl-dot" style="background:#e53935;border-radius:3px;width:14px;height:8px"></div>Barre</div>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 

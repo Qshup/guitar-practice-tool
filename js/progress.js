@@ -21,6 +21,7 @@ function loadProgress() {
   if (!data.riffTotals) data.riffTotals = {};
   if (!data.ui) data.ui = { panelCollapsed: false };
   if (data.ui.activeNavMode === undefined) data.ui.activeNavMode = 'scales';
+  if (data.ui.activeChordSubtab === undefined) data.ui.activeChordSubtab = 'reference';
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
 }

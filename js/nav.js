@@ -26,10 +26,13 @@ function switchMode(mode) {
     if (btn) btn.classList.toggle('active', m === mode);
   });
 
-  if (mode === 'scales') render();
-  if (mode === 'chords') renderChordFretboard();
-
   const data = loadProgress();
+  if (mode === 'scales') render();
+  if (mode === 'chords') {
+    renderChordFretboard();
+    if (typeof switchChordSubtab === 'function') switchChordSubtab(data.ui.activeChordSubtab);
+  }
+
   data.ui.activeNavMode = mode;
   saveProgress(data);
 }

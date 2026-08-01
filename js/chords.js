@@ -3,6 +3,35 @@
 // (top-level Scales↔Chords↔Study↔Riffs↔Songs navigation lives in js/nav.js)
 // ═══════════════════════════════════════════════════════════════════════════
 
+// ── Reference / Practice sub-tabs ──────────────────────────────────────────
+function switchChordSubtab(tab) {
+  document.querySelectorAll('#mode-panel-chords .subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === tab));
+  document.querySelectorAll('#mode-panel-chords .subtab-panel').forEach(p => p.classList.toggle('active', p.id === `chords-subtab-${tab}`));
+  if (tab === 'practice') updateChordPracticeStatus();
+  const data = loadProgress();
+  data.ui.activeChordSubtab = tab;
+  saveProgress(data);
+}
+
+// ── Chord Switching Game drawer ────────────────────────────────────────────
+function openGameDrawer() {
+  document.getElementById('game-drawer').classList.add('open');
+}
+function closeGameDrawer() {
+  if (typeof gameRunning !== 'undefined' && gameRunning) stopGame();
+  document.getElementById('game-drawer').classList.remove('open');
+  updateChordPracticeStatus();
+}
+function updateChordPracticeStatus() {
+  const el = document.getElementById('chord-practice-status');
+  if (!el) return;
+  if (typeof activeKeySet === 'undefined') { el.textContent = ''; return; }
+  const keys = [...activeKeySet].join(', ');
+  const streak = typeof gameStreak !== 'undefined' ? gameStreak : 0;
+  const best = typeof gameBestStreak !== 'undefined' ? gameBestStreak : 0;
+  el.textContent = `Key Practice — ${keys}  ·  Streak ${streak} (best ${best})`;
+}
+
 // Chord mode state
 let chordModeState = {
   key: 'E',
