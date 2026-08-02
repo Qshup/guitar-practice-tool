@@ -503,3 +503,243 @@ function toggleMetronomeBar() {
   saveProgress(data);
   applyMetronomeBarCollapsedState(data.ui.metronomeCollapsed);
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SAMPLE-BASED GUITAR ENGINE — Songs mode only. Real recorded guitar/bass
+// notes (gleitz/midi-js-soundfonts, MIT-licensed, CDN-hosted) instead of the
+// Tone.js synth voices above, which every OTHER mode keeps using unchanged.
+// songs.js is the only caller of the functions below.
+//
+// Each instrument file is one JS blob mapping note names ("C4", "A#2", ...)
+// to base64 data-URI mp3 samples. We load an instrument's file only when it's
+// actually selected (on-demand, not upfront), decode every sample it contains
+// once, then play any requested pitch by picking the nearest recorded note
+// and correcting pitch with playbackRate — the same technique soundfont-player
+// and WebAudioFont use. Tempo (Tone.Transport bpm) only changes *when* a note
+// fires, never playbackRate, so pitch stays correct at every speed.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SAMPLE_INSTRUMENTS = {
+  clean: 'electric_guitar_clean',
+  crunch: 'overdriven_guitar',
+  acoustic: 'acoustic_guitar_steel',
+  bass: 'electric_bass_finger',
+};
+const SAMPLE_INSTRUMENT_LABELS = { clean: 'Clean Electric', crunch: 'Crunch Electric', acoustic: 'Acoustic', bass: 'Bass' };
+const SOUNDFONT_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
+const SAMPLE_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+
+let sampleEngineReady = false;
+let sampleAmpBus, sampleDryBus, sampleRoomGain;
+const instrumentEntriesReady = {}; // instrumentKey -> [{midi, buf}] once fully loaded+decoded
+const instrumentLoadPromises = {}; // instrumentKey -> in-flight/resolved Promise
+const ringingByString = {}; // stringIdx (or 'bass') -> {source, gainNode} — for note-choking
+let sampleLoadListeners = [];
+
+function onSampleLoadingChange(fn) { sampleLoadListeners.push(fn); }
+function notifySampleLoading(isLoading, label) { sampleLoadListeners.forEach(fn => fn(isLoading, label)); }
+
+function ensureSampleEngine() {
+  const ctx = getAudioCtx();
+  if (sampleEngineReady) return ctx;
+  // Synthetic impulse response — a real IR file would need a fetch of its own;
+  // exponentially-decaying noise through a ConvolverNode is a standard,
+  // dependency-free way to get a plausible room reverb.
+  const irLength = Math.floor(ctx.sampleRate * 1.6);
+  const impulse = ctx.createBuffer(2, irLength, ctx.sampleRate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < irLength; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / irLength, 2.2);
+  }
+  const roomConvolver = ctx.createConvolver();
+  roomConvolver.buffer = impulse;
+
+  const roomDelay = ctx.createDelay(1.0);
+  roomDelay.delayTime.value = 0.11;
+  const roomFeedback = ctx.createGain();
+  roomFeedback.gain.value = 0.16;
+  roomDelay.connect(roomFeedback);
+  roomFeedback.connect(roomDelay);
+
+  sampleRoomGain = ctx.createGain();
+  sampleRoomGain.gain.value = 0.25; // overwritten immediately by the Room slider's initial value
+
+  sampleAmpBus = ctx.createGain(); // electric guitars connect here — gets the room send
+  sampleDryBus = ctx.createGain(); // acoustic/bass connect here — stays tight/dry
+
+  sampleAmpBus.connect(ctx.destination);
+  sampleAmpBus.connect(roomConvolver);
+  sampleAmpBus.connect(roomDelay);
+  roomConvolver.connect(sampleRoomGain);
+  roomDelay.connect(sampleRoomGain);
+  sampleRoomGain.connect(ctx.destination);
+
+  sampleDryBus.connect(ctx.destination);
+
+  sampleEngineReady = true;
+  return ctx;
+}
+
+function setSampleRoomAmount(amount) {
+  ensureSampleEngine();
+  if (sampleRoomGain) sampleRoomGain.gain.value = Math.max(0, Math.min(1, amount));
+}
+
+function sampleNameToMidi(name) {
+  const m = /^([A-G]#?)(-?\d+)$/.exec(name);
+  if (!m) return null;
+  const idx = SAMPLE_NOTE_NAMES.indexOf(m[1]);
+  if (idx < 0) return null;
+  return (parseInt(m[2], 10) + 1) * 12 + idx;
+}
+
+function fetchSoundfontTable(gmName) {
+  return new Promise((resolve, reject) => {
+    window.MIDI = window.MIDI || {};
+    window.MIDI.Soundfont = window.MIDI.Soundfont || {};
+    if (window.MIDI.Soundfont[gmName]) { resolve(window.MIDI.Soundfont[gmName]); return; }
+    const script = document.createElement('script');
+    script.src = SOUNDFONT_BASE + gmName + '-mp3.js';
+    script.onload = () => {
+      const table = window.MIDI.Soundfont[gmName];
+      if (table) resolve(table); else reject(new Error('Soundfont script loaded but did not define ' + gmName));
+    };
+    script.onerror = () => reject(new Error('Failed to load soundfont: ' + gmName));
+    document.head.appendChild(script);
+  });
+}
+
+async function decodeDataUri(ctx, dataUri) {
+  const res = await fetch(dataUri);
+  const arrBuf = await res.arrayBuffer();
+  return ctx.decodeAudioData(arrBuf);
+}
+
+// Resolves once the instrument's full note set is fetched *and* decoded —
+// after that, playSampledNote() below is 100% synchronous, so Tone.Part's
+// precisely-scheduled callback never has to wait on network/decode mid-song.
+function ensureInstrumentReady(instrumentKey) {
+  if (instrumentLoadPromises[instrumentKey]) return instrumentLoadPromises[instrumentKey];
+  const gmName = SAMPLE_INSTRUMENTS[instrumentKey];
+  if (!gmName) return Promise.resolve([]);
+  const ctx = ensureSampleEngine();
+  notifySampleLoading(true, SAMPLE_INSTRUMENT_LABELS[instrumentKey] || gmName);
+  instrumentLoadPromises[instrumentKey] = (async () => {
+    const table = await fetchSoundfontTable(gmName);
+    const entries = [];
+    for (const noteName of Object.keys(table)) {
+      const midi = sampleNameToMidi(noteName);
+      if (midi == null) continue;
+      try {
+        const buf = await decodeDataUri(ctx, table[noteName]);
+        entries.push({ midi, buf });
+      } catch (e) { /* skip a single bad sample rather than failing the whole instrument */ }
+    }
+    entries.sort((a, b) => a.midi - b.midi);
+    instrumentEntriesReady[instrumentKey] = entries;
+    notifySampleLoading(false);
+    return entries;
+  })();
+  return instrumentLoadPromises[instrumentKey];
+}
+
+function nearestSampleEntry(entries, targetMidi) {
+  let best = null, bestDist = Infinity;
+  for (const e of entries) {
+    const dist = Math.abs(e.midi - targetMidi);
+    if (dist < bestDist) { bestDist = dist; best = e; }
+  }
+  return best;
+}
+
+function stopAllRingingSamples() {
+  const now = ensureSampleEngine().currentTime;
+  Object.keys(ringingByString).forEach(key => stopRingingString(key, now, true));
+}
+
+function stopRingingString(stringKey, atTime, fast) {
+  const cur = ringingByString[stringKey];
+  if (!cur) return;
+  const release = fast ? 0.035 : 0.06;
+  try {
+    cur.gainNode.gain.cancelScheduledValues(atTime);
+    cur.gainNode.gain.setValueAtTime(Math.max(0.0001, cur.gainNode.gain.value), atTime);
+    cur.gainNode.gain.linearRampToValueAtTime(0.0001, atTime + release);
+    cur.source.stop(atTime + release + 0.02);
+  } catch (e) { /* source may have already finished naturally — nothing to stop */ }
+  delete ringingByString[stringKey];
+}
+
+// opts: { technique, bendTo, fromFreq, stringIdx }
+// technique: 'bend' | 'vibrato' | 'slide' | 'hammer' | 'pulloff' | 'mute' | 'harmonic'
+function playSampledNote(instrumentKey, time, freq, dur, vol, opts) {
+  opts = opts || {};
+  const entries = instrumentEntriesReady[instrumentKey];
+  if (!entries || !entries.length) return; // not loaded yet — caller should have awaited ensureInstrumentReady()
+  const ctx = ensureSampleEngine();
+  const targetMidi = 69 + 12 * Math.log2(freq / 440);
+  const nearest = nearestSampleEntry(entries, Math.round(targetMidi));
+  if (!nearest) return;
+  const baseRate = Math.pow(2, (targetMidi - nearest.midi) / 12);
+
+  const source = ctx.createBufferSource();
+  source.buffer = nearest.buf;
+  const tone = ctx.createBiquadFilter();
+  tone.type = 'lowpass';
+  tone.frequency.value = 16000; // effectively neutral unless a technique below narrows it
+  const gainNode = ctx.createGain();
+
+  const technique = opts.technique;
+  let attack = 0.004;
+  let ringDur = Math.min(dur, Math.max(0.05, nearest.buf.duration - 0.03));
+  let peakVol = vol;
+
+  if (technique === 'hammer' || technique === 'pulloff') attack = 0.028; // legato — no pick transient
+  if (technique === 'mute') { tone.frequency.value = 1700; ringDur = Math.min(ringDur, 0.15); }
+  if (technique === 'harmonic') {
+    tone.type = 'highpass'; tone.frequency.value = 350;
+    ringDur = Math.min(dur * 1.35, Math.max(0.05, nearest.buf.duration - 0.03));
+    peakVol = vol * 1.05;
+  }
+
+  source.playbackRate.setValueAtTime(baseRate, time);
+  if (technique === 'bend') {
+    const semis = opts.bendTo == null ? 2 : opts.bendTo;
+    source.playbackRate.linearRampToValueAtTime(baseRate * Math.pow(2, semis / 12), time + Math.max(0.08, dur * 0.5));
+  } else if (technique === 'slide' && opts.fromFreq) {
+    const fromMidi = 69 + 12 * Math.log2(opts.fromFreq / 440);
+    const fromRate = Math.pow(2, (fromMidi - nearest.midi) / 12);
+    source.playbackRate.setValueAtTime(fromRate, time);
+    source.playbackRate.linearRampToValueAtTime(baseRate, time + Math.min(0.16, Math.max(0.05, dur * 0.6)));
+  }
+
+  gainNode.gain.setValueAtTime(0.0001, time);
+  gainNode.gain.exponentialRampToValueAtTime(Math.max(0.001, peakVol), time + attack);
+  const releaseStart = time + Math.max(attack + 0.02, ringDur);
+  gainNode.gain.setValueAtTime(Math.max(0.001, peakVol), releaseStart);
+  gainNode.gain.exponentialRampToValueAtTime(0.0001, releaseStart + 0.22);
+
+  source.connect(tone);
+  tone.connect(gainNode);
+  gainNode.connect(instrumentKey === 'clean' || instrumentKey === 'crunch' ? sampleAmpBus : sampleDryBus);
+
+  if (technique === 'vibrato') {
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.value = 5.5;
+    lfoGain.gain.value = 25; // cents
+    lfo.connect(lfoGain);
+    lfoGain.connect(source.detune);
+    lfo.start(time + 0.08);
+    lfo.stop(time + dur + 0.3);
+  }
+
+  // Fretting-hand choke: a new note on the same string mutes whatever was ringing there.
+  if (opts.stringIdx != null) {
+    stopRingingString(opts.stringIdx, time, technique === 'mute');
+    ringingByString[opts.stringIdx] = { source, gainNode };
+  }
+
+  source.start(time);
+  source.stop(time + Math.max(ringDur, dur) + 0.45);
+}
