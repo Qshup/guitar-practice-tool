@@ -831,6 +831,17 @@
       <button class="big-btn btn-go" id="lr-start-btn" onclick="lrToggleListenRepeat()">▶ START</button>
       <button class="big-btn btn-run" onclick="lrReplaySequence()">↻ Hear it again</button>
       <button class="big-btn btn-mic" id="lr-check-mic-btn" onclick="lrCheckMic()">🎤 Check Mic</button>
+      <button class="big-btn btn-mic" id="lr-monitor-btn" onclick="lrToggleMicMonitor()">🔊 Monitor Mic</button>
+    </div>
+    <div class="lr-monitor-hint" id="lr-monitor-hint" style="display:none">Use headphones while monitoring — playing through speakers will feed back into the mic.</div>
+
+    <div class="lr-record-section" id="lr-record-section">
+      <h3>Record &amp; Play Back</h3>
+      <div class="lr-record-row">
+        <button class="game-btn game-btn-start" id="lr-record-btn" onclick="lrToggleRecording()">⏺ Record</button>
+        <div class="lr-record-status" id="lr-record-status">Not recording</div>
+      </div>
+      <audio class="lr-record-audio" id="lr-recording-audio" controls style="display:none"></audio>
     </div>
 
     <!-- Note-mode fretboard (hidden during chord-progression mode) -->

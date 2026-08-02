@@ -1037,6 +1037,25 @@
   .lr-btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
   .btn-mic { background: #2a2a2a; color: #ccb84a; border: 1px solid #443a00; }
   .btn-mic:hover { background: #332b00; }
+  .btn-mic.active { background: #443a00; color: #fff; }
+  .lr-monitor-hint {
+    font-family: Arial, sans-serif; font-size: 9px; color: #e53935;
+    text-align: center; margin-bottom: 14px; letter-spacing: .02em;
+  }
+
+  .lr-record-section {
+    background: #111; border: 1px solid #1a1a1a; padding: 12px 14px; margin-bottom: 16px;
+  }
+  .lr-record-section h3 {
+    font-family: Arial, sans-serif; font-size: 10px; color: #fff;
+    letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px;
+  }
+  .lr-record-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .game-btn-start.recording { background: #c0392b; color: #fff; }
+  .lr-record-status {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #888;
+  }
+  .lr-record-audio { width: 100%; margin-top: 10px; }
 
   .lr-mic-panel { margin-bottom: 14px; }
   .lr-mic-meter {

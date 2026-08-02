@@ -209,6 +209,78 @@ async function lrCheckMic() {
   lrStartMeterLoop();
 }
 
+// ── Live mic monitor — hear your own mic input through the speakers/headphones
+// in near real time, independent of recording or sequence grading ──
+let micMonitorGain = null;
+
+async function lrToggleMicMonitor() {
+  const btn = document.getElementById('lr-monitor-btn');
+  const hint = document.getElementById('lr-monitor-hint');
+  if (micMonitorGain) {
+    micMonitorGain.disconnect();
+    micMonitorGain = null;
+    if (btn) { btn.textContent = '🔊 Monitor Mic'; btn.classList.remove('active'); }
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  const ok = await lrInitMic();
+  if (!ok) {
+    document.getElementById('lr-mic-readout').textContent = 'Microphone access was denied — allow it in your browser to use Listen & Repeat.';
+    return;
+  }
+  lrStartMeterLoop();
+  const ctx = getAudioCtx();
+  micMonitorGain = ctx.createGain();
+  micMonitorGain.gain.value = 0.85;
+  micSourceNode.connect(micMonitorGain);
+  micMonitorGain.connect(ctx.destination);
+  if (btn) { btn.textContent = '🔇 Stop Monitor'; btn.classList.add('active'); }
+  if (hint) hint.style.display = '';
+}
+
+// ── Record & play back ──────────────────────────────────────────────────────
+let micRecorder = null;
+let micRecordedChunks = [];
+let micRecordingUrl = null;
+
+async function lrToggleRecording() {
+  const btn = document.getElementById('lr-record-btn');
+  const status = document.getElementById('lr-record-status');
+  if (micRecorder && micRecorder.state === 'recording') {
+    micRecorder.stop();
+    return;
+  }
+  const ok = await lrInitMic();
+  if (!ok) {
+    status.textContent = 'Microphone access was denied — allow it in your browser to record.';
+    return;
+  }
+  lrStartMeterLoop();
+  micRecordedChunks = [];
+  try {
+    micRecorder = new MediaRecorder(micStream);
+  } catch (e) {
+    status.textContent = 'Recording is not supported in this browser.';
+    return;
+  }
+  micRecorder.ondataavailable = (e) => { if (e.data.size > 0) micRecordedChunks.push(e.data); };
+  micRecorder.onstop = () => {
+    const blob = new Blob(micRecordedChunks, { type: micRecorder.mimeType || 'audio/webm' });
+    if (micRecordingUrl) URL.revokeObjectURL(micRecordingUrl);
+    micRecordingUrl = URL.createObjectURL(blob);
+    const audioEl = document.getElementById('lr-recording-audio');
+    audioEl.src = micRecordingUrl;
+    audioEl.style.display = '';
+    status.textContent = 'Recording ready — press play to hear it back.';
+    btn.textContent = '⏺ Record';
+    btn.classList.remove('recording');
+  };
+  micRecorder.start();
+  btn.textContent = '⏹ Stop Recording';
+  btn.classList.add('recording');
+  status.textContent = '● Recording…';
+}
+
 // ── Note-picking helpers (reuse scales.js's getBoxNotes for real fretboard positions) ──
 function lrNoteCount() {
   const p = LR_DIFFICULTY_PRESETS[lrDifficulty];
