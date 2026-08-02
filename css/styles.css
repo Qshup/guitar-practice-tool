@@ -921,6 +921,37 @@
     color: #444; border-top: 1px solid #1a1a1a; padding-top: 8px;
   }
 
+  /* Song detail view */
+  .song-detail-panel { animation: modeFadeIn .2s ease; }
+  .song-back-btn {
+    padding: 6px 14px; font-size: 9px; font-family: Arial, sans-serif; font-weight: bold;
+    border: 1px solid #333; background: #1a1a1a; color: #aaa; cursor: pointer;
+    letter-spacing: .06em; text-transform: uppercase; margin-bottom: 16px; transition: all .15s;
+  }
+  .song-back-btn:hover { border-color: #5c8fff; color: #5c8fff; }
+  .song-detail-header { margin-bottom: 20px; }
+  .song-detail-title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; color: #fff; }
+  .song-detail-artist { font-family: Arial, sans-serif; font-size: 12px; color: #888; margin-bottom: 8px; }
+  .song-section {
+    background: #111; border: 1px solid #222; padding: 16px; margin-bottom: 16px;
+  }
+  .song-section h3 {
+    font-family: Arial, sans-serif; font-size: 10px; color: #fff;
+    letter-spacing: .1em; text-transform: uppercase;
+    border-bottom: 1px solid #222; padding-bottom: 6px; margin-bottom: 12px;
+  }
+  .song-chord-row { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+  .song-chord-block {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    padding: 6px; border: 1px solid transparent; border-radius: 2px; transition: all .15s;
+  }
+  .song-chord-block.active-chord { border-color: #5c8fff; background: #0d0d2a; }
+  .song-chord-label { font-family: 'Courier New', monospace; font-size: 11px; color: #ccc; font-weight: bold; }
+  .song-tip {
+    font-family: Arial, sans-serif; font-size: 10px; color: #ccb84a; line-height: 1.6;
+    margin-top: 12px; border-top: 1px solid #1a1a1a; padding-top: 10px;
+  }
+
 /* ═══════════════════════════════════════════════════════════════
      PRACTICE PROGRESS TRACKER
 ═══════════════════════════════════════════════════════════════ */
@@ -1004,6 +1035,22 @@
   }
 
   .lr-btn-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .btn-mic { background: #2a2a2a; color: #ccb84a; border: 1px solid #443a00; }
+  .btn-mic:hover { background: #332b00; }
+
+  .lr-mic-panel { margin-bottom: 14px; }
+  .lr-mic-meter {
+    height: 10px; background: #111; border: 1px solid #1a1a1a; border-radius: 3px;
+    overflow: hidden; margin-bottom: 5px;
+  }
+  .lr-mic-meter-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, #4caf50, #ccb84a 70%, #e53935 92%);
+    transition: width .06s linear;
+  }
+  .lr-mic-meter.lr-mic-active { border-color: #4caf50; }
+  .lr-mic-readout {
+    font-family: 'Courier New', monospace; font-size: 9px; color: #888;
+  }
 
   /* fretboard dot states unique to Listen & Repeat */
   .note-dot.lr-idle { border-color: #333; background: #1a1a1a; color: #555; }

@@ -155,6 +155,60 @@ function lrStopListening() {
   micListening = false;
 }
 
+// ── Live mic level meter — lets the user visually confirm the mic is
+// actually picking up sound, independent of onset/note grading above ──
+const MIC_METER_RMS_CEILING = 0.25; // rms value that reads as a "full" meter bar
+let lrMeterRAF = null;
+
+function lrStartMeterLoop() {
+  if (lrMeterRAF) return;
+  const tick = () => {
+    const panel = document.getElementById('study-subtab-listen');
+    if (!panel || !panel.classList.contains('active') || !micAnalyser) { lrMeterRAF = null; return; }
+    micAnalyser.getFloatTimeDomainData(micSampleBuffer);
+    const rms = lrComputeRMS(micSampleBuffer);
+    const level = Math.min(1, rms / MIC_METER_RMS_CEILING);
+    const fill = document.getElementById('lr-mic-meter-fill');
+    if (fill) fill.style.width = `${Math.round(level * 100)}%`;
+    const meterEl = document.getElementById('lr-mic-meter');
+    const active = rms > MIC_ONSET_RMS_THRESHOLD;
+    if (meterEl) meterEl.classList.toggle('lr-mic-active', active);
+
+    const readout = document.getElementById('lr-mic-readout');
+    if (readout) {
+      if (active) {
+        const ctx = getAudioCtx();
+        const [freq, clarity] = pitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
+        readout.textContent = (freq > 60 && freq < 1400 && clarity > 0.8)
+          ? `Hearing: ${hzToNoteInfo(freq).noteName} (${Math.round(freq)} Hz)`
+          : 'Hearing sound (pitch unclear)';
+      } else {
+        readout.textContent = 'Listening… play a note or talk to test the mic';
+      }
+    }
+    lrMeterRAF = requestAnimationFrame(tick);
+  };
+  lrMeterRAF = requestAnimationFrame(tick);
+}
+
+function lrStopMeterLoop() {
+  if (lrMeterRAF) cancelAnimationFrame(lrMeterRAF);
+  lrMeterRAF = null;
+}
+
+async function lrCheckMic() {
+  const btn = document.getElementById('lr-check-mic-btn');
+  const readout = document.getElementById('lr-mic-readout');
+  if (readout) readout.textContent = 'Requesting microphone access…';
+  const ok = await lrInitMic();
+  if (!ok) {
+    if (readout) readout.textContent = 'Microphone access was denied — allow it in your browser to use Listen & Repeat.';
+    return;
+  }
+  if (btn) btn.textContent = '🎤 Mic Connected';
+  lrStartMeterLoop();
+}
+
 // ── Note-picking helpers (reuse scales.js's getBoxNotes for real fretboard positions) ──
 function lrNoteCount() {
   const p = LR_DIFFICULTY_PRESETS[lrDifficulty];
@@ -784,6 +838,9 @@ async function lrToggleListenRepeat() {
     document.getElementById('lr-status').textContent = 'Microphone access is needed for Listen & Repeat — please allow it and try again.';
     return;
   }
+  lrStartMeterLoop();
+  const micBtn = document.getElementById('lr-check-mic-btn');
+  if (micBtn) micBtn.textContent = '🎤 Mic Connected';
   lrRunning = true;
   btn.textContent = '■ STOP';
   btn.classList.add('running');
