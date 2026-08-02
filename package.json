@@ -10,6 +10,7 @@
     "live-server": "^1.2.2"
   },
   "dependencies": {
+    "pitchy": "^4.1.0",
     "tone": "^15.1.22"
   }
 }

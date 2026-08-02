@@ -15,8 +15,20 @@ function defaultFretboardQuizProgress() {
   };
 }
 
+function defaultListenRepeatProgress() {
+  return {
+    sessions: 0,
+    totalSequences: 0,
+    correctSequences: 0,
+    bestStreak: 0,
+    accuracyByNote: {},   // 'string-fret' -> {correct, attempts}
+    missedNotes: {},      // 'string-fret' -> missCount, feeds the neck heatmap
+    lastContext: { mode: null },
+  };
+}
+
 function defaultProgress() {
-  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: true, metronomeCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress() };
+  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: true, metronomeCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress(), listenRepeat: defaultListenRepeatProgress() };
 }
 
 function loadProgress() {
@@ -35,6 +47,7 @@ function loadProgress() {
   if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
   if (data.ui.metronomeCollapsed === undefined) data.ui.metronomeCollapsed = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
+  if (!data.listenRepeat) data.listenRepeat = defaultListenRepeatProgress();
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
 }
@@ -68,7 +81,8 @@ function todayKey() { return dateKey(new Date()); }
 
 function todayEntry(data) {
   const key = todayKey();
-  if (!data.days[key]) data.days[key] = { scaleSeconds:0, scalesPracticed:[], riffsPlayed:[], gameSessions:0 };
+  if (!data.days[key]) data.days[key] = { scaleSeconds:0, scalesPracticed:[], riffsPlayed:[], gameSessions:0, listenRepeatSequences:0 };
+  if (data.days[key].listenRepeatSequences === undefined) data.days[key].listenRepeatSequences = 0;
   return data.days[key];
 }
 
@@ -172,13 +186,13 @@ function renderHeatmap(data) {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
     const key = dateKey(d);
     const day = data.days[key];
-    const activity = day ? (day.scaleSeconds/60) + day.riffsPlayed.length*2 + day.gameSessions*3 : 0;
+    const activity = day ? (day.scaleSeconds/60) + day.riffsPlayed.length*2 + day.gameSessions*3 + (day.listenRepeatSequences||0)*2 : 0;
     const level = activity===0 ? 0 : activity<5 ? 1 : activity<15 ? 2 : activity<30 ? 3 : 4;
     const cell = document.createElement('div');
     cell.className = 'heatmap-cell';
     cell.dataset.level = level;
     cell.title = day
-      ? `${key}: ${Math.round(day.scaleSeconds/60)}m scales · ${day.riffsPlayed.length} riffs · ${day.gameSessions} game session(s)`
+      ? `${key}: ${Math.round(day.scaleSeconds/60)}m scales · ${day.riffsPlayed.length} riffs · ${day.gameSessions} game session(s) · ${day.listenRepeatSequences||0} listen & repeat`
       : `${key}: no practice logged`;
     grid.appendChild(cell);
   }

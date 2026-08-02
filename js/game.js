@@ -737,8 +737,8 @@ function setFretMode(mode, btn) {
 }
 
 // ── Draw the full guitar silhouette + neck ────────────────────────────────
-function drawGuitarNeck() {
-  const canvas = document.getElementById('guitar-full-canvas');
+function drawGuitarNeck(canvasId, chordNameOverride, modeOverride) {
+  const canvas = document.getElementById(canvasId || 'guitar-full-canvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
@@ -900,9 +900,9 @@ function drawGuitarNeck() {
   }
 
   // ── Highlight current chord ──
-  const chordName = gameCurrentChord || (gameDeck.length ? gameDeck[gameChordIndex%gameDeck.length] : null);
+  const chordName = chordNameOverride || gameCurrentChord || (gameDeck.length ? gameDeck[gameChordIndex%gameDeck.length] : null);
   if (!chordName || !GAME_CHORDS[chordName]) {
-    document.getElementById('fret-pos-label').textContent = 'No chord selected';
+    ges('fret-pos-label').textContent = 'No chord selected';
     return;
   }
 
@@ -910,7 +910,7 @@ function drawGuitarNeck() {
   let chordFrets = [...chord.f]; // copy
 
   // Apply fretboard mode
-  const mode = fretMode;
+  const mode = modeOverride || fretMode;
   let posOffset = 0;
   let posLabel = '';
 
@@ -933,7 +933,7 @@ function drawGuitarNeck() {
     posLabel = `Open / fret ${Math.max(0,...chord.f.filter(f=>f>=0))} pos`;
   }
 
-  document.getElementById('fret-pos-label').textContent = posLabel;
+  ges('fret-pos-label').textContent = posLabel;
 
   // Draw chord dots on neck
   const rootNote = chordName.replace(/m$|7$|maj7$|m7$|dim$|aug$/,'');

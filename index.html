@@ -638,6 +638,7 @@
     <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
     <button class="subtab-btn" data-subtab="quiz" onclick="switchStudySubtab('quiz')">Fretboard Quiz</button>
     <button class="subtab-btn" data-subtab="theory" onclick="switchStudySubtab('theory')">Theory</button>
+    <button class="subtab-btn" data-subtab="listen" onclick="switchStudySubtab('listen')">Listen &amp; Repeat</button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -742,6 +743,129 @@
     </div>
   </div>
 
+  <!-- ═══════════════════════════════════════════════════════════════
+       LISTEN & REPEAT — mic-graded ear training
+  ═══════════════════════════════════════════════════════════════ -->
+  <div class="subtab-panel" id="study-subtab-listen">
+    <div class="lr-celebration" id="lr-celebration"></div>
+
+    <div class="lr-mode-bar">
+      <button class="lr-mode-btn active" data-lr-mode="key" onclick="lrSwitchMode('key')">By Key</button>
+      <button class="lr-mode-btn" data-lr-mode="scale" onclick="lrSwitchMode('scale')">By Scale</button>
+      <button class="lr-mode-btn" data-lr-mode="player" onclick="lrSwitchMode('player')">By Player Style</button>
+      <button class="lr-mode-btn" data-lr-mode="chords" onclick="lrSwitchMode('chords')">By Chord Progression</button>
+    </div>
+
+    <div class="lr-controls-row">
+      <!-- BY KEY -->
+      <div class="lr-mode-controls" data-lr-mode="key">
+        <div class="ctrl-group">
+          <div class="ctrl-label">Key</div>
+          <select id="lr-key-select"></select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Tonality</div>
+          <select id="lr-tonality-select">
+            <option value="minor">Minor</option>
+            <option value="major">Major</option>
+          </select>
+        </div>
+      </div>
+      <!-- BY SCALE -->
+      <div class="lr-mode-controls" data-lr-mode="scale" style="display:none">
+        <div class="ctrl-group">
+          <div class="ctrl-label">Scale</div>
+          <select id="lr-scale-select"></select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Key</div>
+          <select id="lr-scale-key-select"></select>
+        </div>
+      </div>
+      <!-- BY PLAYER STYLE -->
+      <div class="lr-mode-controls" data-lr-mode="player" style="display:none">
+        <div class="ctrl-group" style="flex:1">
+          <div class="ctrl-label">Player</div>
+          <select id="lr-player-select"></select>
+          <div class="lr-player-desc" id="lr-player-desc"></div>
+        </div>
+      </div>
+      <!-- BY CHORD PROGRESSION -->
+      <div class="lr-mode-controls" data-lr-mode="chords" style="display:none">
+        <div class="ctrl-group">
+          <div class="ctrl-label">Key</div>
+          <select id="lr-chord-key-select"></select>
+        </div>
+        <div class="ctrl-group">
+          <div class="ctrl-label">Progression</div>
+          <select id="lr-progression-select"></select>
+        </div>
+      </div>
+
+      <div class="ctrl-group">
+        <div class="ctrl-label">Difficulty</div>
+        <select id="lr-difficulty-select"></select>
+      </div>
+    </div>
+
+    <div class="lr-status-row">
+      <div>
+        <div class="lr-context-label" id="lr-context-label">—</div>
+        <div class="lr-status" id="lr-status">Press Start to hear a sequence</div>
+        <div class="lr-live-capture" id="lr-live-capture"></div>
+      </div>
+      <div class="game-score-row">
+        <div class="score-block"><div class="score-val" id="lr-streak">0</div><div class="score-label">Streak</div></div>
+        <div class="score-block"><div class="score-val" id="lr-best-streak">0</div><div class="score-label">Best</div></div>
+        <div class="score-block"><div class="score-val" id="lr-total-sequences">0</div><div class="score-label">Sequences</div></div>
+        <div class="score-block"><div class="score-val" id="lr-accuracy">—</div><div class="score-label">Accuracy</div></div>
+      </div>
+    </div>
+
+    <div class="lr-btn-row">
+      <button class="big-btn btn-go" id="lr-start-btn" onclick="lrToggleListenRepeat()">▶ START</button>
+      <button class="big-btn btn-run" onclick="lrReplaySequence()">↻ Hear it again</button>
+    </div>
+
+    <!-- Note-mode fretboard (hidden during chord-progression mode) -->
+    <div class="fretboard-wrap" id="lr-fretboard-wrap">
+      <div class="fretboard" id="lr-fretboard">
+        <div class="nut"></div>
+      </div>
+    </div>
+
+    <div class="lr-feedback-panel" id="lr-feedback-panel" style="display:none"></div>
+
+    <!-- Chord-progression self-grade UI -->
+    <div class="lr-chord-panel" id="lr-chord-panel" style="display:none">
+      <div class="lr-chord-current-row">
+        <div class="lr-chord-current" id="lr-chord-current">—</div>
+        <div class="lr-chord-timing" id="lr-chord-timing"></div>
+      </div>
+      <div class="lr-chord-grade-row" id="lr-chord-grade-row" style="display:none">
+        <button class="game-btn game-btn-got" onclick="lrGradeChordSwitch(true)">✓ Got it</button>
+        <button class="game-btn game-btn-missed" onclick="lrGradeChordSwitch(false)">✗ Missed</button>
+      </div>
+      <div class="lr-chord-miss-panel" id="lr-chord-miss-panel" style="display:none">
+        <div class="lr-chord-miss-label">You should have played: <span id="lr-chord-miss-name"></span></div>
+        <div class="lr-chord-miss-visuals">
+          <canvas id="lr-chord-diagram-canvas" width="150" height="195"></canvas>
+          <canvas id="lr-neck-canvas" width="160" height="460"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Missed-notes heatmap -->
+    <div class="lr-heatmap-section">
+      <h3>Notes You Miss Most Often</h3>
+      <div class="fretboard-wrap">
+        <div class="fretboard" id="lr-heatmap-fretboard">
+          <div class="nut"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -807,6 +931,7 @@
 </div>
 
 <script src="js/vendor/Tone.js"></script>
+<script src="js/vendor/pitchy.js"></script>
 <script src="js/scales.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/chords.js"></script>
@@ -816,6 +941,7 @@
 <script src="js/progress.js"></script>
 <script src="js/study.js"></script>
 <script src="js/quiz.js"></script>
+<script src="js/listenrepeat.js"></script>
 <script src="js/songs.js"></script>
 <script src="js/nav.js"></script>
 </body>
