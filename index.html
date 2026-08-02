@@ -939,37 +939,41 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-songs">
   <div class="riff-title">Song Library</div>
-  <div class="riff-subtitle">Practice progressions and related licks in the style of each song below — pick a
-    key chord shape to drill, then branch into a matching practice riff from the Riffs library.</div>
+  <div class="riff-subtitle">Full chord charts, tab, and a scrolling synced practice player for each song below —
+    pick a song to open the practice view, drill a section on loop, then branch into a matching riff from the Riffs library.</div>
 
-  <div class="songs-status" id="songs-status"></div>
+  <div class="songs-filter-bar" id="songs-filter-bar">
+    <div class="riff-filter-group">
+      <span class="riff-filter-label">Artist</span>
+      <select id="songs-filter-artist" onchange="applySongFilters()"><option value="all">All Artists</option></select>
+    </div>
+    <div class="riff-filter-group">
+      <span class="riff-filter-label">Key</span>
+      <select id="songs-filter-key" onchange="applySongFilters()"><option value="all">All Keys</option></select>
+    </div>
+    <div class="riff-filter-group">
+      <span class="riff-filter-label">Difficulty</span>
+      <select id="songs-filter-difficulty" onchange="applySongFilters()">
+        <option value="all">All Difficulties</option>
+        <option value="1">★ 1 — Easiest</option>
+        <option value="2">★★ 2</option>
+        <option value="3">★★★ 3</option>
+        <option value="4">★★★★ 4</option>
+        <option value="5">★★★★★ 5 — Hardest</option>
+      </select>
+    </div>
+    <div class="riff-filter-group">
+      <span class="riff-filter-label">Scale</span>
+      <select id="songs-filter-scale" onchange="applySongFilters()"><option value="all">All Scales</option></select>
+    </div>
+    <button class="riff-filter-clear" onclick="clearSongFilters()">Clear Filters</button>
+  </div>
 
   <div class="songs-grid" id="songs-grid"></div>
+  <div id="songs-filtered-empty" style="display:none;font-family:Arial,sans-serif;font-size:10px;color:#555;padding:20px;text-align:center">No songs match these filters.</div>
 
-  <div class="song-detail-panel" id="song-detail-panel" style="display:none">
-    <button class="song-back-btn" onclick="closeSongDetail()">← Back to Songs</button>
-    <div class="song-detail-header">
-      <div class="song-detail-title" id="song-detail-title"></div>
-      <div class="song-detail-artist" id="song-detail-artist"></div>
-      <div class="song-card-meta">
-        <span class="song-card-key" id="song-detail-key"></span>
-        <span class="song-card-difficulty" id="song-detail-difficulty"></span>
-        <span class="song-card-key" id="song-detail-bpm"></span>
-      </div>
-    </div>
-
-    <div class="song-section">
-      <h3 id="song-progression-label">Chord Progression</h3>
-      <div class="song-chord-row" id="song-chord-row"></div>
-      <button class="game-btn game-btn-start" id="song-play-progression-btn" onclick="songToggleProgression()">▶ Play Progression</button>
-      <div class="song-tip" id="song-tip"></div>
-    </div>
-
-    <div class="song-section">
-      <h3>Practice Riffs In This Style</h3>
-      <div class="riff-grid" id="song-related-riffs"></div>
-    </div>
-  </div>
+  <!-- Practice view is built entirely by js/songs.js (renderSongPracticeShell) -->
+  <div class="song-practice-view" id="song-practice-view" style="display:none"></div>
 </div>
 
 <script src="js/vendor/Tone.js"></script>

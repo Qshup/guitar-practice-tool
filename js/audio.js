@@ -30,12 +30,18 @@ function stopScaleTimer() {
 }
 
 // ── Tone.js voices (guitar-quality synthesis) ──────────────────────────────
-// pluckVoice: real Karplus-Strong plucked string (scale run, chord strum, chord vamp)
+// pluckVoice: real Karplus-Strong plucked string (scale run, chord strum, chord vamp,
+//   riffs, songs) — dampening/resonance shift per-note by frequency (see stringToneFor)
+//   so low strings read as warm/round and high strings as bright/twangy, like a real set.
+// ampInput: shared amp-style coloration (saturation -> EQ -> compression) every
+//   pluck/bend/vibrato note runs through before the reverb bus — this is what keeps
+//   the physical-modeling pluck from sounding like a clean synthesis demo.
 // bassVoice: filtered sawtooth bass for the metronome backing track
 // chordVoice: triangle pad for backing-track chord stabs
-// bendVoice + vibratoFx: pitch-automatable voice for riff bends/vibrato (see riffs.js)
+// bendVoice + vibratoFx: pitch-automatable voice for riff/song bends & vibrato —
+//   a real guitar string bend needs continuous pitch glide, which PluckSynth can't do.
 let toneReady = false;
-let bassVoice, chordVoice, bendVoice, vibratoFx, reverbBus;
+let bassVoice, chordVoice, bendVoice, vibratoFx, reverbBus, ampInput;
 // Tone.PluckSynth doesn't extend Monophonic, so Tone.PolySynth can't wrap it —
 // a small hand-rolled voice pool gives it polyphony (needed for strummed chords).
 const PLUCK_POOL_SIZE = 8;
@@ -53,10 +59,18 @@ function getAudioCtx() {
     reverbBus = new Tone.Freeverb({ roomSize: 0.6, dampening: 4000 }).toDestination();
     reverbBus.wet.value = 0.13; // slight room tone, not washy — keeps fast runs legible
 
+    // ── "Amp" coloration chain — shared by every plucked/bent/vibrato note ──
+    // A raw Karplus-Strong pluck is too clean/synthetic on its own; a touch of
+    // saturation + guitar-shaped EQ + gentle compression is what makes it read
+    // as an amplified string instead of a plain physical-modeling demo.
+    const ampComp = new Tone.Compressor({ threshold: -24, ratio: 3, attack: 0.003, release: 0.15 }).connect(reverbBus);
+    const ampEQ = new Tone.EQ3({ low: -2, mid: 2, high: 3 }).connect(ampComp); // scoop mud, push body + pick presence
+    ampInput = new Tone.Distortion({ distortion: 0.08, oversample: '2x' }).connect(ampEQ); // subtle tube-amp warmth, not fuzz
+
     pluckPool = [];
     pluckPoolLastTime = [];
     for (let i = 0; i < PLUCK_POOL_SIZE; i++) {
-      pluckPool.push(new Tone.PluckSynth({ attackNoise: 1, dampening: 6000, resonance: 0.92 }).connect(reverbBus));
+      pluckPool.push(new Tone.PluckSynth({ attackNoise: 1.4, dampening: 5000, resonance: 0.93 }).connect(ampInput));
       pluckPoolLastTime.push(0);
     }
 
@@ -72,14 +86,18 @@ function getAudioCtx() {
       envelope: { attack: 0.01, decay: 0.25, sustain: 0.5, release: 0.6 }
     }).connect(Tone.getDestination()); // dry — rhythm-section backing, not the lead voice
 
+    // Bends/vibrato need continuous pitch automation mid-note, which Tone.PluckSynth
+    // can't do (its "frequency" only sets the Karplus-Strong delay length at trigger
+    // time) — hence a separate oscillator-based voice. A resonant lowpass instead of
+    // a narrow bandpass keeps this sounding like an amplified string, not a synth lead.
     bendVoice = new Tone.MonoSynth({
       oscillator: { type: 'sawtooth' },
-      filter: { type: 'bandpass', Q: 10 },
-      filterEnvelope: { attack: 0.01, decay: 0.2, sustain: 0.8, release: 0.3, baseFrequency: 800, octaves: 2 },
-      envelope: { attack: 0.01, decay: 0.1, sustain: 0.7, release: 0.4 }
+      filter: { type: 'lowpass', Q: 2, rolloff: -24 },
+      filterEnvelope: { attack: 0.01, decay: 0.25, sustain: 0.6, release: 0.3, baseFrequency: 400, octaves: 3.5 },
+      envelope: { attack: 0.008, decay: 0.12, sustain: 0.7, release: 0.4 }
     });
     vibratoFx = new Tone.Vibrato({ frequency: 5.5, depth: 0.15, wet: 0 });
-    bendVoice.chain(vibratoFx, reverbBus);
+    bendVoice.chain(vibratoFx, ampInput);
 
     toneReady = true;
   }
@@ -132,6 +150,17 @@ function playChord(time, freqs, dur, vol) {
   });
 }
 
+// Real guitar strings aren't tonally uniform — the wound low E/A/D strings ring
+// warm and dark with long sustain, the plain high G/B/e strings are brighter and
+// decay faster. Frequency is a solid proxy for "which string" without needing to
+// thread a string index through every call site (scale run, chords, riffs, songs
+// all already differ mainly by pitch). Low notes -> darker/rounder, high notes ->
+// brighter/twangier, mirroring how a real set of strings actually behaves.
+function stringToneFor(freq) {
+  const t = Math.min(1, Math.max(0, freq / 1300));
+  return { dampening: 2200 + t * 4600, resonance: 0.95 - t * 0.05 }; // stays within PluckSynth's ~0-7000Hz range
+}
+
 function playPluck(time, freq, vol) {
   getAudioCtx();
   const i = pluckPoolIdx;
@@ -141,6 +170,9 @@ function playPluck(time, freq, vol) {
   // reusing a voice at/before its last scheduled time (e.g. rapid chord-game skips).
   const safeTime = Math.max(time, pluckPoolLastTime[i] + 0.001);
   pluckPoolLastTime[i] = safeTime;
+  const tone = stringToneFor(freq);
+  v.dampening = tone.dampening;
+  v.resonance = tone.resonance;
   v.volume.value = Tone.gainToDb(Math.max(0.001, Math.min(1, vol * 0.85)));
   v.triggerAttack(freq, safeTime);
 }
@@ -151,6 +183,7 @@ function playPluck(time, freq, vol) {
 function playBendNote(time, freq, dur, vol, semitones) {
   getAudioCtx();
   vibratoFx.wet.value = 0;
+  bendVoice.filterEnvelope.baseFrequency = Math.max(200, freq * 1.5); // filter tracks pitch like a real amp's response
   const target = freq * Math.pow(2, (semitones == null ? 2 : semitones) / 12);
   bendVoice.triggerAttack(freq, time, Math.min(1, vol));
   bendVoice.frequency.setValueAtTime(freq, time);
@@ -161,6 +194,7 @@ function playBendNote(time, freq, dur, vol, semitones) {
 function playVibratoNote(time, freq, dur, vol) {
   getAudioCtx();
   vibratoFx.wet.value = 1;
+  bendVoice.filterEnvelope.baseFrequency = Math.max(200, freq * 1.5);
   bendVoice.triggerAttackRelease(freq, dur, time, Math.min(1, vol));
 }
 

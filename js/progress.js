@@ -28,7 +28,7 @@ function defaultListenRepeatProgress() {
 }
 
 function defaultProgress() {
-  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: true, metronomeCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress(), listenRepeat: defaultListenRepeatProgress() };
+  return { version: PROGRESS_VERSION, days: {}, chordPairs: {}, riffTotals: {}, ui: { panelCollapsed: true, metronomeCollapsed: false }, fretboardQuiz: defaultFretboardQuizProgress(), listenRepeat: defaultListenRepeatProgress(), songs: {} };
 }
 
 function loadProgress() {
@@ -48,6 +48,7 @@ function loadProgress() {
   if (data.ui.metronomeCollapsed === undefined) data.ui.metronomeCollapsed = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
   if (!data.listenRepeat) data.listenRepeat = defaultListenRepeatProgress();
+  if (!data.songs) data.songs = {};
   if (!data.version) data.version = PROGRESS_VERSION;
   return data;
 }
@@ -81,8 +82,9 @@ function todayKey() { return dateKey(new Date()); }
 
 function todayEntry(data) {
   const key = todayKey();
-  if (!data.days[key]) data.days[key] = { scaleSeconds:0, scalesPracticed:[], riffsPlayed:[], gameSessions:0, listenRepeatSequences:0 };
+  if (!data.days[key]) data.days[key] = { scaleSeconds:0, scalesPracticed:[], riffsPlayed:[], gameSessions:0, listenRepeatSequences:0, songSessions:0 };
   if (data.days[key].listenRepeatSequences === undefined) data.days[key].listenRepeatSequences = 0;
+  if (data.days[key].songSessions === undefined) data.days[key].songSessions = 0;
   return data.days[key];
 }
 
@@ -119,6 +121,31 @@ function recordRiffPlayed(riffId, title) {
 function recordGameSession() {
   const data = loadProgress();
   todayEntry(data).gameSessions++;
+  saveProgress(data);
+  renderProgressPanel();
+}
+
+// sectionResults: { [sectionId]: { grade:'clean'|'needsWork', label } }
+function recordSongSession(songId, songTitle, sectionResults, note, playSeconds) {
+  if (!songId) return;
+  const data = loadProgress();
+  const s = data.songs[songId] || (data.songs[songId] = { title: songTitle, plays: 0, lastPlayed: null, totalSeconds: 0, sections: {}, notes: [] });
+  s.title = songTitle || s.title;
+  s.plays++;
+  s.lastPlayed = new Date().toISOString();
+  if (playSeconds > 0) s.totalSeconds += playSeconds;
+  Object.entries(sectionResults || {}).forEach(([sectionId, result]) => {
+    const sec = s.sections[sectionId] || (s.sections[sectionId] = { clean: 0, needsWork: 0, label: result.label });
+    sec.label = result.label || sec.label;
+    if (result.grade === 'clean') sec.clean++;
+    else if (result.grade === 'needsWork') sec.needsWork++;
+  });
+  if (note && note.trim()) {
+    s.notes.unshift({ date: new Date().toISOString(), text: note.trim() });
+    if (s.notes.length > 20) s.notes.length = 20;
+  }
+  const today = todayEntry(data);
+  today.songSessions++;
   saveProgress(data);
   renderProgressPanel();
 }
@@ -186,13 +213,13 @@ function renderHeatmap(data) {
     const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
     const key = dateKey(d);
     const day = data.days[key];
-    const activity = day ? (day.scaleSeconds/60) + day.riffsPlayed.length*2 + day.gameSessions*3 + (day.listenRepeatSequences||0)*2 : 0;
+    const activity = day ? (day.scaleSeconds/60) + day.riffsPlayed.length*2 + day.gameSessions*3 + (day.listenRepeatSequences||0)*2 + (day.songSessions||0)*3 : 0;
     const level = activity===0 ? 0 : activity<5 ? 1 : activity<15 ? 2 : activity<30 ? 3 : 4;
     const cell = document.createElement('div');
     cell.className = 'heatmap-cell';
     cell.dataset.level = level;
     cell.title = day
-      ? `${key}: ${Math.round(day.scaleSeconds/60)}m scales · ${day.riffsPlayed.length} riffs · ${day.gameSessions} game session(s) · ${day.listenRepeatSequences||0} listen & repeat`
+      ? `${key}: ${Math.round(day.scaleSeconds/60)}m scales · ${day.riffsPlayed.length} riffs · ${day.gameSessions} game session(s) · ${day.listenRepeatSequences||0} listen & repeat · ${day.songSessions||0} song session(s)`
       : `${key}: no practice logged`;
     grid.appendChild(cell);
   }

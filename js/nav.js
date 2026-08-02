@@ -18,6 +18,10 @@ function switchMode(mode) {
   if (prevMode === 'riffs' && mode !== 'riffs' && typeof activeRiffPlayers !== 'undefined') {
     Object.keys(activeRiffPlayers).forEach(id => stopRiffPlay(id));
   }
+  if (prevMode === 'songs' && mode !== 'songs') {
+    if (typeof songTeardownPlayback === 'function') songTeardownPlayback();
+    if (typeof activeSongRiffPlayers !== 'undefined') Object.keys(activeSongRiffPlayers).forEach(id => stopSongRiffPlay(id));
+  }
 
   NAV_MODES.forEach(m => {
     const panel = document.getElementById(`mode-panel-${m}`);
