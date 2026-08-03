@@ -4,32 +4,15 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 // ── Reference / Practice sub-tabs ──────────────────────────────────────────
+// The Chord Switching Game used to launch from here as a drawer — it now
+// lives in Study > Chord Game (see index.html "study-subtab-game" and
+// game.js), so this file no longer owns any game-launching logic.
 function switchChordSubtab(tab) {
   document.querySelectorAll('#mode-panel-chords .subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === tab));
   document.querySelectorAll('#mode-panel-chords .subtab-panel').forEach(p => p.classList.toggle('active', p.id === `chords-subtab-${tab}`));
-  if (tab === 'practice') updateChordPracticeStatus();
   const data = loadProgress();
   data.ui.activeChordSubtab = tab;
   saveProgress(data);
-}
-
-// ── Chord Switching Game drawer ────────────────────────────────────────────
-function openGameDrawer() {
-  document.getElementById('game-drawer').classList.add('open');
-}
-function closeGameDrawer() {
-  if (typeof gameRunning !== 'undefined' && gameRunning) stopGame();
-  document.getElementById('game-drawer').classList.remove('open');
-  updateChordPracticeStatus();
-}
-function updateChordPracticeStatus() {
-  const el = document.getElementById('chord-practice-status');
-  if (!el) return;
-  if (typeof activeKeySet === 'undefined') { el.textContent = ''; return; }
-  const keys = [...activeKeySet].join(', ');
-  const streak = typeof gameStreak !== 'undefined' ? gameStreak : 0;
-  const best = typeof gameBestStreak !== 'undefined' ? gameBestStreak : 0;
-  el.textContent = `Key Practice — ${keys}  ·  Streak ${streak} (best ${best})`;
 }
 
 // Chord mode state
@@ -175,7 +158,22 @@ const CHORD_INTERVALS_MAP = {
   min9:[0,3,7,10,14], power:[0,7]
 };
 
+// Survives page reload, not just SPA tab switches — renderChordFretboard()
+// runs after every key/shape/type change, so this covers every mutation site.
+function saveChordsState() {
+  const data = loadProgress();
+  data.ui.chordsState = { key: chordModeState.key, shape: chordModeState.shape, type: chordModeState.type };
+  saveProgress(data);
+}
+function restoreChordsState() {
+  const data = loadProgress();
+  if (!data.ui.chordsState) return;
+  Object.assign(chordModeState, data.ui.chordsState);
+  buildChordModeControls(); // buttons were built at load against the hardcoded default — rebuild against the restored state
+}
+
 function renderChordFretboard() {
+  saveChordsState();
   const fb = document.getElementById('chord-fretboard');
   fb.querySelectorAll('.string-row,.fret-numbers').forEach(e=>e.remove());
 

@@ -3,6 +3,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 function switchStudySubtab(tab) {
+  const wasGame = document.getElementById('study-subtab-game')?.classList.contains('active');
+  if (wasGame && tab !== 'game' && typeof gameRunning !== 'undefined' && gameRunning) stopGame();
   document.querySelectorAll('#mode-panel-study .subtab-btn').forEach(b => b.classList.toggle('active', b.dataset.subtab === tab));
   document.querySelectorAll('#mode-panel-study .subtab-panel').forEach(p => p.classList.toggle('active', p.id === `study-subtab-${tab}`));
   if (tab === 'theory') renderTheoryPanel();

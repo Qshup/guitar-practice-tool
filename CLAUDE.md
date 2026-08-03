@@ -11,7 +11,8 @@ runs `live-server` for local dev (see `package.json`).
   diagrams, circle of 5ths, and an animated scale run-through.
 - **Chords** (`chords.js`, `caged.js`) — chord reference, CAGED system, chord
   run practice.
-- **Study** (`study.js`, `quiz.js`) — flashcard-style drilling.
+- **Study** (`study.js`, `quiz.js`) — flashcard-style drilling, Fretboard
+  Quiz, Theory, Listen & Repeat, and Chord Game sub-tabs.
 - **Riffs** (`riffs.js`) — a library of short signature riffs per scale,
   tagged by player/technique, each with a tab display and a Play button.
 - **Songs** (`songs.js`) — a Songsterr-style synced practice player: scrolling
@@ -182,18 +183,6 @@ parts, not transcriptions of the actual recordings, so tempo/feel won't
 always match the record. A Guitar Pro file import (drop your own `.gp`/
 `.gp3-5`/`.gpx` files, parsed via AlphaTab) is the planned fix — see
 "Guitar Pro import" below.
-
-## Guitar Pro import (planned / in progress)
-
-`registerExternalSong(song)` in `songs.js` already accepts any object
-matching the internal song schema and slots it into `SONG_LIBRARY` — a file
-importer only needs to produce that shape. Chosen approach: **AlphaTab**
-(`@coderline/alphatab`, MPL-2.0, browser UMD build via
-`https://cdn.jsdelivr.net/npm/@coderline/alphatab@latest/dist/alphaTab.min.js`
-— no build step, fits this project's flat-`<script>`-tag setup) parses
-`.gp`/`.gp3`/`.gp4`/`.gp5`/`.gpx` files into a `Score` (tracks → bars → beats
-→ notes); a mapping layer converts that into `chords`/`rhythmFeel or explicit
-rhythm notes`/`leadBars` per track and calls `registerExternalSong()`.
 
 ## Microphone Architecture (js/mic.js)
 
@@ -384,3 +373,192 @@ Four formats, three fully offline:
 Edit (`editPersonalSongMeta`) and delete (`deletePersonalSong`) use
 `prompt()`/`confirm()` — intentionally minimal, matching the scope of "I can
 edit metadata and delete personal songs," not a full form-based editor.
+
+## Chord Switching Game (Study > Chord Game)
+
+Lives in `game.js`, rendered inside Study mode's `#study-subtab-game` panel
+(`index.html`) — moved out of a Chords-mode floating drawer this session.
+The interval-colored guitar-neck silhouette (root white / 3rd blue / 5th
+green / 7th orange, `getIntervalColor` in `drawGuitarNeck`) and the current/
+next/prev chord-card layout (`renderGameChords`) already existed; this pass
+enlarged them for the new full-page context (current chord: 220px canvas,
+56px name, glow highlight — see `.chord-card-wrap.current` in styles.css)
+and added:
+
+- **Progression presets** (`CHORD_SETS`/`PROGRESSION_PRESET_META` in
+  `game.js`): 6 common transitions + 5 player-specific modes (Knopfler/
+  Ronson/Hazel/Dean Ween/Zappa), each with a default play order (sequential
+  for real progressions, random for Dean Ween's "genre jumps" and Zappa's
+  "unusual movements") and a target BPM for the milestone below.
+- **Difficulty ramp** (`maybeRampDifficulty`, called from `gradeSwitch`'s
+  success branch): +5 BPM every 5 correct switches in a row, shown as a
+  progress bar (`#game-bpm-progress-fill`) against the active preset's
+  target tempo, with a one-time milestone message
+  (`showGameMilestone`/`.game-message.milestone`) on reaching it. **Only
+  accumulates when self-grading is active** (the "Auto-advance chords"
+  checkbox, on by default, hides the ✓/✗ buttons and skips `gradeSwitch`
+  entirely — a pre-existing behavior, not something this pass changed) —
+  same caveat "Best Streak" has always had.
+- Mode switching now stops the game from `nav.js` (leaving Study, not
+  Chords) and `switchStudySubtab` (leaving the game sub-tab specifically).
+
+Restructuring the HTML from a `position:fixed` drawer into a plain
+`subtab-panel` briefly broke `mode-panel-chords`'s closing tag during
+editing (nesting every later mode inside it) — verified fixed via a script
+that tracks div depth per `mode-panel` open (see git history if this class
+of bug recurs; the fix was a purely structural HTML edit, not a logic
+change).
+
+## User Profiles (js/progress.js)
+
+Name + emoji avatar, no password. Each profile's entire progress
+object lives under its own localStorage key (`PROGRESS_KEY + '_' + id`,
+`activeProgressKey()`) — `loadProgress()`/`saveProgress()` always read/write
+through that, so nothing elsewhere in the app needed to change. First run
+after this feature was added migrates any pre-existing single-profile data
+(the old flat `gpt_progress` key) into a new default profile
+(`ensureProfilesInitialized`), so nobody's history disappeared.
+
+Switching, creating, or deleting a profile calls `location.reload()` rather
+than trying to hot-swap: every mode's in-memory state (Scales' `state`,
+Chords' `chordModeState`, song/riff player state, …) is scattered across
+many files with no single reset hook, and a reload is the simplest reliable
+way to re-initialize all of it against the newly active profile — building
+a proper hot-swap would mean adding a reset function to every file that
+holds state. Reasonable given "simple profile system... no passwords" was
+the brief; revisit if reload-on-switch ever feels too heavy.
+
+UI: the profile chip in the Practice Progress panel header
+(`#profile-chip`/`toggleProfileMenu`/`renderProfileMenu`).
+
+## Progress Export (js/progress.js)
+
+`exportProgressJSON()` — an "⬇ Export" button next to the profile chip
+downloads the active profile's full progress object as a timestamped JSON
+file (includes which profile it came from). Plain `Blob` + object-URL
+download, no server involved.
+
+## State Persistence Beyond Progress Data
+
+Every graded action already called `saveProgress()` before this pass — that
+part of the brief was already satisfied. What was missing: Scales' and
+Chords' *current selection* (which scale/key/position, which chord/shape/
+type) lived in a plain in-memory object with a hardcoded default and reset
+on every page reload, even though switching between modes *within* a
+running page always preserved it fine (nothing unmounts on tab switch in
+this app — there's no framework doing that). Added:
+
+- `saveScalesState()`/`restoreScalesState()` in `scales.js`, hooked into
+  `render()` (runs after every mutation) and `nav.js`'s `initNav()`.
+- `saveChordsState()`/`restoreChordsState()` in `chords.js`, hooked into
+  `renderChordFretboard()` and `initNav()`.
+
+Both restore functions also resync the relevant buttons' `.active` classes,
+since those were built once at load against the hardcoded default and don't
+automatically reflect a later `Object.assign()` onto the state object.
+**Not** persisted (reasonable scope boundary, not done): Riffs/Songs filter
+selections, Songs' in-progress practice-view session, Study sub-tab internal
+scroll position — resetting these on reload is a much smaller UX cost than
+Scales/Chords losing their whole active selection.
+
+## Obsidian Vault Export (js/obsidian.js)
+
+No Obsidian plugin needed — writes a `.md` file straight into a folder
+Obsidian is already watching, using the **File System Access API**
+(`showDirectoryPicker`, Chromium-only: Brave/Chrome/Edge — feature-detected
+via `obsidianSupported()`, gracefully unavailable elsewhere). The user picks
+the vault folder once (`chooseObsidianVault`); the returned
+`FileSystemDirectoryHandle` is stored in IndexedDB (`gpt_obsidian` — handles
+aren't JSON-serializable, so this can't live in localStorage next to
+everything else). Browsers require re-confirming write permission each
+session even with a stored handle (`getObsidianVaultHandle` calls
+`queryPermission` then falls back to `requestPermission`, which must run
+from a user gesture — every call site here already is one).
+
+**Hooked into one place**: Songs mode's existing "Finish & Review" self-grade
+flow (`songSaveSelfGrade()`), since that already collects every field the
+summary needs — duration (`songPracticeState.accumulatedSeconds`), what was
+practiced (the song title), section scores (clean/needs-work per section),
+and a free-text focus-next-time note. After saving, a dismissible "📤 Export
+to Obsidian" button appears (`offerObsidianExport`/
+`handleObsidianExportClick`) rather than an interrupting `confirm()` —
+ignorable if you don't want it that round. **Not wired into** Scale Run /
+Chord Game / Listen & Repeat's own session-end points — natural follow-up,
+since each would need its own "what to put in the summary" mapping the way
+Songs' self-grade flow already provides for free.
+
+## Performance Notes
+
+- **Camera loop throttled to ~30fps** (`CAMERA_TARGET_INTERVAL_MS` in
+  `camera.js`), not raw `requestAnimationFrame` (~60fps) — MediaPipe
+  inference is the single most expensive per-frame operation in the app,
+  and hand-tracking for chord/finger feedback doesn't need 60fps precision.
+- **Mic's meter and onset-detection loops were merged** (`mic.js`): both
+  used to run as independent RAF loops that each called
+  `getFloatTimeDomainData` + computed RMS on the same buffer every frame.
+  Since they're always started/stopped together (`micSetEnabled`), there
+  was no reason for two reads — `startMicMeterLoop` now does the single
+  read and calls `pollOnsetFromFrame(rms)` inline.
+- **MediaPipe and AlphaTab are genuinely lazy** — verified, not just
+  claimed: `ensureHandLandmarker()` only runs from `enableCamera()` (the
+  camera nav-button click), `loadAlphaTab()`'s dynamic `import()` only runs
+  from `parseGuitarProFile()` (choosing GP format + clicking Parse). Neither
+  loads anything at page load.
+- **Known remaining redundancy, not fixed this pass**: Listen & Repeat runs
+  its *own* onset-capture loop (`lrMicPollTick`) and level-meter loop
+  (`lrStartMeterLoop` in `listenrepeat.js`) independently of `mic.js`'s
+  shared loop — a deliberate scope boundary from the Task 2 mic work (LR
+  keeps its pre-existing, tested polling logic rather than being folded
+  into the pub/sub system other modes use). If the global Mic bar is also
+  on while an LR round is running, that's 2-3 loops reading the same
+  analyser per frame. Fully unifying this would mean giving LR's
+  quiz-grading logic the same subscriber treatment Scales/Chords get —
+  real follow-up work, deliberately not risked this late in a long session
+  against LR's existing working behavior.
+- No 60fps jank measurements were actually taken (no browser tools this
+  session) — the above are structural fixes based on code review, not
+  profiler output. Verify with real usage.
+
+## Future Direction
+
+**Desktop app**: when this stops being "open index.html in a browser" and
+becomes a real standalone app, **Electron** is the recommended path — it
+wraps this exact web app (no rewrite) while dropping every browser-sandbox
+restriction that currently shapes the architecture: full filesystem access
+(the Obsidian export above could write directly instead of going through
+the File System Access API's picker-and-permission dance), native MIDI
+without Web MIDI's permission prompt, and camera/mic access without a
+getUserMedia permission gate or the iframe-sandboxing restrictions
+`micUnavailableMessage()`/the camera panel currently have to account for.
+Everything documented in this file about lazy-loading, local-only assets,
+and browser API feature-detection would simplify or disappear entirely in
+an Electron build — worth revisiting those decisions at that point rather
+than assuming they still make sense.
+
+**MIDI controller integration** (see "MIDI readiness" above for the
+`playSampledNote` hook itself — this extends that with a verification
+loop): once real MIDI hardware is available to test against, the plan is
+(1) wire `navigator.requestMIDIAccess()` per the existing documented
+snippet to trigger the same sample-playback path every mode already uses,
+then (2) *also* feed the same `noteon` events through the mic-engine's
+pitch-comparison logic (`scalesHandleMicOnset`'s nearest-note matching, or
+a MIDI-specific variant of it) to verify the controller's reported note
+number actually matches the pitch the tool expects at that fret/string —
+catching a mis-mapped or detuned controller rather than trusting its note
+numbers blindly. No code for this yet; it needs real hardware to develop
+against, which wasn't available this session.
+
+**Custom sample recording** (future feature, not started): let the user
+record their *own* instrument playing each note of the scale/chromatic
+range through the mic (already-built pitch detection identifies which note
+was just played and confirms tuning accuracy before accepting a take),
+building a personal sample set with the same shape `SAMPLE_INSTRUMENTS`/
+`playSampledNote` already expect — meaning it would plug into the existing
+sample-based engine as a new instrument option with no engine changes, and
+sidesteps any question of sample licensing since every sample would be the
+user's own recording. Would need: a guided recording flow (probably reusing
+the mic-calibration/level-meter UI patterns from `mic.js`), trimming/
+silence-detection per take, and a storage plan (IndexedDB, like the
+Obsidian vault handle — raw audio is too large for localStorage's ~5-10MB
+budget across ~50-70 notes × several velocity layers if it ever went that
+far).

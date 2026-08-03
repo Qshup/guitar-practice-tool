@@ -142,9 +142,19 @@ function disableCamera() {
 }
 
 // ── Per-frame detection loop ────────────────────────────────────────────────
+// Throttled to ~30fps rather than raw RAF (~60fps): MediaPipe inference is
+// the single most expensive per-frame operation in the app, and hand
+// tracking for chord/finger feedback doesn't need 60fps precision — this
+// halves its CPU cost so it shares the frame budget with audio playback and
+// the mic's own RAF loops without contention. See CLAUDE.md performance notes.
+const CAMERA_TARGET_INTERVAL_MS = 1000 / 30;
+let cameraLastFrameTime = 0;
+
 function startCameraLoop() {
-  const tick = () => {
+  const tick = (now) => {
     if (!cameraEnabled || !videoEl || !handLandmarker) { cameraRAF = null; return; }
+    if (now - cameraLastFrameTime < CAMERA_TARGET_INTERVAL_MS) { cameraRAF = requestAnimationFrame(tick); return; }
+    cameraLastFrameTime = now;
     const result = handLandmarker.detectForVideo(videoEl, performance.now());
     const hand = processHandResult(result);
     drawHandOverlay(hand);

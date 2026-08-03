@@ -5,6 +5,115 @@
 const PROGRESS_KEY = 'gpt_progress';
 const PROGRESS_VERSION = 1;
 
+// ── User profiles — name + optional avatar, no password. Each profile's
+// progress lives under its own localStorage key (PROGRESS_KEY + '_' + id) so
+// switching profiles never mixes data between people. Designed for this tool
+// to eventually be shared: everyone gets their own separate history. ──
+const PROFILES_KEY = 'gpt_profiles';
+const PROFILE_AVATARS = ['🎸','🎵','🎶','🤘','⭐','🔥','🌟','🎯'];
+
+function loadProfilesMeta() {
+  try { const raw = localStorage.getItem(PROFILES_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
+  return null;
+}
+function saveProfilesMeta(meta) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(meta)); } catch (e) {}
+}
+
+// First run (or an install from before profiles existed): migrate any
+// existing single-profile data under the old flat PROGRESS_KEY into a new
+// default profile, so adding this feature never loses anyone's history.
+function ensureProfilesInitialized() {
+  let meta = loadProfilesMeta();
+  if (meta && meta.profiles && meta.profiles.length) return meta;
+  const defaultId = 'p_' + Date.now().toString(36);
+  meta = { profiles: [{ id: defaultId, name: 'Player 1', avatar: '🎸' }], activeProfileId: defaultId };
+  try {
+    const legacyRaw = localStorage.getItem(PROGRESS_KEY);
+    if (legacyRaw) localStorage.setItem(PROGRESS_KEY + '_' + defaultId, legacyRaw);
+  } catch (e) {}
+  saveProfilesMeta(meta);
+  return meta;
+}
+
+function getProfiles() { return ensureProfilesInitialized().profiles; }
+function getActiveProfileId() { return ensureProfilesInitialized().activeProfileId; }
+function getActiveProfile() { const id = getActiveProfileId(); return getProfiles().find(p => p.id === id); }
+function activeProgressKey() { return PROGRESS_KEY + '_' + getActiveProfileId(); }
+
+// Every mode's in-memory state (Scales' state, Chords' chordModeState, song/
+// riff players, etc.) is scattered across many files with no single reset
+// hook — a full page reload is the simplest reliable way to re-initialize
+// everything against the newly active profile's data, rather than needing
+// every file to expose its own "reset to profile" function.
+function createProfile(name, avatar) {
+  const meta = ensureProfilesInitialized();
+  const id = 'p_' + Date.now().toString(36);
+  meta.profiles.push({ id, name: (name || 'New Player').slice(0, 24), avatar: avatar || PROFILE_AVATARS[meta.profiles.length % PROFILE_AVATARS.length] });
+  meta.activeProfileId = id;
+  saveProfilesMeta(meta);
+  location.reload();
+}
+function switchProfile(id) {
+  const meta = ensureProfilesInitialized();
+  if (!meta.profiles.find(p => p.id === id) || meta.activeProfileId === id) return;
+  meta.activeProfileId = id;
+  saveProfilesMeta(meta);
+  location.reload();
+}
+function deleteProfile(id) {
+  const meta = ensureProfilesInitialized();
+  if (meta.profiles.length <= 1) { alert("Can't delete your only profile."); return; }
+  const p = meta.profiles.find(x => x.id === id);
+  if (!p || !confirm(`Delete "${p.name}" and all their progress? This cannot be undone.`)) return;
+  meta.profiles = meta.profiles.filter(x => x.id !== id);
+  if (meta.activeProfileId === id) meta.activeProfileId = meta.profiles[0].id;
+  try { localStorage.removeItem(PROGRESS_KEY + '_' + id); } catch (e) {}
+  saveProfilesMeta(meta);
+  location.reload();
+}
+function renameActiveProfile() {
+  const p = getActiveProfile();
+  if (!p) return;
+  const name = prompt('Profile name', p.name);
+  if (name == null) return;
+  const meta = ensureProfilesInitialized();
+  meta.profiles.find(x => x.id === p.id).name = name.trim().slice(0, 24) || p.name;
+  saveProfilesMeta(meta);
+  renderProfileSwitcher();
+}
+
+function toggleProfileMenu() {
+  const menu = document.getElementById('profile-menu');
+  if (!menu) return;
+  const opening = menu.style.display === 'none';
+  menu.style.display = opening ? '' : 'none';
+  if (opening) renderProfileMenu();
+}
+function renderProfileMenu() {
+  const menu = document.getElementById('profile-menu');
+  if (!menu) return;
+  const activeId = getActiveProfileId();
+  menu.innerHTML = getProfiles().map(p => `
+    <div class="profile-menu-row${p.id === activeId ? ' active' : ''}">
+      <span class="profile-menu-avatar">${p.avatar}</span>
+      <span class="profile-menu-name" onclick="switchProfile('${p.id}')">${p.name}${p.id === activeId ? ' (current)' : ''}</span>
+      ${p.id === activeId ? `<button onclick="renameActiveProfile()" title="Rename">✎</button>` : ''}
+      <button onclick="deleteProfile('${p.id}')" title="Delete">🗑</button>
+    </div>
+  `).join('') + `<button class="profile-menu-new" onclick="promptNewProfile()">+ New Profile</button>`;
+}
+function promptNewProfile() {
+  const name = prompt('New profile name');
+  if (name == null) return; // cancelled
+  createProfile(name.trim());
+}
+function renderProfileSwitcher() {
+  const chip = document.getElementById('profile-chip');
+  const p = getActiveProfile();
+  if (chip && p) chip.textContent = `${p.avatar} ${p.name} ▾`;
+}
+
 function defaultFretboardQuizProgress() {
   return {
     accuracyByType: { note:{correct:0,attempts:0}, scalePos:{correct:0,attempts:0}, chordPos:{correct:0,attempts:0} },
@@ -34,7 +143,7 @@ function defaultProgress() {
 function loadProgress() {
   let data = null;
   try {
-    const raw = localStorage.getItem(PROGRESS_KEY);
+    const raw = localStorage.getItem(activeProgressKey());
     if (raw) data = JSON.parse(raw);
   } catch (e) { data = null; }
   if (!data || typeof data !== 'object') data = defaultProgress();
@@ -71,7 +180,7 @@ function recordFretboardQuizAnswer(tier, correct, itemKey, itemLabel) {
 }
 
 function saveProgress(data) {
-  try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(data)); }
+  try { localStorage.setItem(activeProgressKey(), JSON.stringify(data)); }
   catch (e) { /* storage full/unavailable — practice continues, just isn't persisted this session */ }
 }
 
@@ -243,9 +352,30 @@ function toggleProgressPanel() {
   applyPanelCollapsedState(data.ui.panelCollapsed);
 }
 
+// ── Export progress as a JSON backup ────────────────────────────────────────
+function exportProgressJSON() {
+  const data = loadProgress();
+  const payload = { exportedAt: new Date().toISOString(), profile: (typeof getActiveProfileId === 'function' ? getActiveProfileId() : null), data };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const stamp = payload.exportedAt.slice(0, 10);
+  a.href = url;
+  a.download = `guitar-practice-progress-${stamp}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
 // ── Init ──────────────────────────────────────────────────────────────────
+renderProfileSwitcher();
 applyPanelCollapsedState(loadProgress().ui.panelCollapsed);
 if (typeof applyMetronomeBarCollapsedState === 'function') applyMetronomeBarCollapsedState(loadProgress().ui.metronomeCollapsed);
 if (typeof applyMicBarCollapsedState === 'function') applyMicBarCollapsedState(loadProgress().ui.micBarCollapsed);
 renderProgressPanel();
 setInterval(renderProgressPanel, 1000); // keeps the live scale-time ticking while a session runs
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('profile-menu');
+  if (menu && menu.style.display !== 'none' && !e.target.closest('.profile-chip-wrap')) menu.style.display = 'none';
+});

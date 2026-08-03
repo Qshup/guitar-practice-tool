@@ -10,9 +10,21 @@
 <div class="progress-panel" id="progress-panel">
   <div class="progress-panel-header" id="progress-panel-toggle" onclick="toggleProgressPanel()">
     <span class="progress-panel-title">Practice Progress</span>
-    <span class="progress-panel-chevron" id="progress-panel-chevron">▾</span>
+    <span class="progress-panel-header-actions">
+      <span class="profile-chip-wrap">
+        <button class="profile-chip" id="profile-chip" onclick="event.stopPropagation(); toggleProfileMenu()">🎸 Player 1 ▾</button>
+        <div class="profile-menu" id="profile-menu" style="display:none" onclick="event.stopPropagation()"></div>
+      </span>
+      <button class="progress-export-btn" onclick="event.stopPropagation(); exportProgressJSON()" title="Download all progress data as a JSON file">⬇ Export</button>
+      <span class="progress-panel-chevron" id="progress-panel-chevron">▾</span>
+    </span>
   </div>
   <div class="progress-panel-body" id="progress-panel-body">
+    <div class="obsidian-settings-row">
+      <span class="obsidian-label">📤 Obsidian vault:</span>
+      <span class="obsidian-vault-status" id="obsidian-vault-status">Checking…</span>
+      <button class="progress-export-btn" onclick="chooseObsidianVault()">Choose Folder</button>
+    </div>
     <div class="progress-stats-row">
       <div class="progress-stat-block">
         <div class="progress-stat-label">Scale Time Today</div>
@@ -463,34 +475,37 @@
         </div>
       </div>
 
-      <!-- CHORD SWITCHING GAME LAUNCHER -->
+      <!-- Chord Switching Game moved to Study > Chord Game -->
       <div class="practice-panel run-panel">
         <h2>▶ Chord Switching Game</h2>
         <p style="font-family:Arial,sans-serif;font-size:9px;color:#666;line-height:1.6;margin-bottom:10px">
           Chords flash on screen, switch in time with the beat, self-grade, build speed over time.
-          Opens as a side panel so you can still see the chord reference.
         </p>
-        <div id="chord-practice-status" style="font-family:'Courier New',monospace;font-size:9px;color:#5c8fff;margin-bottom:10px;min-height:14px"></div>
-        <button class="big-btn btn-run" onclick="openGameDrawer()">▶ Launch Chord Switching Game</button>
+        <button class="big-btn btn-run" onclick="switchMode('study'); switchStudySubtab('game')">▶ Open in Study &gt; Chord Game</button>
       </div>
     </div>
 
   </div>
 
-  <!-- ═══════════════════════════════════════════════════════════════
-       CHORD SWITCHING MINI-GAME — floating drawer, launched from Practice
-  ═══════════════════════════════════════════════════════════════ -->
-  <div class="game-drawer" id="game-drawer">
-    <div class="game-drawer-header">
-      <span class="game-drawer-title">Chord Switching Game</span>
-      <button class="game-drawer-close" onclick="closeGameDrawer()">✕</button>
-    </div>
+</div>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     STUDY MODE
+═══════════════════════════════════════════════════════════════ -->
+<div class="mode-panel" id="mode-panel-study">
+
+  <div class="subtab-bar">
+    <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
+    <button class="subtab-btn" data-subtab="quiz" onclick="switchStudySubtab('quiz')">Fretboard Quiz</button>
+    <button class="subtab-btn" data-subtab="theory" onclick="switchStudySubtab('theory')">Theory</button>
+    <button class="subtab-btn" data-subtab="listen" onclick="switchStudySubtab('listen')">Listen &amp; Repeat</button>
+    <button class="subtab-btn" data-subtab="game" onclick="switchStudySubtab('game')">Chord Game</button>
+  </div>
+
+  <div class="subtab-panel" id="study-subtab-game">
     <div class="game-section">
       <div class="game-subtitle">Chords flash on screen — switch in time with the beat · Self-grade your switch · Build speed over time</div>
-
       <div class="game-layout">
-
         <!-- Settings -->
         <div class="game-settings">
           <h3>Settings</h3>
@@ -500,6 +515,12 @@
             <input type="range" id="game-bpm" min="20" max="160" value="60"
               oninput="document.getElementById('game-bpm-val').textContent=this.value">
             <div class="gs-val" id="game-bpm-val">60 BPM</div>
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Difficulty ramp</div>
+            <div class="game-bpm-progress"><div class="game-bpm-progress-fill" id="game-bpm-progress-fill"></div></div>
+            <div class="gs-val" id="game-bpm-progress-label" style="font-size:9px">60 BPM</div>
           </div>
 
           <div class="gs-row">
@@ -519,6 +540,29 @@
               <div class="chord-set-pill" data-set="barre_a" onclick="selectChordSet('barre_a',this)">A Barre</div>
               <div class="chord-set-pill" data-set="dom7" onclick="selectChordSet('dom7',this)">Dom 7ths</div>
               <div class="chord-set-pill" data-set="custom" onclick="selectChordSet('custom',this)">Custom</div>
+            </div>
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Common Transitions</div>
+            <div class="chord-set-grid">
+              <div class="chord-set-pill" data-set="preset_g_cadd9" onclick="selectChordSet('preset_g_cadd9',this)" title="Knopfler staple">G → Cadd9</div>
+              <div class="chord-set-pill" data-set="preset_am_f" onclick="selectChordSet('preset_am_f',this)" title="Minor-key staple">Am → F</div>
+              <div class="chord-set-pill" data-set="preset_e_a" onclick="selectChordSet('preset_e_a',this)" title="Blues/rock staple">E → A</div>
+              <div class="chord-set-pill" data-set="preset_dm_am" onclick="selectChordSet('preset_dm_am',this)" title="Hazel Dorian movement">Dm → Am</div>
+              <div class="chord-set-pill" data-set="preset_a_d_e" onclick="selectChordSet('preset_a_d_e',this)" title="Classic rock I-IV-V">A → D → E</div>
+              <div class="chord-set-pill" data-set="preset_em_c_g_d" onclick="selectChordSet('preset_em_c_g_d',this)" title="Ronson anthemic">Em → C → G → D</div>
+            </div>
+          </div>
+
+          <div class="gs-row">
+            <div class="gs-label">Player-Specific</div>
+            <div class="chord-set-grid">
+              <div class="chord-set-pill" data-set="player_knopfler" onclick="selectChordSet('player_knopfler',this)">Knopfler</div>
+              <div class="chord-set-pill" data-set="player_ronson" onclick="selectChordSet('player_ronson',this)">Ronson</div>
+              <div class="chord-set-pill" data-set="player_hazel" onclick="selectChordSet('player_hazel',this)">Hazel</div>
+              <div class="chord-set-pill" data-set="player_deanween" onclick="selectChordSet('player_deanween',this)">Dean Ween</div>
+              <div class="chord-set-pill" data-set="player_zappa" onclick="selectChordSet('player_zappa',this)">★ Zappa</div>
             </div>
           </div>
 
@@ -703,20 +747,6 @@
 
       </div>
     </div>
-  </div>
-
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════════
-     STUDY MODE
-═══════════════════════════════════════════════════════════════ -->
-<div class="mode-panel" id="mode-panel-study">
-
-  <div class="subtab-bar">
-    <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
-    <button class="subtab-btn" data-subtab="quiz" onclick="switchStudySubtab('quiz')">Fretboard Quiz</button>
-    <button class="subtab-btn" data-subtab="theory" onclick="switchStudySubtab('theory')">Theory</button>
-    <button class="subtab-btn" data-subtab="listen" onclick="switchStudySubtab('listen')">Listen &amp; Repeat</button>
   </div>
 
   <!-- ═══════════════════════════════════════════════════════════════
@@ -1160,6 +1190,7 @@
 <script src="js/riffs.js"></script>
 <script src="js/game.js"></script>
 <script src="js/progress.js"></script>
+<script src="js/obsidian.js"></script>
 <script src="js/study.js"></script>
 <script src="js/quiz.js"></script>
 <script src="js/listenrepeat.js"></script>

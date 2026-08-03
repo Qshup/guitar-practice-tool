@@ -42,6 +42,10 @@ const GAME_CHORDS = {
   'E7':  { f:[0,2,0,1,0,0],  fingers:[0,2,0,1,0,0] },
   'B7':  { f:[-1,2,4,2,4,2], fingers:[0,1,3,2,4,1] },
   'F7':  { f:[1,3,1,2,1,1],  fingers:[1,3,1,2,1,1], barre:1 },
+
+  // Add/sus — needed for the progression presets below (Knopfler staples)
+  'Cadd9': { f:[-1,3,2,0,3,0], fingers:[0,3,2,0,4,0] },
+  'Dsus2': { f:[-1,-1,0,2,3,0], fingers:[0,0,0,1,2,0] },
 };
 
 const CHORD_SETS = {
@@ -52,6 +56,39 @@ const CHORD_SETS = {
   dom7:     ['C7','G7','D7','A7','E7','B7','F7'],
   caged_key: null, // built dynamically
   custom:   null,
+
+  // ── Common-transition presets ──────────────────────────────────────────
+  preset_g_cadd9:   ['G','Cadd9'],
+  preset_am_f:      ['Am','F'],
+  preset_e_a:       ['E','A'],
+  preset_dm_am:     ['Dm','Am'],
+  preset_a_d_e:     ['A','D','E'],
+  preset_em_c_g_d:  ['Em','C','G','D'],
+
+  // ── Player-specific modes ──────────────────────────────────────────────
+  player_knopfler: ['G','D','Cadd9','Em','Am','Dsus2'],
+  player_ronson:   ['E','A','B','D','C#m','F#m'],
+  player_hazel:    ['Em','Am','Dm','C','G','F'],
+  player_deanween: ['E','A','D','G','C'], // "with genre jumps" — random order below leans into that
+  player_zappa:    ['E','G','Bb','F#m','C7'], // deliberately unrelated-feeling jumps, not a diatonic progression
+};
+
+// Preset metadata: label, description, a sane default play order, and (for
+// the BPM-ramp milestone in scheduleGameBeat/gradeSwitch) a target tempo to
+// notify at — a rough "you could play this at a real song's speed" marker,
+// not tied to one specific recording.
+const PROGRESSION_PRESET_META = {
+  preset_g_cadd9:   { label: 'G → Cadd9',        note: 'Knopfler staple',        order: 'sequential', targetBpm: 120 },
+  preset_am_f:      { label: 'Am → F',           note: 'Minor-key staple',       order: 'sequential', targetBpm: 110 },
+  preset_e_a:       { label: 'E → A',            note: 'Blues/rock staple',      order: 'sequential', targetBpm: 130 },
+  preset_dm_am:     { label: 'Dm → Am',          note: 'Hazel Dorian movement',  order: 'sequential', targetBpm: 90 },
+  preset_a_d_e:     { label: 'A → D → E',        note: 'Classic rock I–IV–V',    order: 'sequential', targetBpm: 140 },
+  preset_em_c_g_d:  { label: 'Em → C → G → D',   note: 'Ronson anthemic',        order: 'sequential', targetBpm: 130 },
+  player_knopfler:  { label: 'Knopfler Mode',    note: 'G D Cadd9 Em Am Dsus2',  order: 'sequential', targetBpm: 148 },
+  player_ronson:    { label: 'Ronson Mode',      note: 'E A B D C#m F#m',        order: 'sequential', targetBpm: 136 },
+  player_hazel:     { label: 'Hazel Mode',       note: 'Em Am Dm C G F',         order: 'sequential', targetBpm: 90 },
+  player_deanween:  { label: 'Dean Ween Mode',   note: 'E A D G C — genre jumps',order: 'random',      targetBpm: 100 },
+  player_zappa:     { label: 'Zappa Mode',       note: 'Unusual movements',      order: 'random',      targetBpm: 120 },
 };
 
 const CIRCLE_5THS_ORDER = ['C','G','D','A','E','B','F#','Db','Ab','Eb','Bb','F'];
@@ -242,6 +279,8 @@ function selectKeyPreset(preset) {
 }
 
 // ── Override selectChordSet to handle key_practice ────────────────────────
+let gamePresetTargetBpm = null; // set when a progression/player preset is chosen — drives the milestone in gradeSwitch()
+
 function selectChordSet(setId, el) {
   document.querySelectorAll('.chord-set-pill').forEach(p=>p.classList.remove('active'));
   el.classList.add('active');
@@ -249,6 +288,13 @@ function selectChordSet(setId, el) {
   ges('caged-key-game-row').style.display = setId==='caged_key'?'':'none';
   ges('custom-chord-row').style.display = setId==='custom'?'':'none';
   ges('key-practice-panel').style.display = setId==='key_practice'?'':'none';
+
+  const meta = PROGRESSION_PRESET_META[setId];
+  gamePresetTargetBpm = meta ? meta.targetBpm : null;
+  const orderSel = document.getElementById('game-order');
+  if (meta && orderSel) orderSel.value = meta.order;
+  updateBpmMilestoneUI();
+
   rebuildGameDeck();
 }
 
@@ -439,10 +485,14 @@ const renderGameChords = function() {
   const next = gameDeck[(gameChordIndex+1) % gameDeck.length];
   const prev = gameChordIndex > 0 ? gameDeck[(gameChordIndex-1+gameDeck.length)%gameDeck.length] : null;
 
+  // Full-page Study sub-tab now (moved out of a 520px Chords-mode drawer),
+  // so the current chord can be genuinely large — "unmistakably clear" per
+  // the brief — while prev/next stay small and CSS (.chord-card-wrap.current
+  // etc.) pushes the size gap even further via scale/opacity.
   const cards = [];
-  if (prev && gameRunning) cards.push({name:prev, cls:'prev-card', size:100, label:'PREV'});
-  cards.push({name:cur, cls:'current', size:150, label:'NOW →'});
-  cards.push({name:next, cls:'next-card', size:110, label:'NEXT'});
+  if (prev && gameRunning) cards.push({name:prev, cls:'prev-card', size:110, label:'PREV'});
+  cards.push({name:cur, cls:'current', size:220, label:'NOW →'});
+  cards.push({name:next, cls:'next-card', size:140, label:'NEXT'});
 
   cards.forEach(card => {
     const wrap = document.createElement('div');
@@ -600,6 +650,7 @@ function gradeSwitch(success) {
       document.getElementById('stat-best').textContent = gameBestStreak;
     }
     gameHistory[0] = '✓ ' + (gameHistory[0]||'');
+    maybeRampDifficulty();
   } else {
     gameStreak = 0;
     gameMissed++;
@@ -651,6 +702,47 @@ function toggleGame() {
   }
 }
 
+// ── Difficulty ramp — every 5 correct switches in a row, nudge the BPM up ──
+const GAME_BPM_RAMP_STEP = 5;
+let gameMilestoneShown = false;
+
+function maybeRampDifficulty() {
+  if (gameStreak === 0 || gameStreak % 5 !== 0) return;
+  const slider = document.getElementById('game-bpm');
+  if (!slider) return;
+  const max = parseInt(slider.max, 10);
+  const newBpm = Math.min(max, parseInt(slider.value, 10) + GAME_BPM_RAMP_STEP);
+  slider.value = newBpm;
+  document.getElementById('game-bpm-val').textContent = newBpm + ' BPM';
+  updateBpmMilestoneUI();
+  if (gamePresetTargetBpm && newBpm >= gamePresetTargetBpm && !gameMilestoneShown) {
+    gameMilestoneShown = true;
+    showGameMilestone(`🎉 ${gameStreak} in a row — you've hit ${gamePresetTargetBpm} BPM, this preset's target tempo!`);
+  }
+}
+
+// Progress bar showing current BPM against the active preset's target tempo
+// (or the slider's own range, if no preset/target is selected).
+function updateBpmMilestoneUI() {
+  const slider = document.getElementById('game-bpm');
+  const fill = document.getElementById('game-bpm-progress-fill');
+  const label = document.getElementById('game-bpm-progress-label');
+  if (!slider || !fill) return;
+  const cur = parseInt(slider.value, 10);
+  const min = parseInt(slider.min, 10), max = parseInt(slider.max, 10);
+  const target = gamePresetTargetBpm;
+  const denom = target ? Math.max(1, target - min) : Math.max(1, max - min);
+  const pct = Math.max(0, Math.min(1, (cur - min) / denom));
+  fill.style.width = `${Math.round(pct * 100)}%`;
+  fill.classList.toggle('reached', !!(target && cur >= target));
+  if (label) label.textContent = target ? `${cur} / ${target} BPM (preset target)` : `${cur} BPM`;
+}
+
+function showGameMilestone(msg) {
+  const el = document.getElementById('game-message');
+  if (el) { el.textContent = msg; el.className = 'game-message milestone'; }
+}
+
 function startGame() {
   getAudioCtx();
   rebuildGameDeck();
@@ -662,6 +754,8 @@ function startGame() {
   gameStreak=0; gameBestStreak=0;
   gameGot=0; gameMissed=0;
   gameHistory=[];
+  gameMilestoneShown=false;
+  updateBpmMilestoneUI();
   gameSessionStart=Date.now();
   if(gameSessionTimer) clearInterval(gameSessionTimer);
   gameSessionTimer=setInterval(()=>{
@@ -698,11 +792,13 @@ document.getElementById('game-beats').addEventListener('input', () => {
 });
 document.getElementById('game-bpm').addEventListener('input', () => {
   document.getElementById('game-bpm-val').textContent = document.getElementById('game-bpm').value + ' BPM';
+  updateBpmMilestoneUI();
 });
 
 rebuildGameDeck();
 renderGameChords();
 buildGameBeatDots();
+updateBpmMilestoneUI();
 
 // ═══════════════════════════════════════════════════════════════════════════
 // GUITAR NECK DISPLAY ENGINE

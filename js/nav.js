@@ -13,8 +13,8 @@ function switchMode(mode) {
   if (prevMode === 'scales' && mode !== 'scales' && typeof runRunning !== 'undefined' && runRunning) stopRun();
   if (prevMode === 'chords' && mode !== 'chords') {
     if (typeof chordRunRunning !== 'undefined' && chordRunRunning) stopChordRun();
-    if (typeof gameRunning !== 'undefined' && gameRunning) stopGame();
   }
+  if (prevMode === 'study' && mode !== 'study' && typeof gameRunning !== 'undefined' && gameRunning) stopGame();
   if (prevMode === 'riffs' && mode !== 'riffs' && typeof activeRiffPlayers !== 'undefined') {
     Object.keys(activeRiffPlayers).forEach(id => stopRiffPlay(id));
   }
@@ -42,8 +42,12 @@ function switchMode(mode) {
   saveProgress(data);
 }
 
-// ── Init: restore persisted mode on load ───────────────────────────────────
+// ── Init: restore persisted mode + per-mode state on load ──────────────────
+// (survives a page reload, not just switching tabs within the running page —
+// see saveScalesState()/saveChordsState() in scales.js/chords.js)
 (function initNav() {
+  if (typeof restoreScalesState === 'function') restoreScalesState();
+  if (typeof restoreChordsState === 'function') restoreChordsState();
   const data = loadProgress();
   const mode = NAV_MODES.includes(data.ui.activeNavMode) ? data.ui.activeNavMode : 'scales';
   switchMode(mode);

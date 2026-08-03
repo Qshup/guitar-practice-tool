@@ -819,28 +819,36 @@
     display: flex; gap: 20px; align-items: flex-end; justify-content: center; flex-wrap: wrap;
   }
   .chord-card-wrap {
-    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
     transition: transform .2s, opacity .2s;
   }
-  .chord-card-wrap.current { transform: scale(1.1); }
-  .chord-card-wrap.next-card { opacity: 0.5; transform: scale(0.92); }
-  .chord-card-wrap.prev-card { opacity: 0.25; transform: scale(0.85); }
+  .chord-card-wrap.current {
+    transform: scale(1.08);
+    background: radial-gradient(ellipse at center, rgba(92,143,255,0.14), transparent 70%);
+    padding: 14px 20px; border-radius: 8px;
+    box-shadow: 0 0 0 1px rgba(92,143,255,0.35), 0 0 30px rgba(92,143,255,0.25);
+  }
+  .chord-card-wrap.next-card { opacity: 0.55; transform: scale(0.85); }
+  .chord-card-wrap.prev-card { opacity: 0.22; transform: scale(0.7); }
 
   .chord-card-label {
     font-family: Arial, sans-serif; font-size: 11px; color: #666;
     letter-spacing: .06em; text-transform: uppercase;
   }
-  .chord-card-wrap.current .chord-card-label { color: #fff; font-weight: bold; font-size: 12px; }
-  .chord-card-wrap.next-card .chord-card-label { color: #5c8fff; }
+  .chord-card-wrap.current .chord-card-label { color: #5c8fff; font-weight: bold; font-size: 13px; letter-spacing: .1em; }
+  .chord-card-wrap.next-card .chord-card-label { color: #888; }
 
   .chord-name-display {
-    font-family: Arial, sans-serif; font-size: 32px; font-weight: bold; color: #fff;
+    font-family: Arial, sans-serif; font-size: 34px; font-weight: bold; color: #ccc;
     text-align: center; min-height: 40px; letter-spacing: .04em;
     transition: all .15s;
   }
+  .chord-card-wrap.current .chord-name-display { font-size: 56px; color: #fff; min-height: 64px; }
+  .chord-card-wrap.next-card .chord-name-display { font-size: 30px; color: #999; }
   .chord-name-display .chord-type-small {
     font-size: 18px; color: #888;
   }
+  .chord-card-wrap.current .chord-name-display .chord-type-small { font-size: 28px; color: #5c8fff; }
 
   /* Chord diagram canvas in game */
   canvas.game-chord-canvas { display: block; }
@@ -952,6 +960,18 @@
   .game-message.ready { color: #5c8fff; }
   .game-message.go { color: #4caf50; font-weight: bold; font-size: 18px; }
   .game-message.change { color: #fb8c00; font-weight: bold; }
+  .game-message.milestone { color: #ccb84a; font-weight: bold; font-size: 14px; animation: milestonePulse 1.2s ease-in-out 2; }
+  @keyframes milestonePulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* BPM difficulty-ramp progress bar */
+  .game-bpm-progress {
+    height: 8px; background: #111; border: 1px solid #1a1a1a; border-radius: 3px; overflow: hidden;
+  }
+  .game-bpm-progress-fill {
+    height: 100%; width: 0%; background: linear-gradient(90deg, #5c8fff, #ccb84a);
+    transition: width .3s ease;
+  }
+  .game-bpm-progress-fill.reached { background: #4caf50; }
 
 /* ═══════════════════════════════════════════════════════════════
      SUB-TABS (Chords: Reference/Practice, Study: Flashcards/Quiz/Theory)
@@ -970,30 +990,10 @@
   .subtab-panel.active { display: block; animation: modeFadeIn .2s ease; }
 
 /* ═══════════════════════════════════════════════════════════════
-     CHORD GAME DRAWER
+     CHORD GAME (Study > Chord Game — moved out of a Chords-mode drawer
+     into a full dedicated sub-tab, so it gets a full page width instead of
+     a 520px sidebar; see js/game.js renderGameChords()/drawGuitarNeck())
 ═══════════════════════════════════════════════════════════════ */
-  .game-drawer {
-    position: fixed; top: 0; right: 0; height: 100vh; width: min(520px, 92vw);
-    background: #0a0a0a; border-left: 1px solid #333; box-shadow: -4px 0 24px rgba(0,0,0,0.5);
-    transform: translateX(100%); transition: transform .25s ease;
-    z-index: 100; overflow-y: auto; padding: 16px;
-  }
-  .game-drawer.open { transform: translateX(0); }
-  .game-drawer-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid #222;
-  }
-  .game-drawer-title {
-    font-family: Arial, sans-serif; font-size: 12px; font-weight: bold; color: #fff;
-    letter-spacing: .08em; text-transform: uppercase;
-  }
-  .game-drawer-close {
-    background: #1a1a1a; border: 1px solid #333; color: #888; cursor: pointer;
-    width: 26px; height: 26px; border-radius: 2px; font-size: 12px; line-height: 1;
-  }
-  .game-drawer-close:hover { color: #fff; border-color: #666; }
-  .game-drawer .game-section { margin-top: 0; border-top: none; padding-top: 0; }
-  .game-drawer .game-layout { grid-template-columns: 1fr; gap: 16px; }
 
 /* ═══════════════════════════════════════════════════════════════
      FRETBOARD QUIZ
@@ -1205,6 +1205,52 @@
     letter-spacing: .12em; text-transform: uppercase; color: #fff;
   }
   .progress-panel-chevron { color: #666; font-size: 10px; }
+  .progress-panel-header-actions { display: flex; align-items: center; gap: 10px; }
+  .progress-export-btn {
+    font-family: Arial, sans-serif; font-size: 9px; color: #888; background: #1a1a1a;
+    border: 1px solid #333; padding: 3px 8px; cursor: pointer; border-radius: 2px;
+  }
+  .progress-export-btn:hover { color: #fff; border-color: #666; }
+
+  /* User profiles */
+  .profile-chip-wrap { position: relative; }
+  .profile-chip {
+    font-family: Arial, sans-serif; font-size: 10px; font-weight: bold; color: #ccc; background: #1a1a1a;
+    border: 1px solid #333; padding: 3px 9px; cursor: pointer; border-radius: 12px;
+  }
+  .profile-chip:hover { border-color: #5c8fff; color: #fff; }
+  .profile-menu {
+    position: absolute; top: calc(100% + 6px); left: 0; z-index: 50; min-width: 200px;
+    background: #151515; border: 1px solid #333; border-radius: 4px; padding: 6px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+  }
+  .profile-menu-row {
+    display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 3px;
+  }
+  .profile-menu-row:hover { background: #1e1e1e; }
+  .profile-menu-row.active { background: rgba(92,143,255,0.1); }
+  .profile-menu-avatar { font-size: 14px; }
+  .profile-menu-name {
+    flex: 1; font-family: Arial, sans-serif; font-size: 10px; color: #ccc; cursor: pointer;
+  }
+  .profile-menu-row.active .profile-menu-name { color: #5c8fff; font-weight: bold; cursor: default; }
+  .profile-menu-row button {
+    background: none; border: none; color: #666; cursor: pointer; font-size: 11px; padding: 2px 4px;
+  }
+  .profile-menu-row button:hover { color: #fff; }
+  .profile-menu-new {
+    width: 100%; margin-top: 4px; padding: 6px 8px; background: #1a1a1a; border: 1px dashed #333;
+    color: #888; font-family: Arial, sans-serif; font-size: 9px; cursor: pointer; border-radius: 3px;
+  }
+  .profile-menu-new:hover { border-color: #5c8fff; color: #5c8fff; }
+
+  /* Obsidian vault export settings row */
+  .obsidian-settings-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 0 12px; margin-bottom: 8px;
+    border-bottom: 1px solid #1a1a1a; font-family: 'Courier New', monospace; font-size: 9px;
+  }
+  .obsidian-label { color: #888; font-family: Arial, sans-serif; }
+  .obsidian-vault-status { color: #5c8fff; flex: 1; }
   .progress-panel-body { padding: 0 14px 14px; border-top: 1px solid #1a1a1a; }
   .progress-stats-row {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;

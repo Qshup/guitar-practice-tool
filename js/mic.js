@@ -90,6 +90,12 @@ let micMeterListeners = [];
 function onMicLevel(fn) { micMeterListeners.push(fn); }
 function offMicLevel(fn) { micMeterListeners = micMeterListeners.filter(f => f !== fn); }
 
+// startMicMeterLoop() and startOnsetDetection() are always enabled/disabled
+// together (both driven by micSetEnabled) and were originally two separate
+// RAF loops, each independently calling getFloatTimeDomainData + computing
+// RMS on the same buffer every frame — a redundant analyser read per frame.
+// This loop does that read once and drives both the level-meter listeners
+// and onset detection from the single result.
 function startMicMeterLoop() {
   if (micMeterRAF) return;
   const tick = () => {
@@ -105,6 +111,7 @@ function startMicMeterLoop() {
       if (freq > 60 && freq < 1400 && clarity > 0.8) reading = { freq, clarity, ...hzToNoteInfo(freq) };
     }
     micMeterListeners.forEach(fn => fn({ rms, active, reading }));
+    pollOnsetFromFrame(rms);
     micMeterRAF = requestAnimationFrame(tick);
   };
   micMeterRAF = requestAnimationFrame(tick);
@@ -119,29 +126,23 @@ function stopMicMeterLoop() { if (micMeterRAF) cancelAnimationFrame(micMeterRAF)
 const ENVELOPE_WINDOW_MS = 450;
 const ENVELOPE_SAMPLE_INTERVAL_MS = 20;
 
-let onsetPollRAF = null;
 let onsetListeners = [];
 function onMicOnset(fn) { onsetListeners.push(fn); }
 function offMicOnset(fn) { onsetListeners = onsetListeners.filter(f => f !== fn); }
 
-function startOnsetDetection() {
-  if (onsetPollRAF) return;
-  micLastOnsetTime = -1;
-  const tick = () => {
-    if (!micEnabled || !micAnalyser) { onsetPollRAF = null; return; }
-    micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-    const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
-    const ctx = getAudioCtx();
-    const now = ctx.currentTime;
-    if (rms > micNoiseGate && (now - micLastOnsetTime) > MIC_MIN_ONSET_GAP) {
-      micLastOnsetTime = now;
-      captureNoteEnvelope(now);
-    }
-    onsetPollRAF = requestAnimationFrame(tick);
-  };
-  onsetPollRAF = requestAnimationFrame(tick);
+// Called from startMicMeterLoop()'s single per-frame read (see comment
+// there) rather than running its own second RAF loop over the same buffer.
+let onsetDetectionActive = false;
+function startOnsetDetection() { onsetDetectionActive = true; micLastOnsetTime = -1; }
+function stopOnsetDetection() { onsetDetectionActive = false; }
+function pollOnsetFromFrame(rms) {
+  if (!onsetDetectionActive) return;
+  const now = getAudioCtx().currentTime;
+  if (rms > micNoiseGate && (now - micLastOnsetTime) > MIC_MIN_ONSET_GAP) {
+    micLastOnsetTime = now;
+    captureNoteEnvelope(now);
+  }
 }
-function stopOnsetDetection() { if (onsetPollRAF) cancelAnimationFrame(onsetPollRAF); onsetPollRAF = null; }
 
 function captureNoteEnvelope(onsetTime) {
   const ctx = getAudioCtx();

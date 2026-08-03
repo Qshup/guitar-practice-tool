@@ -349,6 +349,7 @@ function buildFretGrid(container, decorate, fretsCount) {
 
 // ── Fretboard ─────────────────────────────────────────────────────────────────
 function render() {
+  saveScalesState(); // function declaration below is hoisted — available here regardless of textual order
   const sc=currentScale();
   const fb=document.getElementById('fretboard');
   const allNotes=allScaleFrets(state.key,sc.intervals);
@@ -507,6 +508,27 @@ function toggleFingers(btn) {
   btn.classList.toggle('active', state.showFingers);
   btn.textContent = state.showFingers ? '👆 Fingers ON' : '👆 Fingers';
   document.getElementById('finger-legend').classList.toggle('visible', state.showFingers);
+  render();
+}
+
+// ── State persistence — survives page reload, not just SPA tab switches ──────
+// render() runs after every state mutation (key/scale/position/group/fingers
+// buttons all call it), so hooking the save there covers every mutation site
+// without needing one at each button handler individually.
+function saveScalesState() {
+  const data = loadProgress();
+  data.ui.scalesState = { scaleId: state.scaleId, key: state.key, pos: state.pos, group: state.group, showFingers: state.showFingers };
+  saveProgress(data);
+}
+function restoreScalesState() {
+  const data = loadProgress();
+  if (!data.ui.scalesState) return;
+  Object.assign(state, data.ui.scalesState);
+  // Key/position buttons are built once at load with a hardcoded default
+  // highlighted — resync them to whatever state was actually restored.
+  document.querySelectorAll('[data-group="key"]').forEach(b => b.classList.toggle('active', b.textContent === state.key));
+  document.querySelectorAll('[data-group="pos"]').forEach((b, i) => b.classList.toggle('active', i === state.pos));
+  buildScaleSelector();
   render();
 }
 

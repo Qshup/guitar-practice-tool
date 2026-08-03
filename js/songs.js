@@ -658,6 +658,7 @@ function renderSongPracticeShell() {
       <div class="song-selfgrade-actions">
         <button class="game-btn game-btn-start" onclick="songSaveSelfGrade()">💾 Save Practice Notes</button>
         <span class="song-selfgrade-saved-msg" id="song-selfgrade-saved-msg"></span>
+        <button class="game-btn game-btn-skip" id="song-obsidian-export-btn" style="display:none" onclick="handleObsidianExportClick('song-obsidian-export-btn')">📤 Export to Obsidian</button>
       </div>
       <div class="song-history-block" id="song-history-block"></div>
     </div>
@@ -1108,6 +1109,17 @@ function songSaveSelfGrade() {
   const msg = document.getElementById('song-selfgrade-saved-msg');
   if (msg) { msg.textContent = 'Saved ✓'; setTimeout(() => { msg.textContent = ''; }, 2500); }
   renderSongPracticeHistory();
+
+  if (typeof offerObsidianExport === 'function') {
+    const mins = Math.round(elapsed / 60);
+    offerObsidianExport({
+      date: new Date().toISOString().slice(0, 10),
+      durationLabel: elapsed < 60 ? `${Math.round(elapsed)}s` : `${mins} min`,
+      practiced: [`Song: ${song.title} (${song.artist})`],
+      scoreLines: Object.values(results).map(r => `${r.label}: ${r.grade === 'clean' ? '✓ Clean' : '△ Needs work'}`),
+      focusNotes: note,
+    }, 'song-obsidian-export-btn');
+  }
 }
 
 function renderSongPracticeHistory() {
