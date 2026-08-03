@@ -1,10 +1,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // LISTEN & REPEAT — ear-training: tool plays a sequence, mic grades your reply
-// Reuses: scales.js (ALL_SCALES/getBoxNotes/buildFretGrid), audio.js (playPluck/
-// playBendNote/playVibratoNote/getAudioCtx), game.js (GAME_CHORDS/
+// Reuses: scales.js (ALL_SCALES/getBoxNotes/buildFretGrid), audio.js
+// (playSampledNote/ensureInstrumentReady/getAudioCtx — the sample-based guitar
+// engine, same one Scale Run/Riffs/Songs use), game.js (GAME_CHORDS/
 // getDiatonicChords/drawGameChord/drawGuitarNeck), progress.js (localStorage).
 // No note/chord data is duplicated here — only sequence-shaping logic.
 // ═══════════════════════════════════════════════════════════════════════════
+
+const LR_INSTRUMENT = 'clean'; // Electric Clean — quiz sequences always use this voice
 
 // ── Difficulty presets ───────────────────────────────────────────────────
 const LR_DIFFICULTY_ORDER = ['beginner', 'intermediate', 'advanced', 'zappa'];
@@ -73,6 +76,23 @@ let micLastOnsetTime = -1;
 let micDetectedNotes = []; // {time, freq, noteName, cents} — absolute AudioContext time
 const MIC_ONSET_RMS_THRESHOLD = 0.02;
 const MIC_MIN_ONSET_GAP = 0.12; // seconds
+
+// When this page is loaded inside another site's iframe (e.g. an embedded
+// preview), the browser only grants microphone access if that outer page
+// explicitly delegates it — something a sandboxed preview frame typically
+// doesn't do. In that case getUserMedia() rejects exactly like a user denial,
+// so we can't tell the two apart from the error alone; the iframe check lets
+// the message point at the real cause instead of sending people hunting for
+// a permission prompt that was never going to appear.
+function lrRunningInIframe() {
+  try { return window.self !== window.top; } catch (e) { return true; }
+}
+
+function lrMicUnavailableMessage(action) {
+  return lrRunningInIframe()
+    ? `Microphone isn't available in this embedded preview — the page it's embedded in doesn't grant mic access here. Open index.html directly (or run "npm start") to use ${action}.`
+    : `Microphone access was denied — allow it in your browser to ${action}.`;
+}
 
 async function lrInitMic() {
   if (micStream) return true;
@@ -202,7 +222,7 @@ async function lrCheckMic() {
   if (readout) readout.textContent = 'Requesting microphone access…';
   const ok = await lrInitMic();
   if (!ok) {
-    if (readout) readout.textContent = 'Microphone access was denied — allow it in your browser to use Listen & Repeat.';
+    if (readout) readout.textContent = lrMicUnavailableMessage('Listen & Repeat');
     return;
   }
   if (btn) btn.textContent = '🎤 Mic Connected';
@@ -225,7 +245,7 @@ async function lrToggleMicMonitor() {
   }
   const ok = await lrInitMic();
   if (!ok) {
-    document.getElementById('lr-mic-readout').textContent = 'Microphone access was denied — allow it in your browser to use Listen & Repeat.';
+    document.getElementById('lr-mic-readout').textContent = lrMicUnavailableMessage('Listen & Repeat');
     return;
   }
   lrStartMeterLoop();
@@ -252,7 +272,7 @@ async function lrToggleRecording() {
   }
   const ok = await lrInitMic();
   if (!ok) {
-    status.textContent = 'Microphone access was denied — allow it in your browser to record.';
+    status.textContent = lrMicUnavailableMessage('recording');
     return;
   }
   lrStartMeterLoop();
@@ -529,9 +549,10 @@ function lrPlayNoteSequence(seq, onAllDone) {
     seq.notes.forEach(n => {
       const freq = fretToHz(n.string, n.fret);
       const t = startTime + n.time;
-      if (n.technique === 'bend') playBendNote(t, freq, n.dur * 0.8, vol * 0.9, n.bendTo);
-      else if (n.technique === 'vibrato') playVibratoNote(t, freq, n.dur * 0.8, vol * 0.85);
-      else playPluck(t, freq, vol * 0.75);
+      // 'chromatic' (Zappa-style passing tone) isn't a playSampledNote technique —
+      // it's just a plain note a half-step off, same as before.
+      const technique = n.technique === 'chromatic' ? undefined : n.technique;
+      playSampledNote(LR_INSTRUMENT, t, freq, n.dur * 0.85, vol * 0.85, { technique, bendTo: n.bendTo, stringIdx: n.string });
     });
     // Visual lighting synced to the same schedule (relative ms from now)
     const delayMs = Math.max(0, (startTime - ctx.currentTime) * 1000);
@@ -553,7 +574,7 @@ function lrPlayChordSequence(seq, onAllDone) {
       const chord = GAME_CHORDS[chordEvent.chordName];
       if (!chord) return;
       const t = startTime + chordEvent.time;
-      chord.f.forEach((f, si) => { if (f >= 0) playPluck(t + si * 0.03, fretToHz(si, f), vol * 0.6); });
+      chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(LR_INSTRUMENT, t + si * 0.03, fretToHz(si, f), chordEvent.dur * 0.85, vol * 0.7, { stringIdx: si }); });
     });
   }, seqDur, onAllDone);
 }
@@ -907,12 +928,16 @@ async function lrToggleListenRepeat() {
   }
   const ok = await lrInitMic();
   if (!ok) {
-    document.getElementById('lr-status').textContent = 'Microphone access is needed for Listen & Repeat — please allow it and try again.';
+    document.getElementById('lr-status').textContent = lrMicUnavailableMessage('Listen & Repeat');
     return;
   }
   lrStartMeterLoop();
   const micBtn = document.getElementById('lr-check-mic-btn');
   if (micBtn) micBtn.textContent = '🎤 Mic Connected';
+  btn.disabled = true;
+  btn.textContent = '… loading';
+  await ensureInstrumentReady(LR_INSTRUMENT);
+  btn.disabled = false;
   lrRunning = true;
   btn.textContent = '■ STOP';
   btn.classList.add('running');

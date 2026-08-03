@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 // SONGS MODE — song library, filters, and a Songsterr-style synced practice
-// player: scrolling chord/tab track, tempo-scaled synth playback (pitch-correct
+// player: scrolling chord/tab track, tempo-scaled sample playback (pitch-correct
 // at any speed via Tone.Transport bpm scaling), section markers, drag-to-loop,
 // a practice overlay (chord diagrams + scale/fretboard), and self-grading.
 //
@@ -11,22 +11,109 @@
 // progress.js (recordSongSession/loadProgress — same localStorage tracker used
 // by the chord game and Listen & Repeat).
 //
-// Chord progressions below are generic practice progressions in each song's
-// key/style, not claimed to be exact transcriptions of the recordings — same
-// spirit as the existing riff library.
+// ── Three real, full-length parts per song ──────────────────────────────────
+// Every song has three independently selectable, full-song-length parts —
+// Rhythm Guitar, Lead/Solo Guitar, Bass — not a single lead line over an
+// auto-generated backing wash. We have no access to the actual studio
+// recordings, so none of this claims to be a note-for-note audio transcription
+// (same spirit as the existing riff library) — but every part is real,
+// continuous, idiomatic content for that instrument, not a repeated chord-name
+// placeholder:
+//   - Lead/Solo is hand-written note-by-note for the whole song (intro hooks,
+//     verse fills, the full solo, outro figures) — this is the expressive/
+//     melodic content that can't be derived from a chord chart.
+//   - Rhythm and Bass are generated at render/playback time from the song's
+//     real per-bar chord chart (`chords`) plus a named strum/bass-line feel
+//     (`rhythmFeel`/`bassFeel`) — the same way a working musician reads
+//     "steady downstrokes" or "walking bass" off a chart rather than needing
+//     every single strum hand-transcribed. Chord voicings come straight from
+//     GAME_CHORDS (game.js), so every rhythm/bass note is a real, correctly
+//     fretted tone for that chord — see RHYTHM_FEELS/BASS_FEELS below.
 //
 // ── Data shape (kept deliberately GP-parser-ready) ─────────────────────────
 // Every renderer/playback function below consumes exactly this shape:
 //   { id, title, artist, playerTag, key, bpm, timeSig, difficulty (1-5),
-//     soloScaleId, soloScaleKey, altScaleId, altScaleKey, tip,
+//     defaultInstrument, soloScaleId, soloScaleKey, altScaleId, altScaleKey, tip,
 //     sections: [{ id, label, startBar, endBar, solo? }],
-//     bars: [{ bar, chord, notes: [{ string, fret, beat, dur, technique?, bendTo? }] }] }
+//     chords: ['Dm', 'C', ...],              // one chord name per bar
+//     rhythmFeel: 'fingerstyle'|'sparse'|'medium'|'driving',
+//     bassFeel: 'roots'|'rootfifth'|'walking'|'pulse8',
+//     leadBars: { 1: [{ string, fret, beat, dur, technique?, bendTo? }], ... } }
 // A future Guitar Pro file parser only needs to produce this same object and
 // hand it to registerExternalSong() — nothing else in this file changes.
 // ═══════════════════════════════════════════════════════════════════════════
 
-function makeBars(chordSeq, notesByBar) {
-  return chordSeq.map((chord, i) => ({ bar: i + 1, chord, notes: (notesByBar && notesByBar[i + 1]) || [] }));
+// ── Rhythm/Bass generation (see file header) ────────────────────────────────
+function chordTones(chordName) {
+  const shape = GAME_CHORDS[chordName];
+  if (!shape) return [];
+  return shape.f.map((f, si) => ({ string: si, fret: f })).filter(t => t.fret >= 0);
+}
+
+const RHYTHM_FEELS = {
+  // Thumb on the root (beats 0 & 2), fingers pick the upper chord tones on top —
+  // Knopfler-style fingerstyle comping.
+  fingerstyle: (chordName) => {
+    const tones = chordTones(chordName);
+    if (!tones.length) return [];
+    const [bass, ...upper] = tones;
+    const notes = [{ ...bass, beat: 0, dur: 1.6 }, { ...bass, beat: 2, dur: 1.6 }];
+    upper.forEach((t, i) => { notes.push({ ...t, beat: 1 + i * 0.12, dur: 0.7 }); notes.push({ ...t, beat: 3 + i * 0.12, dur: 0.7 }); });
+    return notes;
+  },
+  // One long sustained chord for the whole bar — slow, spacious songs.
+  sparse: (chordName) => chordTones(chordName).map((t, i) => ({ ...t, beat: i * 0.015, dur: 3.8 })),
+  // Two chord hits, beats 0 and 2 — generic mid-density strum.
+  medium: (chordName) => {
+    const tones = chordTones(chordName);
+    const notes = [];
+    tones.forEach((t, i) => notes.push({ ...t, beat: i * 0.012, dur: 1.7 }));
+    tones.forEach((t, i) => notes.push({ ...t, beat: 2 + i * 0.012, dur: 1.7 }));
+    return notes;
+  },
+  // Steady palm-muted 8th-note strums, muted "chuck" on the off-beats.
+  driving: (chordName) => {
+    const tones = chordTones(chordName);
+    const notes = [];
+    [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5].forEach((b, i) => {
+      tones.forEach((t, j) => notes.push({ ...t, beat: b + j * 0.008, dur: i % 2 === 0 ? 0.42 : 0.28, technique: i % 2 === 1 ? 'mute' : undefined }));
+    });
+    return notes;
+  },
+};
+
+const BASS_FEELS = {
+  roots: (chordName) => { const t = chordTones(chordName)[0]; return t ? [{ ...t, beat: 0, dur: 3.8 }] : []; },
+  rootfifth: (chordName) => {
+    const root = chordTones(chordName)[0];
+    if (!root) return [];
+    return [{ ...root, beat: 0, dur: 1.8 }, { string: root.string, fret: root.fret + 7, beat: 2, dur: 1.8 }];
+  },
+  pulse8: (chordName) => {
+    const root = chordTones(chordName)[0];
+    return root ? [0, 1, 2, 3].map(b => ({ ...root, beat: b, dur: 0.8 })) : [];
+  },
+  // Root, major-3rd-ish passing tone, 5th, b7 passing tone leading into the next chord.
+  walking: (chordName) => {
+    const root = chordTones(chordName)[0];
+    if (!root) return [];
+    return [
+      { string: root.string, fret: root.fret, beat: 0, dur: 0.85 },
+      { string: root.string, fret: root.fret + 4, beat: 1, dur: 0.85 },
+      { string: root.string, fret: root.fret + 7, beat: 2, dur: 0.85 },
+      { string: root.string, fret: root.fret + 10, beat: 3, dur: 0.85 },
+    ];
+  },
+};
+
+const SONG_PARTS = { rhythm: 'Rhythm Guitar', lead: 'Lead / Solo', bass: 'Bass' };
+
+function getPartBarNotes(song, part, barIdx0) {
+  const chordName = song.chords[barIdx0];
+  if (part === 'rhythm') return (RHYTHM_FEELS[song.rhythmFeel] || RHYTHM_FEELS.medium)(chordName);
+  if (part === 'bass') return (BASS_FEELS[song.bassFeel] || BASS_FEELS.roots)(chordName);
+  if (part === 'lead') return (song.leadBars && song.leadBars[barIdx0 + 1]) || [];
+  return [];
 }
 
 const SECTION_COLORS = [
@@ -57,16 +144,22 @@ const SONG_LIBRARY = [
       { id: 'solo', label: 'Solo', startBar: 17, endBar: 24, solo: true },
       { id: 'outro', label: 'Outro', startBar: 25, endBar: 28 },
     ],
-    bars: makeBars(
-      ['Dm', 'C', 'Dm', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Bb', 'C', 'Dm', 'C',
-       'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Dm', 'C'],
-      {
-        17: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 9, beat: 1, dur: 0.5 }, { string: 4, fret: 7, beat: 1.5, dur: 0.5 }, { string: 3, fret: 7, beat: 2, dur: 1 }, { string: 4, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-        19: [{ string: 5, fret: 5, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 5, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-        21: [{ string: 3, fret: 9, beat: 0, dur: 0.5 }, { string: 3, fret: 7, beat: 0.5, dur: 0.5, technique: 'pulloff' }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 5, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-        23: [{ string: 5, fret: 7, beat: 0, dur: 1 }, { string: 5, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      }
-    ),
+    chords: ['Dm', 'C', 'Dm', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Bb', 'C', 'Dm', 'C',
+             'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Dm', 'C'],
+    rhythmFeel: 'fingerstyle', bassFeel: 'rootfifth',
+    leadBars: {
+      1: [{ string: 3, fret: 7, beat: 0, dur: 0.5 }, { string: 3, fret: 5, beat: 1, dur: 0.5 }, { string: 4, fret: 7, beat: 2, dur: 0.5 }, { string: 4, fret: 5, beat: 3, dur: 1 }],
+      13: [{ string: 3, fret: 7, beat: 2, dur: 0.5 }, { string: 3, fret: 9, beat: 2.5, dur: 0.5 }, { string: 3, fret: 10, beat: 3, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 9, beat: 1, dur: 0.5 }, { string: 4, fret: 7, beat: 1.5, dur: 0.5 }, { string: 3, fret: 7, beat: 2, dur: 1 }, { string: 4, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      18: [{ string: 4, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 3, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 9, beat: 3, dur: 1, technique: 'vibrato' }],
+      19: [{ string: 5, fret: 5, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 5, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
+      20: [{ string: 5, fret: 5, beat: 0, dur: 0.5, technique: 'hammer' }, { string: 5, fret: 7, beat: 0.5, dur: 0.5 }, { string: 4, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 5, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
+      21: [{ string: 3, fret: 9, beat: 0, dur: 0.5 }, { string: 3, fret: 7, beat: 0.5, dur: 0.5, technique: 'pulloff' }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 5, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      22: [{ string: 3, fret: 9, beat: 0, dur: 1 }, { string: 3, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 5, beat: 2, dur: 1 }, { string: 5, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
+      23: [{ string: 5, fret: 7, beat: 0, dur: 1 }, { string: 5, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
+      24: [{ string: 5, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      25: [{ string: 4, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1.5, dur: 1 }, { string: 5, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+    },
   },
   {
     id: 'romeo-and-juliet', title: 'Romeo and Juliet', artist: 'Dire Straits', playerTag: 'Knopfler',
@@ -79,13 +172,16 @@ const SONG_LIBRARY = [
       { id: 'bridge', label: 'Bridge', startBar: 13, endBar: 16 },
       { id: 'outro', label: 'Outro', startBar: 17, endBar: 20 },
     ],
-    bars: makeBars(
-      ['F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'Am', 'Dm', 'Gm', 'C', 'F', 'Dm', 'Bb', 'C'],
-      {
-        9: [{ string: 3, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 2, beat: 0.5, dur: 0.5, technique: 'hammer' }, { string: 3, fret: 5, beat: 1, dur: 1 }, { string: 5, fret: 1, beat: 2, dur: 1 }, { string: 5, fret: 3, beat: 3, dur: 1, technique: 'vibrato' }],
-        11: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 5, beat: 1, dur: 0.5 }, { string: 3, fret: 2, beat: 1.5, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 1, technique: 'vibrato' }],
-      }
-    ),
+    chords: ['F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'Am', 'Dm', 'Gm', 'C', 'F', 'Dm', 'Bb', 'C'],
+    rhythmFeel: 'fingerstyle', bassFeel: 'roots',
+    leadBars: {
+      1: [{ string: 2, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 0, beat: 0.5, dur: 0.5 }, { string: 4, fret: 1, beat: 1, dur: 0.5 }, { string: 4, fret: 3, beat: 1.5, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 1, technique: 'vibrato' }],
+      5: [{ string: 3, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 2, beat: 1, dur: 0.5, technique: 'hammer' }, { string: 4, fret: 3, beat: 2, dur: 1, technique: 'vibrato' }],
+      9: [{ string: 3, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 2, beat: 0.5, dur: 0.5, technique: 'hammer' }, { string: 3, fret: 5, beat: 1, dur: 1 }, { string: 5, fret: 1, beat: 2, dur: 1 }, { string: 5, fret: 3, beat: 3, dur: 1, technique: 'vibrato' }],
+      11: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 5, beat: 1, dur: 0.5 }, { string: 3, fret: 2, beat: 1.5, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 1, technique: 'vibrato' }],
+      13: [{ string: 2, fret: 0, beat: 0, dur: 1 }, { string: 2, fret: 2, beat: 1, dur: 1 }, { string: 3, fret: 3, beat: 2, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 2, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 0, beat: 0.5, dur: 0.5 }, { string: 4, fret: 1, beat: 1, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 2, technique: 'vibrato' }],
+    },
   },
   {
     id: 'suffragette-city', title: 'Suffragette City', artist: 'David Bowie', playerTag: 'Ronson',
@@ -99,10 +195,15 @@ const SONG_LIBRARY = [
       { id: 'chorus', label: 'Chorus', startBar: 15, endBar: 19, solo: true },
       { id: 'outro', label: 'Outro', startBar: 20, endBar: 22 },
     ],
-    bars: makeBars(
-      ['A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'G', 'G', 'A', 'D', 'A', 'D', 'G', 'A', 'A', 'D', 'G'],
-      { 16: [{ string: 1, fret: 0, beat: 0, dur: 1, technique: 'mute' }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }] }
-    ),
+    chords: ['A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'G', 'G', 'A', 'D', 'A', 'D', 'G', 'A', 'A', 'D', 'G'],
+    rhythmFeel: 'driving', bassFeel: 'pulse8',
+    leadBars: {
+      1: [{ string: 0, fret: 0, beat: 0, dur: 0.5, technique: 'mute' }, { string: 0, fret: 0, beat: 1, dur: 0.5, technique: 'mute' }, { string: 1, fret: 2, beat: 2, dur: 0.5 }, { string: 1, fret: 0, beat: 3, dur: 1 }],
+      13: [{ string: 1, fret: 0, beat: 0, dur: 0.5 }, { string: 1, fret: 2, beat: 1, dur: 0.5 }, { string: 2, fret: 2, beat: 2, dur: 0.5 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      15: [{ string: 1, fret: 3, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      16: [{ string: 1, fret: 0, beat: 0, dur: 1, technique: 'mute' }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      20: [{ string: 1, fret: 0, beat: 0, dur: 0.5, technique: 'mute' }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+    },
   },
   {
     id: 'moonage-daydream', title: 'Moonage Daydream', artist: 'David Bowie', playerTag: 'Ronson',
@@ -116,16 +217,21 @@ const SONG_LIBRARY = [
       { id: 'solo', label: 'Solo', startBar: 17, endBar: 24, solo: true },
       { id: 'outro', label: 'Outro', startBar: 25, endBar: 28 },
     ],
-    bars: makeBars(
-      ['A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'D', 'A', 'E', 'A',
-       'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'A'],
-      {
-        17: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1, dur: 1, technique: 'bend', bendTo: 2 }, { string: 2, fret: 0, beat: 2, dur: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-        19: [{ string: 2, fret: 2, beat: 0, dur: 1 }, { string: 2, fret: 0, beat: 1, dur: 1, technique: 'pulloff' }, { string: 1, fret: 3, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-        21: [{ string: 0, fret: 5, beat: 0, dur: 1 }, { string: 0, fret: 8, beat: 1, dur: 1 }, { string: 1, fret: 5, beat: 2, dur: 1 }, { string: 1, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-        23: [{ string: 1, fret: 7, beat: 0, dur: 1 }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 8, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      }
-    ),
+    chords: ['A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'D', 'A', 'E', 'A',
+             'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'A'],
+    rhythmFeel: 'medium', bassFeel: 'pulse8',
+    leadBars: {
+      1: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1.5, dur: 1, technique: 'bend', bendTo: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
+      13: [{ string: 2, fret: 0, beat: 0, dur: 1 }, { string: 2, fret: 2, beat: 1, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 1 }, { string: 1, fret: 3, beat: 3, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1, dur: 1, technique: 'bend', bendTo: 2 }, { string: 2, fret: 0, beat: 2, dur: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
+      18: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      19: [{ string: 2, fret: 2, beat: 0, dur: 1 }, { string: 2, fret: 0, beat: 1, dur: 1, technique: 'pulloff' }, { string: 1, fret: 3, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      20: [{ string: 1, fret: 3, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 8, beat: 3, dur: 1, technique: 'vibrato' }],
+      21: [{ string: 0, fret: 5, beat: 0, dur: 1 }, { string: 0, fret: 8, beat: 1, dur: 1 }, { string: 1, fret: 5, beat: 2, dur: 1 }, { string: 1, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
+      22: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 5, beat: 1, dur: 1 }, { string: 1, fret: 7, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      23: [{ string: 1, fret: 7, beat: 0, dur: 1 }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 8, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      25: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1.5, dur: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
+    },
   },
   {
     id: 'can-you-get-to-that', title: 'Can You Get to That', artist: 'Funkadelic', playerTag: 'Hazel',
@@ -138,10 +244,15 @@ const SONG_LIBRARY = [
       { id: 'chorus', label: 'Chorus', startBar: 13, endBar: 16 },
       { id: 'outro', label: 'Outro', startBar: 17, endBar: 18 },
     ],
-    bars: makeBars(
-      ['E', 'A', 'B7', 'E', 'E', 'A', 'E', 'B7', 'E', 'A', 'B7', 'E', 'A', 'B7', 'E', 'E', 'E', 'A'],
-      { 9: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 2, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }] }
-    ),
+    chords: ['E', 'A', 'B7', 'E', 'E', 'A', 'E', 'B7', 'E', 'A', 'B7', 'E', 'A', 'B7', 'E', 'E', 'E', 'A'],
+    rhythmFeel: 'driving', bassFeel: 'walking',
+    leadBars: {
+      1: [{ string: 0, fret: 0, beat: 0.5, dur: 0.5 }, { string: 0, fret: 2, beat: 1, dur: 0.5 }, { string: 1, fret: 0, beat: 2, dur: 0.5 }, { string: 1, fret: 2, beat: 2.5, dur: 0.5, technique: 'vibrato' }],
+      5: [{ string: 0, fret: 0, beat: 3, dur: 1 }],
+      9: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 2, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      13: [{ string: 0, fret: 2, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1, dur: 0.5 }, { string: 0, fret: 5, beat: 2, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 2, beat: 1, dur: 0.5 }, { string: 0, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
+    },
   },
   {
     id: 'maggot-brain', title: 'Maggot Brain', artist: 'Funkadelic', playerTag: 'Hazel',
@@ -153,15 +264,16 @@ const SONG_LIBRARY = [
       { id: 'solo', label: 'Solo (Em Throughout)', startBar: 5, endBar: 20, solo: true },
       { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
     ],
-    bars: makeBars(
-      Array(22).fill('Em'),
-      {
-        6: [{ string: 0, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
-        10: [{ string: 0, fret: 15, beat: 0, dur: 3, technique: 'bend', bendTo: 2 }],
-        14: [{ string: 1, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
-        18: [{ string: 0, fret: 12, beat: 1, dur: 2, technique: 'harmonic' }],
-      }
-    ),
+    chords: Array(22).fill('Em'),
+    rhythmFeel: 'sparse', bassFeel: 'roots',
+    leadBars: {
+      2: [{ string: 0, fret: 12, beat: 2, dur: 2, technique: 'vibrato' }],
+      6: [{ string: 0, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
+      10: [{ string: 0, fret: 15, beat: 0, dur: 3, technique: 'bend', bendTo: 2 }],
+      14: [{ string: 1, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
+      18: [{ string: 0, fret: 12, beat: 1, dur: 2, technique: 'harmonic' }],
+      21: [{ string: 0, fret: 12, beat: 0, dur: 4, technique: 'vibrato' }],
+    },
   },
   {
     id: 'transdermal-celebration', title: 'Transdermal Celebration', artist: 'Ween', playerTag: 'Dean Ween',
@@ -175,13 +287,18 @@ const SONG_LIBRARY = [
       { id: 'solo', label: 'Solo (Pentatonic)', startBar: 13, endBar: 20, solo: true },
       { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
     ],
-    bars: makeBars(
-      ['E', 'A', 'E', 'A', 'E', 'A', 'B', 'E', 'A', 'B', 'E', 'E', 'E', 'A', 'B', 'E', 'E', 'A', 'B', 'E', 'E', 'A'],
-      {
-        13: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 1, fret: 2, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-        17: [{ string: 0, fret: 3, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 0, fret: 0, beat: 1, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 1 }, { string: 1, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-      }
-    ),
+    chords: ['E', 'A', 'E', 'A', 'E', 'A', 'B', 'E', 'A', 'B', 'E', 'E', 'E', 'A', 'B', 'E', 'E', 'A', 'B', 'E', 'E', 'A'],
+    rhythmFeel: 'medium', bassFeel: 'rootfifth',
+    leadBars: {
+      1: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1, technique: 'bend', bendTo: 1 }, { string: 1, fret: 0, beat: 3, dur: 1 }],
+      5: [{ string: 1, fret: 2, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
+      9: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1, dur: 0.5 }, { string: 1, fret: 2, beat: 2, dur: 1, technique: 'vibrato' }],
+      13: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 1, fret: 2, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      14: [{ string: 0, fret: 3, beat: 0, dur: 1 }, { string: 0, fret: 0, beat: 1.5, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 0, fret: 3, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 0, fret: 0, beat: 1, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 1 }, { string: 1, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
+      18: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1.5, dur: 1 }, { string: 0, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      21: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1.5, dur: 2.5, technique: 'vibrato' }],
+    },
   },
   {
     id: 'black-napkins', title: 'Black Napkins', artist: 'Frank Zappa', playerTag: 'Zappa',
@@ -194,14 +311,19 @@ const SONG_LIBRARY = [
       { id: 'solo', label: 'Solo (Dorian)', startBar: 9, endBar: 20, solo: true },
       { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
     ],
-    bars: makeBars(
-      ['Em', 'D', 'Em', 'D', 'Em', 'D', 'C', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'Em'],
-      {
-        9: [{ string: 0, fret: 0, beat: 0, dur: 2, technique: 'vibrato' }, { string: 0, fret: 2, beat: 2, dur: 1 }, { string: 0, fret: 3, beat: 3, dur: 1 }],
-        13: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1, dur: 1 }, { string: 1, fret: 4, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-        17: [{ string: 0, fret: 7, beat: 0, dur: 1 }, { string: 0, fret: 9, beat: 1, dur: 1, technique: 'slide' }, { string: 0, fret: 10, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 0, beat: 3, dur: 1 }],
-      }
-    ),
+    chords: ['Em', 'D', 'Em', 'D', 'Em', 'D', 'C', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'Em'],
+    rhythmFeel: 'sparse', bassFeel: 'roots',
+    leadBars: {
+      1: [{ string: 0, fret: 0, beat: 0, dur: 2, technique: 'vibrato' }, { string: 0, fret: 3, beat: 2, dur: 2 }],
+      5: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1, dur: 1 }, { string: 0, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
+      9: [{ string: 0, fret: 0, beat: 0, dur: 2, technique: 'vibrato' }, { string: 0, fret: 2, beat: 2, dur: 1 }, { string: 0, fret: 3, beat: 3, dur: 1 }],
+      10: [{ string: 1, fret: 2, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 2, technique: 'vibrato' }],
+      13: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1, dur: 1 }, { string: 1, fret: 4, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
+      14: [{ string: 1, fret: 4, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1.5, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      17: [{ string: 0, fret: 7, beat: 0, dur: 1 }, { string: 0, fret: 9, beat: 1, dur: 1, technique: 'slide' }, { string: 0, fret: 10, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 0, beat: 3, dur: 1 }],
+      18: [{ string: 0, fret: 9, beat: 0, dur: 1 }, { string: 0, fret: 7, beat: 1.5, dur: 1 }, { string: 0, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
+      21: [{ string: 0, fret: 0, beat: 0, dur: 4, technique: 'vibrato' }],
+    },
   },
   {
     id: 'inca-roads', title: 'Inca Roads', artist: 'Frank Zappa', playerTag: 'Zappa',
@@ -214,13 +336,17 @@ const SONG_LIBRARY = [
       { id: 'vamp', label: 'Vamp / Solo (2-Chord)', startBar: 13, endBar: 20, solo: true },
       { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
     ],
-    bars: makeBars(
-      ['F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb'],
-      {
-        13: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
-        17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 11, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 1, beat: 3, dur: 1 }],
-      }
-    ),
+    chords: ['F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb'],
+    rhythmFeel: 'medium', bassFeel: 'rootfifth',
+    leadBars: {
+      1: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
+      5: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 5, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1 }, { string: 0, fret: 1, beat: 3, dur: 1, technique: 'vibrato' }],
+      13: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
+      14: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 8, beat: 1, dur: 1 }, { string: 0, fret: 10, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 1, beat: 3, dur: 1 }],
+      17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 11, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 1, beat: 3, dur: 1 }],
+      18: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
+      21: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1.5, dur: 1 }, { string: 0, fret: 1, beat: 3, dur: 1, technique: 'vibrato' }],
+    },
   },
   {
     id: 'montana', title: 'Montana', artist: 'Frank Zappa', playerTag: 'Zappa',
@@ -233,13 +359,17 @@ const SONG_LIBRARY = [
       { id: 'lydian', label: 'Lydian Section', startBar: 13, endBar: 20, solo: true },
       { id: 'outro', label: 'Outro', startBar: 21, endBar: 24 },
     ],
-    bars: makeBars(
-      ['C', 'D', 'C', 'D', 'C', 'Bb', 'F', 'C', 'C', 'Bb', 'F', 'C', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'C'],
-      {
-        13: [{ string: 1, fret: 9, beat: 0, dur: 1, technique: 'vibrato' }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 7, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1 }],
-        17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 9, beat: 2, dur: 2, technique: 'vibrato' }],
-      }
-    ),
+    chords: ['C', 'D', 'C', 'D', 'C', 'Bb', 'F', 'C', 'C', 'Bb', 'F', 'C', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'C'],
+    rhythmFeel: 'medium', bassFeel: 'walking',
+    leadBars: {
+      1: [{ string: 1, fret: 5, beat: 0, dur: 0.5 }, { string: 1, fret: 7, beat: 0.5, dur: 0.5 }, { string: 0, fret: 8, beat: 1, dur: 0.5 }, { string: 0, fret: 5, beat: 2, dur: 1, technique: 'vibrato' }],
+      5: [{ string: 1, fret: 9, beat: 0, dur: 1 }, { string: 1, fret: 7, beat: 1, dur: 1 }, { string: 1, fret: 5, beat: 2, dur: 2, technique: 'vibrato' }],
+      13: [{ string: 1, fret: 9, beat: 0, dur: 1, technique: 'vibrato' }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 7, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1 }],
+      14: [{ string: 1, fret: 9, beat: 0, dur: 1 }, { string: 1, fret: 10, beat: 1, dur: 1, technique: 'vibrato' }, { string: 1, fret: 7, beat: 2.5, dur: 1.5 }],
+      17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 9, beat: 2, dur: 2, technique: 'vibrato' }],
+      18: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 9, beat: 2, dur: 2, technique: 'vibrato' }],
+      21: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 7, beat: 1.5, dur: 1 }, { string: 1, fret: 9, beat: 3, dur: 1, technique: 'vibrato' }],
+    },
   },
 ];
 
@@ -346,7 +476,7 @@ function clearSongFilters() {
 // ═══════════════════════════════════════════════════════════════════════════
 const BAR_WIDTH = 110;
 let songPracticeState = {
-  song: null, view: 'both', speed: 1.0, customBpm: null, instrument: 'clean',
+  song: null, view: 'both', speed: 1.0, customBpm: null, part: 'lead', silentPart: false,
   running: false, loopStart: null, loopEnd: null, dragStartBar: null, dragging: false,
   lastBarNum: 0, tapTimes: [], sessionStartTime: null, accumulatedSeconds: 0,
 };
@@ -371,7 +501,7 @@ function openSongPractice(songId) {
   const song = SONG_LIBRARY.find(s => s.id === songId);
   if (!song) return;
   songTeardownPlayback();
-  songPracticeState = { song, view: 'both', speed: 1.0, customBpm: null, instrument: song.defaultInstrument || 'clean', running: false, loopStart: null, loopEnd: null, dragStartBar: null, dragging: false, lastBarNum: 0, tapTimes: [], sessionStartTime: null, accumulatedSeconds: 0 };
+  songPracticeState = { song, view: 'both', speed: 1.0, customBpm: null, part: 'lead', silentPart: false, running: false, loopStart: null, loopEnd: null, dragStartBar: null, dragging: false, lastBarNum: 0, tapTimes: [], sessionStartTime: null, accumulatedSeconds: 0 };
   songSelfGradeChoices = {};
 
   document.getElementById('songs-filter-bar').style.display = 'none';
@@ -445,7 +575,7 @@ function renderSongPracticeShell() {
         <button class="quiz-mode-btn song-speed-btn active" data-speed="1" onclick="songSetSpeed(1,this)">1.0x</button>
         <button class="game-btn game-btn-skip" onclick="songTapTempo()">Tap Tempo</button>
         <span class="song-bpm-readout" id="song-bpm-readout">${song.bpm} BPM</span>
-        <span class="song-bpm-readout" id="song-bar-readout">Bar 1 / ${song.bars.length}</span>
+        <span class="song-bpm-readout" id="song-bar-readout">Bar 1 / ${song.chords.length}</span>
       </div>
 
       <div class="song-view-toggle">
@@ -466,14 +596,16 @@ function renderSongPracticeShell() {
 
     <div class="song-transport-bar" style="gap:16px">
       <div style="display:flex;gap:5px;align-items:center">
-        <span class="song-transport-label">Instrument</span>
-        <select id="song-instrument-select" onchange="songSetInstrument(this.value)"
+        <span class="song-transport-label">Part</span>
+        <select id="song-part-select" onchange="songSetPart(this.value)"
           style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 8px;font-size:9px;font-family:'Courier New',monospace">
-          <option value="clean"${(song.defaultInstrument || 'clean') === 'clean' ? ' selected' : ''}>Electric — Clean</option>
-          <option value="crunch"${song.defaultInstrument === 'crunch' ? ' selected' : ''}>Electric — Crunch</option>
-          <option value="acoustic"${song.defaultInstrument === 'acoustic' ? ' selected' : ''}>Acoustic</option>
-          <option value="bass"${song.defaultInstrument === 'bass' ? ' selected' : ''}>Bass</option>
+          <option value="lead" selected>Lead / Solo</option>
+          <option value="rhythm">Rhythm Guitar</option>
+          <option value="bass">Bass</option>
         </select>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center">
+        <button class="quiz-mode-btn" id="song-silent-toggle" onclick="songToggleSilent(this)" title="Mute just the selected part so you can play it live while the rest of the band keeps going">🔇 Go Silent (Play Along)</button>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
         <span class="song-transport-label">Room</span>
@@ -482,6 +614,9 @@ function renderSongPracticeShell() {
       <span style="font-family:Arial,sans-serif;font-size:9px;color:#ccb84a;display:none" id="song-sample-loading"></span>
     </div>
 
+    <div style="font-family:Arial,sans-serif;font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin:2px 0 4px">
+      Tab shown below: <span style="color:#5c8fff" id="song-scroller-part-label">Lead / Solo</span>
+    </div>
     <div class="song-scroller-wrap" id="song-scroller-wrap">
       <div class="song-scroller view-both" id="song-scroller">
         <div class="song-markers-row" id="song-markers-row"></div>
@@ -536,7 +671,8 @@ function renderSongPracticeShell() {
 // ═══════════════════════════════════════════════════════════════════════════
 function renderSongScroller() {
   const song = songPracticeState.song;
-  const totalBars = song.bars.length;
+  const part = songPracticeState.part;
+  const totalBars = song.chords.length;
   const markersRow = document.getElementById('song-markers-row');
   const barsRow = document.getElementById('song-bars-row');
   const totalWidth = totalBars * BAR_WIDTH;
@@ -545,6 +681,9 @@ function renderSongScroller() {
   markersRow.innerHTML = '';
   barsRow.innerHTML = '';
   songBarElements = {};
+
+  const partLabel = document.getElementById('song-scroller-part-label');
+  if (partLabel) partLabel.textContent = SONG_PARTS[part] || '';
 
   song.sections.forEach(sec => {
     const chip = document.createElement('div');
@@ -558,17 +697,19 @@ function renderSongScroller() {
     markersRow.appendChild(chip);
   });
 
-  song.bars.forEach(bar => {
+  for (let barIdx0 = 0; barIdx0 < totalBars; barIdx0++) {
+    const barNum = barIdx0 + 1;
+    const notes = getPartBarNotes(song, part, barIdx0);
     const col = document.createElement('div');
     col.className = 'song-bar-col';
     col.style.width = BAR_WIDTH + 'px';
-    col.dataset.bar = bar.bar;
+    col.dataset.bar = barNum;
     col.innerHTML = `
-      <div class="song-bar-num">${bar.bar}</div>
-      <div class="song-bar-chord">${bar.chord}</div>
+      <div class="song-bar-num">${barNum}</div>
+      <div class="song-bar-chord">${song.chords[barIdx0]}</div>
       <div class="song-bar-tab">
         ${[0, 1, 2, 3, 4, 5].map(row => `<div class="song-tab-string-line" style="top:${row * 16 + 6}px"></div>`).join('')}
-        ${bar.notes.map(n => {
+        ${notes.map(n => {
           const left = (n.beat / song.timeSig) * 100;
           const top = (5 - n.string) * 16 + 6;
           const cls = n.technique === 'bend' ? ' technique-bend' : n.technique === 'vibrato' ? ' technique-vibrato' : '';
@@ -576,11 +717,11 @@ function renderSongScroller() {
         }).join('')}
       </div>
     `;
-    col.addEventListener('mousedown', () => songLoopDragStart(bar.bar));
-    col.addEventListener('mouseenter', () => songLoopDragOver(bar.bar));
+    col.addEventListener('mousedown', () => songLoopDragStart(barNum));
+    col.addEventListener('mouseenter', () => songLoopDragOver(barNum));
     barsRow.appendChild(col);
-    songBarElements[bar.bar] = col;
-  });
+    songBarElements[barNum] = col;
+  }
 
   document.removeEventListener('mouseup', songLoopDragEnd);
   document.addEventListener('mouseup', songLoopDragEnd);
@@ -659,24 +800,24 @@ function songBarPosition(barIdx0, beat) {
   return `${barIdx0}:${whole}:${sixteenths}`;
 }
 
+// Each event carries its own `part` — songPracticeState.part/silentPart are read
+// fresh at trigger time, so toggling silence or switching parts mid-playback
+// takes effect on the next note without needing to rebuild the Tone.Part.
 function songPartCallback(time, ev) {
+  if (songPracticeState.silentPart && ev.part === songPracticeState.part) return;
   const vol = parseInt(document.getElementById('vol-slider')?.value || '60') / 100;
-  const leadInstrument = songPracticeState.instrument || 'clean';
-  const barDurSec = songBeatsToSeconds(songPracticeState.song.timeSig);
-  if (ev.type === 'bass') {
-    const chord = GAME_CHORDS[ev.chord];
-    if (!chord) return;
-    const si = chord.f.findIndex(f => f >= 0);
-    if (si >= 0) playSampledNote('bass', time, fretToHz(si, chord.f[si]) / 2, barDurSec * 0.95, vol * 0.9, { stringIdx: 'bass' });
-  } else if (ev.type === 'chord') {
-    const chord = GAME_CHORDS[ev.chord];
-    if (!chord) return;
-    chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(leadInstrument, time + si * 0.02, fretToHz(si, f), barDurSec * 0.9, vol * 0.55, { stringIdx: si }); });
-  } else if (ev.type === 'note') {
-    const freq = fretToHz(ev.string, ev.fret);
-    const durSec = songBeatsToSeconds(ev.dur);
-    playSampledNote(leadInstrument, time, freq, durSec, vol * 0.85, {
-      technique: ev.technique, bendTo: ev.bendTo, fromFreq: ev.fromFreq, stringIdx: ev.string,
+  const song = songPracticeState.song;
+  const durSec = songBeatsToSeconds(ev.dur);
+
+  if (ev.part === 'bass') {
+    playSampledNote('bass', time, fretToHz(ev.string, ev.fret) / 2, durSec, vol * 0.9, { stringIdx: 'bass' });
+  } else {
+    const instrument = song.defaultInstrument || 'clean';
+    const partVol = ev.part === 'lead' ? vol * 0.85 : vol * 0.5;
+    // Rhythm and lead are separate instruments in reality — choke key is
+    // namespaced per part+string so a rhythm strum never chokes a ringing lead note.
+    playSampledNote(instrument, time, fretToHz(ev.string, ev.fret), durSec, partVol, {
+      technique: ev.technique, bendTo: ev.bendTo, fromFreq: ev.fromFreq, stringIdx: `${ev.part}-${ev.string}`,
     });
   }
 }
@@ -689,32 +830,33 @@ function songBuildPart() {
   t.bpm.value = bpm;
 
   const events = [];
-  song.bars.forEach(bar => {
-    const barIdx0 = bar.bar - 1;
-    events.push({ time: `${barIdx0}:0:0`, type: 'bass', chord: bar.chord });
-    events.push({ time: `${barIdx0}:0:0`, type: 'chord', chord: bar.chord });
-    bar.notes.forEach((n, ni) => {
-      const ev = { time: songBarPosition(barIdx0, n.beat), type: 'note', string: n.string, fret: n.fret, dur: n.dur, technique: n.technique, bendTo: n.bendTo };
-      if (n.technique === 'slide' && ni > 0) {
-        const prev = bar.notes[ni - 1];
-        ev.fromFreq = fretToHz(prev.string, prev.fret);
-      }
-      events.push(ev);
+  const totalBars = song.chords.length;
+  for (let barIdx0 = 0; barIdx0 < totalBars; barIdx0++) {
+    ['rhythm', 'bass', 'lead'].forEach(part => {
+      const notes = getPartBarNotes(song, part, barIdx0);
+      notes.forEach((n, ni) => {
+        const ev = { time: songBarPosition(barIdx0, n.beat), part, string: n.string, fret: n.fret, dur: n.dur, technique: n.technique, bendTo: n.bendTo };
+        if (n.technique === 'slide' && ni > 0) {
+          const prev = notes[ni - 1];
+          ev.fromFreq = fretToHz(prev.string, prev.fret);
+        }
+        events.push(ev);
+      });
     });
-  });
+  }
 
   songPart = new Tone.Part((time, ev) => songPartCallback(time, ev), events);
   songPart.start(0);
 
-  const totalBars = song.bars.length;
   songEndEventId = t.scheduleOnce(() => songHandleEnd(), `${totalBars}:0:0`);
 }
 
-// ── Sample loading orchestration (bass + whichever lead instrument is selected) ──
+// ── Sample loading orchestration (bass + the song's rhythm/lead tone — every
+// part gets scheduled regardless of which one is being viewed/practiced) ──
 function songEnsureInstrumentsLoaded() {
   return Promise.all([
     ensureInstrumentReady('bass'),
-    ensureInstrumentReady(songPracticeState.instrument || 'clean'),
+    ensureInstrumentReady(songPracticeState.song.defaultInstrument || 'clean'),
   ]);
 }
 
@@ -730,9 +872,20 @@ function songSetupSampleLoadingUI() {
   });
 }
 
-function songSetInstrument(key) {
-  songPracticeState.instrument = key;
-  songEnsureInstrumentsLoaded();
+// Switches which part's tab is displayed/highlighted and — when the silent
+// toggle is on — which part goes quiet so you can play it live.
+function songSetPart(part) {
+  songPracticeState.part = part;
+  renderSongScroller();
+  songUpdateOverlay(songPracticeState.lastBarNum || 1);
+}
+
+function songToggleSilent(btn) {
+  songPracticeState.silentPart = !songPracticeState.silentPart;
+  if (btn) {
+    btn.textContent = songPracticeState.silentPart ? '🔊 Unmute My Part' : '🔇 Go Silent (Play Along)';
+    btn.classList.toggle('active', songPracticeState.silentPart);
+  }
 }
 
 function songSetRoom(amount) {
@@ -848,7 +1001,7 @@ function songApplyPlayhead(fractionalBar) {
     Object.entries(songBarElements).forEach(([b, el]) => el.classList.toggle('current-bar', +b === barNum));
     songUpdateOverlay(barNum);
     const barReadout = document.getElementById('song-bar-readout');
-    if (barReadout) barReadout.textContent = `Bar ${barNum} / ${songPracticeState.song.bars.length}`;
+    if (barReadout) barReadout.textContent = `Bar ${barNum} / ${songPracticeState.song.chords.length}`;
   }
 }
 
@@ -857,16 +1010,16 @@ function songApplyPlayhead(fractionalBar) {
 // ═══════════════════════════════════════════════════════════════════════════
 function songUpdateOverlay(barNum) {
   const song = songPracticeState.song;
-  const bar = song.bars.find(b => b.bar === barNum) || song.bars[0];
-  const nextBar = song.bars.find(b => b.bar === barNum + 1) || song.bars[0];
-  if (!bar) return;
+  const chord = song.chords[barNum - 1] || song.chords[0];
+  const nextChord = song.chords[barNum] || song.chords[0];
+  if (!chord) return;
 
   const curCanvas = document.getElementById('song-overlay-cur-canvas');
   const nextCanvas = document.getElementById('song-overlay-next-canvas');
-  if (curCanvas && GAME_CHORDS[bar.chord]) drawGameChord(curCanvas, bar.chord, 90);
-  if (nextCanvas && GAME_CHORDS[nextBar.chord]) drawGameChord(nextCanvas, nextBar.chord, 80);
-  const curName = document.getElementById('song-overlay-cur-name'); if (curName) curName.textContent = bar.chord;
-  const nextName = document.getElementById('song-overlay-next-name'); if (nextName) nextName.textContent = nextBar.chord;
+  if (curCanvas && GAME_CHORDS[chord]) drawGameChord(curCanvas, chord, 90);
+  if (nextCanvas && GAME_CHORDS[nextChord]) drawGameChord(nextCanvas, nextChord, 80);
+  const curName = document.getElementById('song-overlay-cur-name'); if (curName) curName.textContent = chord;
+  const nextName = document.getElementById('song-overlay-next-name'); if (nextName) nextName.textContent = nextChord;
 
   const section = song.sections.find(s => barNum >= s.startBar && barNum <= s.endBar) || song.sections[0];
   const scaleLabelEl = document.getElementById('song-overlay-scale-label');
@@ -892,11 +1045,11 @@ function songUpdateOverlay(barNum) {
   } else {
     if (scaleLabelEl) {
       scaleLabelEl.classList.add('chord-mode');
-      scaleLabelEl.textContent = `${section ? section.label : ''} — chord tones for ${bar.chord}`;
+      scaleLabelEl.textContent = `${section ? section.label : ''} — chord tones for ${chord}`;
     }
-    const chord = GAME_CHORDS[bar.chord];
+    const chordShape = GAME_CHORDS[chord];
     const chordFretMap = {};
-    if (chord) chord.f.forEach((f, si) => { if (f >= 0) chordFretMap[`${si}-${f}`] = true; });
+    if (chordShape) chordShape.f.forEach((f, si) => { if (f >= 0) chordFretMap[`${si}-${f}`] = true; });
     buildFretGrid(fbContainer, (cell, dot, si, f) => {
       if (chordFretMap[`${si}-${f}`]) { dot.classList.add('chord-dot', 'chord-root'); dot.textContent = noteAt(STRINGS[si], f); }
       else dot.classList.add('empty');
@@ -1028,7 +1181,7 @@ async function startSongRiffPlay(riffKey, gi, ri) {
   const riff = RIFF_LIBRARY[gi].riffs[ri];
   const btn = document.getElementById(`song-riff-btn-${riffKey}`);
   const vol = parseInt(document.getElementById('vol-slider').value) / 100;
-  const instrument = songPracticeState.instrument || 'clean'; // same lead voice as the song itself
+  const instrument = songPracticeState.song.defaultInstrument || 'clean'; // same lead voice as the song itself
 
   getAudioCtx();
   activeSongRiffPlayers[riffKey] = true;
