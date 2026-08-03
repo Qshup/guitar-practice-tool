@@ -497,6 +497,55 @@ document.getElementById('pos-btns') && document.addEventListener('click', e => {
 // Init beat display
 buildBeatDisplay(4);
 
+// ═══════════════════════════════════════════════════════════════════════════
+// LIVE NOTE MATCHING (Scales mode) — mic.js's onMicOnset() feeds this. Active
+// whenever the mic is on and Scales is the visible mode: colors the nearest
+// dot in the current scale-position box green (in tune, within
+// TUNING_TOLERANCE_CENTS)/amber (right note, out of tune), or flashes the
+// fretboard red when nothing in the box is close to the pitch heard — a
+// monophonic detector can only report a pitch, not which string was played,
+// so "nearest dot in the box you're currently looking at" is the practical
+// stand-in for "which dot you just played."
+// ═══════════════════════════════════════════════════════════════════════════
+function scalesModeIsActive() {
+  const panel = document.getElementById('mode-panel-scales');
+  return !!(panel && panel.classList.contains('active'));
+}
+
+function scalesHandleMicOnset(evt) {
+  if (!scalesModeIsActive() || evt.freq == null) return;
+  const sc = currentScale();
+  const boxNotes = getBoxNotes(state.key, sc.intervals, state.pos);
+  let best = null, bestCents = Infinity;
+  boxNotes.forEach(n => {
+    const cents = Math.abs(1200 * Math.log2(evt.freq / fretToHz(n.string, n.fret)));
+    if (cents < bestCents) { bestCents = cents; best = n; }
+  });
+
+  const statusEl = document.getElementById('mic-scale-match-status');
+  if (!best || bestCents > 60) {
+    if (statusEl) { statusEl.textContent = `Heard ${evt.noteName} — not in the current position`; statusEl.className = 'mic-scale-match-status wrong'; }
+    const fb = document.getElementById('fretboard');
+    if (fb) { fb.classList.add('mic-wrong-flash'); setTimeout(() => fb.classList.remove('mic-wrong-flash'), 400); }
+    return;
+  }
+
+  const exactCents = Math.round(1200 * Math.log2(evt.freq / fretToHz(best.string, best.fret)));
+  const inTune = Math.abs(exactCents) <= TUNING_TOLERANCE_CENTS;
+  const dot = getDotEl(best.string, best.fret);
+  if (dot) {
+    dot.classList.remove('quiz-correct', 'quiz-close');
+    dot.classList.add(inTune ? 'quiz-correct' : 'quiz-close');
+    clearTimeout(dot._micMatchTimer);
+    dot._micMatchTimer = setTimeout(() => dot.classList.remove('quiz-correct', 'quiz-close'), 900);
+  }
+  if (statusEl) {
+    statusEl.textContent = inTune ? `✓ ${best.note} — in tune` : `${best.note} — ${exactCents > 0 ? 'sharp' : 'flat'} by ${Math.abs(exactCents)}¢`;
+    statusEl.className = 'mic-scale-match-status ' + (inTune ? 'correct' : 'close');
+  }
+}
+onMicOnset(scalesHandleMicOnset);
+
 // ── Metronome bar collapse (persistent across all modes) ──────────────────
 function applyMetronomeBarCollapsedState(collapsed) {
   const body = document.getElementById('metronome-bar-body');

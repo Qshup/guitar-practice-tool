@@ -55,6 +55,7 @@
     <button class="nav-btn" data-mode="study" onclick="switchMode('study')">Study</button>
     <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')">Riffs</button>
     <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')">Songs</button>
+    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')">🎤 Tuner</button>
   </nav>
   <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress">Progress</button>
 </div>
@@ -106,6 +107,44 @@
       <div class="beat-display" id="beat-display"></div>
     </div>
     <div class="chord-display" id="chord-display"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PERSISTENT MIC BAR — shared by Scales note-matching, Chords strum
+     timing, the Tuner view, and Listen & Repeat. One mic engine (js/mic.js),
+     one set of calibration controls, visible in every mode.
+═══════════════════════════════════════════════════════════════ -->
+<div class="metronome-bar" id="mic-bar">
+  <div class="metronome-bar-header" onclick="toggleMicBar()">
+    <h2>🎤 Microphone</h2>
+    <span class="metronome-bar-chevron" id="mic-bar-chevron">▾</span>
+  </div>
+  <div class="metronome-bar-body" id="mic-bar-body">
+    <div class="prac-row">
+      <button class="big-btn btn-go" id="mic-enable-btn" onclick="toggleMicEnabled()">▶ MIC ON</button>
+      <span class="mic-status-text" id="mic-status-text">Off — enable to hear note matching, tuning, and technique detection</span>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Sensitivity</span>
+      <input type="range" id="mic-sensitivity-slider" min="10" max="400" value="100" oninput="setMicSensitivity(this.value/100); document.getElementById('mic-sensitivity-val').textContent=(this.value/100).toFixed(1)+'x'">
+      <span class="prac-val" id="mic-sensitivity-val">1.0x</span>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Noise Gate</span>
+      <input type="range" id="mic-noise-gate-slider" min="0" max="150" value="20" oninput="setMicNoiseGate(this.value/1000); document.getElementById('mic-noise-gate-val').textContent=this.value">
+      <span class="prac-val" id="mic-noise-gate-val">20</span>
+    </div>
+    <div class="prac-row" style="align-items:center">
+      <span class="prac-label">Level</span>
+      <div class="lr-mic-meter" id="mic-level-meter" style="flex:1"><div class="lr-mic-meter-fill" id="mic-level-meter-fill"></div></div>
+    </div>
+    <div class="prac-row">
+      <span class="prac-label">Hearing</span>
+      <span class="mic-tuner-note" id="mic-tuner-note">—</span>
+      <span class="mic-tuner-cents" id="mic-tuner-cents"></span>
+      <span class="mic-technique-label" id="mic-technique-label" style="display:none"></span>
+    </div>
   </div>
 </div>
 
@@ -206,6 +245,7 @@
     <div class="legend-item" style="margin-left:6px"><div class="legend-dot" style="background:#2a2a2a;color:#666;border:1px solid #444">♩</div>Other pos</div>
   </div>
 
+  <div class="mic-scale-match-status" id="mic-scale-match-status">Turn on the mic above and play a note to see it matched here</div>
   <div class="fretboard-wrap">
     <div class="fretboard" id="fretboard">
       <div class="nut"></div>
@@ -386,9 +426,16 @@
         </div>
         <div class="prac-row">
           <button class="big-btn btn-run" id="chord-run-btn" onclick="toggleChordRun()">▶ RUN CHORDS</button>
+          <button class="quiz-mode-btn" onclick="toggleChordGrading(this)">🎤 Grade My Strums</button>
         </div>
         <div class="chord-run-display" id="chord-run-display">Select a key/shape/type in Reference, then press Run Chords</div>
         <div class="chord-seq-display" id="chord-seq-display"></div>
+        <div class="chord-grading-status" id="chord-grading-status"></div>
+        <div class="chord-selfgrade-row" id="chord-selfgrade-row" style="display:none">
+          <span id="chord-selfgrade-label"></span>
+          <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="chordSelfGrade(true)">✓ Got it</button>
+          <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="chordSelfGrade(false)">✗ Missed</button>
+        </div>
       </div>
 
       <!-- CHORD SWITCHING GAME LAUNCHER -->
@@ -995,9 +1042,34 @@
   <div class="song-practice-view" id="song-practice-view" style="display:none"></div>
 </div>
 
+<!-- ═══════════════════════════════════════════════════════════════
+     TUNER MODE — standalone, reuses the shared mic engine (js/mic.js)
+═══════════════════════════════════════════════════════════════ -->
+<div class="mode-panel" id="mode-panel-tuner">
+  <div class="tuner-view">
+    <div class="tuner-hint">Turn on the mic in the bar above, then play a single open string or fretted note.</div>
+    <div class="tuner-note" id="tuner-note">—</div>
+    <div class="tuner-hz" id="tuner-hz"></div>
+    <div class="tuner-gauge">
+      <div class="tuner-gauge-center"></div>
+      <div class="tuner-needle" id="tuner-needle" style="left:50%"></div>
+    </div>
+    <div class="tuner-cents-label" id="tuner-cents-label">Play a note</div>
+    <div class="tuner-strings-ref">
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">E2</span><span class="tuner-string-hz">82 Hz</span></div>
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">A2</span><span class="tuner-string-hz">110 Hz</span></div>
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">D3</span><span class="tuner-string-hz">147 Hz</span></div>
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">G3</span><span class="tuner-string-hz">196 Hz</span></div>
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">B3</span><span class="tuner-string-hz">247 Hz</span></div>
+      <div class="tuner-string-ref-item"><span class="tuner-string-note">E4</span><span class="tuner-string-hz">330 Hz</span></div>
+    </div>
+  </div>
+</div>
+
 <script src="js/vendor/Tone.js"></script>
 <script src="js/vendor/pitchy.js"></script>
 <script src="js/scales.js"></script>
+<script src="js/mic.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/chords.js"></script>
 <script src="js/caged.js"></script>
@@ -1008,6 +1080,7 @@
 <script src="js/quiz.js"></script>
 <script src="js/listenrepeat.js"></script>
 <script src="js/songs.js"></script>
+<script src="js/tuner.js"></script>
 <script src="js/nav.js"></script>
 </body>
 </html>

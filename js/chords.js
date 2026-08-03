@@ -383,9 +383,73 @@ function chordRunStep() {
   // Play chord sound
   playChordSound(chord);
 
+  // Strum-timing grading: the moment a new chord appears is "the beat" the
+  // next strum should land on. If the previous chord's window never saw a
+  // strum, it was missed. Chord IDENTITY is graded by the self-grade buttons
+  // below (renderChordTimingStatus / chordSelfGrade) — not from the mic —
+  // per the explicit design call that a monophonic detector can't reliably
+  // identify a strummed chord.
+  if (chordGradingEnabled) {
+    if (chordChangeTime != null) { chordTimingResult = 'missed'; renderChordTimingStatus(); }
+    chordChangeTime = getAudioCtx().currentTime;
+    chordTimingResult = null;
+    showChordSelfGradeRow(chord);
+  }
+
   chordRunIdx++;
   const speed = parseInt(document.getElementById('chord-run-speed').value);
   chordRunTimeout = setTimeout(chordRunStep, speed);
+}
+
+// ── Strum-timing grading (mic.js's onMicOnset) ──────────────────────────────
+let chordGradingEnabled = false;
+let chordChangeTime = null; // ctx.currentTime of the most recent chord change — the "beat" to grade against
+let chordTimingResult = null; // 'onTime' | 'early' | 'late' | 'missed'
+
+function toggleChordGrading(btn) {
+  chordGradingEnabled = !chordGradingEnabled;
+  if (btn) { btn.textContent = chordGradingEnabled ? '🎤 Grading On' : '🎤 Grade My Strums'; btn.classList.toggle('active', chordGradingEnabled); }
+  const status = document.getElementById('chord-grading-status');
+  if (chordGradingEnabled && !micEnabled && status) status.textContent = 'Turn on the mic in the bar above first.';
+  else if (!chordGradingEnabled && status) status.textContent = '';
+  if (!chordGradingEnabled) document.getElementById('chord-selfgrade-row').style.display = 'none';
+}
+
+function chordsHandleMicOnset(evt) {
+  if (!chordGradingEnabled || chordChangeTime == null) return;
+  const panel = document.getElementById('mode-panel-chords');
+  if (!panel || !panel.classList.contains('active')) return;
+  const dtMs = (evt.time - chordChangeTime) * 1000;
+  const TIGHT_MS = 200, WIDE_MS = 600;
+  if (dtMs < -WIDE_MS || dtMs > WIDE_MS) return; // unrelated to this chord change
+  chordTimingResult = Math.abs(dtMs) <= TIGHT_MS ? 'onTime' : (dtMs > 0 ? 'late' : 'early');
+  chordChangeTime = null; // consumed — a missed-check won't fire for this chord anymore
+  renderChordTimingStatus();
+}
+onMicOnset(chordsHandleMicOnset);
+
+function renderChordTimingStatus() {
+  const el = document.getElementById('chord-grading-status');
+  if (!el) return;
+  const label = { onTime: '✓ On time', early: '~ A little early', late: '~ A little late', missed: '— No strum detected' }[chordTimingResult] || '';
+  el.textContent = label;
+  el.className = 'chord-grading-status ' + (chordTimingResult || '');
+}
+
+// Chord identity is self-graded — a strummed chord's individual notes can't
+// be reliably picked apart by a monophonic pitch detector.
+function showChordSelfGradeRow(chord) {
+  const row = document.getElementById('chord-selfgrade-row');
+  const label = document.getElementById('chord-selfgrade-label');
+  if (!row || !label) return;
+  const suf = { maj:'',min:'m','7':'7',maj7:'maj7',min7:'m7',sus2:'sus2',sus4:'sus4',dim:'°',aug:'+',power:'5' }[chord.type] || '';
+  label.textContent = `Was that ${chord.key}${suf}?`;
+  row.style.display = '';
+}
+function chordSelfGrade(success) {
+  const status = document.getElementById('chord-grading-status');
+  if (status) status.textContent += success ? '  ·  ✓ Chord correct' : '  ·  ✗ Chord missed';
+  document.getElementById('chord-selfgrade-row').style.display = 'none';
 }
 
 function stopChordRun() {
@@ -394,6 +458,10 @@ function stopChordRun() {
   const btn=document.getElementById('chord-run-btn');
   btn.textContent='▶ RUN CHORDS'; btn.classList.remove('running');
   document.querySelectorAll('.chord-seq-pill').forEach(p=>p.classList.remove('active-chord'));
+  chordChangeTime = null;
+  chordTimingResult = null;
+  const selfGradeRow = document.getElementById('chord-selfgrade-row');
+  if (selfGradeRow) selfGradeRow.style.display = 'none';
 }
 
 function playChordSound(chordObj) {

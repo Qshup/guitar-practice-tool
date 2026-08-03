@@ -194,6 +194,74 @@
   .metronome-bar-chevron { color: #4caf50; font-size: 10px; }
   .metronome-bar-body { margin-top: 10px; }
 
+  /* ── Persistent Mic Bar (visible in every mode, see js/mic.js) ── */
+  #mic-bar { background: #0d0d1a; border-color: #1e1e3a; }
+  #mic-bar .metronome-bar-chevron { color: #5c8fff; }
+  .mic-status-text { font-family: 'Courier New', monospace; font-size: 9px; color: #888; }
+  .mic-tuner-note {
+    font-family: 'Courier New', monospace; font-size: 13px; font-weight: bold; color: #fff; min-width: 24px;
+  }
+  .mic-tuner-cents { font-family: 'Courier New', monospace; font-size: 10px; color: #888; }
+  .mic-tuner-cents.in-tune { color: #4caf50; }
+  .mic-tuner-cents.sharp { color: #e53935; }
+  .mic-tuner-cents.flat { color: #5c8fff; }
+  .mic-technique-label {
+    font-family: Arial, sans-serif; font-size: 9px; font-weight: bold; color: #ccb84a;
+    background: #1a1a00; border: 1px solid #4a4a1a; padding: 2px 7px; border-radius: 10px;
+  }
+  #mic-enable-btn.running { background: #c0392b; color: #fff; }
+  .mic-wrong-flash { outline: 3px solid #e53935; outline-offset: 3px; transition: outline-color .2s; }
+  .mic-scale-match-status {
+    font-family: 'Courier New', monospace; font-size: 10px; color: #666; margin-bottom: 8px;
+  }
+  .mic-scale-match-status.correct { color: #4caf50; }
+  .mic-scale-match-status.close { color: #fb8c00; }
+  .mic-scale-match-status.wrong { color: #e53935; }
+
+  /* ── Tuner mode ─────────────────────────────────────────────── */
+  .tuner-view {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    max-width: 420px; margin: 30px auto; text-align: center;
+  }
+  .tuner-hint { font-family: Arial, sans-serif; font-size: 10px; color: #666; }
+  .tuner-note {
+    font-family: 'Courier New', monospace; font-size: 72px; font-weight: bold; color: #fff;
+    line-height: 1; transition: color .15s;
+  }
+  .tuner-note.in-tune { color: #4caf50; }
+  .tuner-hz { font-family: 'Courier New', monospace; font-size: 12px; color: #888; min-height: 16px; }
+  .tuner-gauge {
+    position: relative; width: 100%; height: 14px; background: #111;
+    border: 1px solid #1a1a1a; border-radius: 3px; overflow: hidden;
+  }
+  .tuner-gauge-center {
+    position: absolute; left: 50%; top: 0; bottom: 0; width: 2px;
+    background: #333; transform: translateX(-1px);
+  }
+  .tuner-gauge::before {
+    content: ''; position: absolute; left: 42%; right: 42%; top: 0; bottom: 0; background: rgba(76,175,80,0.15);
+  }
+  .tuner-needle {
+    position: absolute; top: 0; bottom: 0; width: 4px; background: #e53935;
+    transform: translateX(-2px); transition: left .08s linear, background .15s;
+  }
+  .tuner-needle.in-tune { background: #4caf50; }
+  .tuner-cents-label {
+    font-family: Arial, sans-serif; font-size: 13px; font-weight: bold; color: #888; letter-spacing: .05em;
+  }
+  .tuner-cents-label.in-tune { color: #4caf50; }
+  .tuner-cents-label.sharp { color: #e53935; }
+  .tuner-cents-label.flat { color: #5c8fff; }
+  .tuner-strings-ref {
+    display: flex; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid #1a1a1a; flex-wrap: wrap; justify-content: center;
+  }
+  .tuner-string-ref-item {
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    background: #111; border: 1px solid #1a1a1a; padding: 6px 10px; border-radius: 3px;
+  }
+  .tuner-string-note { font-family: 'Courier New', monospace; font-size: 12px; color: #ccc; font-weight: bold; }
+  .tuner-string-hz { font-family: 'Courier New', monospace; font-size: 8px; color: #555; }
+
   /* chord fretboard overlay dots */
   .note-dot.chord-dot {
     border-width: 2px;
@@ -223,6 +291,14 @@
     background: #5c8fff; color: #000; border-color: #5c8fff; transform: scale(1.1);
   }
   .chord-seq-pill.done-chord { background: #1a2a1a; color: #4caf50; border-color: #2a4a2a; }
+  .chord-grading-status {
+    font-family: 'Courier New', monospace; font-size: 10px; color: #888; margin-top: 6px; min-height: 14px;
+  }
+  .chord-grading-status.onTime { color: #4caf50; }
+  .chord-grading-status.early, .chord-grading-status.late { color: #fb8c00; }
+  .chord-grading-status.missed { color: #e53935; }
+  .chord-selfgrade-row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+  .chord-selfgrade-row span { font-family: Arial, sans-serif; font-size: 9px; color: #999; }
 
   /* chord mode legend (always visible within the Chords mode-panel) */
   .chord-legend {

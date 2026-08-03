@@ -2,7 +2,7 @@
 // NAVIGATION — top-level mode switching (Scales / Chords / Study / Riffs / Songs)
 // ═══════════════════════════════════════════════════════════════════════════
 
-const NAV_MODES = ['scales', 'chords', 'study', 'riffs', 'songs'];
+const NAV_MODES = ['scales', 'chords', 'study', 'riffs', 'songs', 'tuner'];
 
 function switchMode(mode) {
   if (!NAV_MODES.includes(mode)) return;

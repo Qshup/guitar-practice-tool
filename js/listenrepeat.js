@@ -66,74 +66,23 @@ let lrListenTimeout = null;
 let lrChordSelfGradeIdx = 0;
 
 // ── Mic engine ──────────────────────────────────────────────────────────
-let micStream = null;
-let micAnalyser = null;
-let micSourceNode = null;
-let micSampleBuffer = null;
-let pitchDetector = null;
-let micListening = false;
-let micLastOnsetTime = -1;
+// Uses the shared engine in js/mic.js (single getUserMedia stream/analyser/
+// pitch detector, and the shared sensitivity/noise-gate calibration, for the
+// whole app) — only the quiz-specific onset accumulation below (grading a
+// full played-back sequence against what was expected) is local to Listen &
+// Repeat; Scales/Chords/Tuner use mic.js's onMicOnset()/onMicLevel() directly.
 let micDetectedNotes = []; // {time, freq, noteName, cents} — absolute AudioContext time
-const MIC_ONSET_RMS_THRESHOLD = 0.02;
-const MIC_MIN_ONSET_GAP = 0.12; // seconds
-
-// When this page is loaded inside another site's iframe (e.g. an embedded
-// preview), the browser only grants microphone access if that outer page
-// explicitly delegates it — something a sandboxed preview frame typically
-// doesn't do. In that case getUserMedia() rejects exactly like a user denial,
-// so we can't tell the two apart from the error alone; the iframe check lets
-// the message point at the real cause instead of sending people hunting for
-// a permission prompt that was never going to appear.
-function lrRunningInIframe() {
-  try { return window.self !== window.top; } catch (e) { return true; }
-}
-
-function lrMicUnavailableMessage(action) {
-  return lrRunningInIframe()
-    ? `Microphone isn't available in this embedded preview — the page it's embedded in doesn't grant mic access here. Open index.html directly (or run "npm start") to use ${action}.`
-    : `Microphone access was denied — allow it in your browser to ${action}.`;
-}
-
-async function lrInitMic() {
-  if (micStream) return true;
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
-  } catch (e) {
-    return false;
-  }
-  const ctx = getAudioCtx();
-  micSourceNode = ctx.createMediaStreamSource(micStream);
-  micAnalyser = ctx.createAnalyser();
-  micAnalyser.fftSize = 2048;
-  micSampleBuffer = new Float32Array(micAnalyser.fftSize);
-  micSourceNode.connect(micAnalyser);
-  pitchDetector = PitchyBundle.PitchDetector.forFloat32Array(micAnalyser.fftSize);
-  pitchDetector.minVolumeDecibels = -45;
-  return true;
-}
-
-function lrComputeRMS(buf) {
-  let sum = 0;
-  for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
-  return Math.sqrt(sum / buf.length);
-}
-
-function hzToNoteInfo(freq) {
-  const midiFloat = 69 + 12 * Math.log2(freq / 440);
-  const midi = Math.round(midiFloat);
-  const cents = Math.round((midiFloat - midi) * 100);
-  const noteName = CHROMATIC[((midi % 12) + 12) % 12];
-  return { midi, noteName, cents };
-}
+let lrListening = false;
+let lrLastOnsetTime = -1;
 
 function lrMicPollTick() {
-  if (!micListening) return;
+  if (!lrListening) return;
   const ctx = getAudioCtx();
   micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-  const rms = lrComputeRMS(micSampleBuffer);
+  const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
   const now = ctx.currentTime;
-  if (rms > MIC_ONSET_RMS_THRESHOLD && (now - micLastOnsetTime) > MIC_MIN_ONSET_GAP) {
-    micLastOnsetTime = now;
+  if (rms > micNoiseGate && (now - lrLastOnsetTime) > MIC_MIN_ONSET_GAP) {
+    lrLastOnsetTime = now;
     lrCaptureOnsetPitch(now);
   }
   requestAnimationFrame(lrMicPollTick);
@@ -145,9 +94,9 @@ function lrCaptureOnsetPitch(onsetTime) {
   let count = 0;
   const maxSamples = 4;
   function sampleOnce() {
-    if (!micListening) return;
+    if (!lrListening) return;
     micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-    const [freq, clarity] = pitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
+    const [freq, clarity] = micPitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
     if (freq > 60 && freq < 1400 && clarity > 0.85) samples.push({ freq, clarity });
     count++;
     if (count < maxSamples) setTimeout(sampleOnce, 15);
@@ -166,13 +115,13 @@ function lrCaptureOnsetPitch(onsetTime) {
 
 function lrStartListening() {
   micDetectedNotes = [];
-  micLastOnsetTime = -1;
-  micListening = true;
+  lrLastOnsetTime = -1;
+  lrListening = true;
   requestAnimationFrame(lrMicPollTick);
 }
 
 function lrStopListening() {
-  micListening = false;
+  lrListening = false;
 }
 
 // ── Live mic level meter — lets the user visually confirm the mic is
@@ -186,19 +135,19 @@ function lrStartMeterLoop() {
     const panel = document.getElementById('study-subtab-listen');
     if (!panel || !panel.classList.contains('active') || !micAnalyser) { lrMeterRAF = null; return; }
     micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-    const rms = lrComputeRMS(micSampleBuffer);
+    const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
     const level = Math.min(1, rms / MIC_METER_RMS_CEILING);
     const fill = document.getElementById('lr-mic-meter-fill');
     if (fill) fill.style.width = `${Math.round(level * 100)}%`;
     const meterEl = document.getElementById('lr-mic-meter');
-    const active = rms > MIC_ONSET_RMS_THRESHOLD;
+    const active = rms > micNoiseGate;
     if (meterEl) meterEl.classList.toggle('lr-mic-active', active);
 
     const readout = document.getElementById('lr-mic-readout');
     if (readout) {
       if (active) {
         const ctx = getAudioCtx();
-        const [freq, clarity] = pitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
+        const [freq, clarity] = micPitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
         readout.textContent = (freq > 60 && freq < 1400 && clarity > 0.8)
           ? `Hearing: ${hzToNoteInfo(freq).noteName} (${Math.round(freq)} Hz)`
           : 'Hearing sound (pitch unclear)';
@@ -220,9 +169,9 @@ async function lrCheckMic() {
   const btn = document.getElementById('lr-check-mic-btn');
   const readout = document.getElementById('lr-mic-readout');
   if (readout) readout.textContent = 'Requesting microphone access…';
-  const ok = await lrInitMic();
+  const ok = await initMic();
   if (!ok) {
-    if (readout) readout.textContent = lrMicUnavailableMessage('Listen & Repeat');
+    if (readout) readout.textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
   if (btn) btn.textContent = '🎤 Mic Connected';
@@ -243,9 +192,9 @@ async function lrToggleMicMonitor() {
     if (hint) hint.style.display = 'none';
     return;
   }
-  const ok = await lrInitMic();
+  const ok = await initMic();
   if (!ok) {
-    document.getElementById('lr-mic-readout').textContent = lrMicUnavailableMessage('Listen & Repeat');
+    document.getElementById('lr-mic-readout').textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
   lrStartMeterLoop();
@@ -270,9 +219,9 @@ async function lrToggleRecording() {
     micRecorder.stop();
     return;
   }
-  const ok = await lrInitMic();
+  const ok = await initMic();
   if (!ok) {
-    status.textContent = lrMicUnavailableMessage('recording');
+    status.textContent = micUnavailableMessage('recording');
     return;
   }
   lrStartMeterLoop();
@@ -926,9 +875,9 @@ async function lrToggleListenRepeat() {
     lrSetPhase('idle');
     return;
   }
-  const ok = await lrInitMic();
+  const ok = await initMic();
   if (!ok) {
-    document.getElementById('lr-status').textContent = lrMicUnavailableMessage('Listen & Repeat');
+    document.getElementById('lr-status').textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
   lrStartMeterLoop();

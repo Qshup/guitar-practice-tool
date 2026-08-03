@@ -46,6 +46,7 @@ function loadProgress() {
   if (data.ui.activeChordSubtab === undefined) data.ui.activeChordSubtab = 'reference';
   if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
   if (data.ui.metronomeCollapsed === undefined) data.ui.metronomeCollapsed = false;
+  if (data.ui.micBarCollapsed === undefined) data.ui.micBarCollapsed = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
   if (!data.listenRepeat) data.listenRepeat = defaultListenRepeatProgress();
   if (!data.songs) data.songs = {};
@@ -245,5 +246,6 @@ function toggleProgressPanel() {
 // ── Init ──────────────────────────────────────────────────────────────────
 applyPanelCollapsedState(loadProgress().ui.panelCollapsed);
 if (typeof applyMetronomeBarCollapsedState === 'function') applyMetronomeBarCollapsedState(loadProgress().ui.metronomeCollapsed);
+if (typeof applyMicBarCollapsedState === 'function') applyMicBarCollapsedState(loadProgress().ui.micBarCollapsed);
 renderProgressPanel();
 setInterval(renderProgressPanel, 1000); // keeps the live scale-time ticking while a session runs
