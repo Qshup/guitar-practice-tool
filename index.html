@@ -174,12 +174,18 @@
         </select>
       </div>
       <div class="prac-row">
-        <span class="prac-label">Sound</span>
-        <select id="run-sound">
-          <option value="pluck">Guitar pluck</option>
-          <option value="sine">Sine tone</option>
+        <span class="prac-label">Instrument</span>
+        <select id="run-instrument" onchange="runSetInstrument(this.value)">
+          <option value="clean" selected>Electric — Clean</option>
+          <option value="crunch">Electric — Crunch</option>
+          <option value="acoustic">Acoustic</option>
+          <option value="bass">Bass</option>
           <option value="muted">Visual only</option>
         </select>
+      </div>
+      <div class="prac-row">
+        <span class="prac-label">Room</span>
+        <input type="range" id="run-room-slider" min="0" max="100" value="25" oninput="setSampleRoomAmount(this.value/100)">
       </div>
       <div class="prac-row">
         <button class="big-btn btn-run" id="run-btn" onclick="toggleRun()">▶ RUN SCALE</button>
@@ -921,6 +927,19 @@
           <option value="whammy">Whammy</option>
           <option value="space">Space</option>
         </select>
+      </div>
+      <div class="riff-filter-group">
+        <span class="riff-filter-label">Instrument</span>
+        <select id="riff-instrument-select" onchange="riffSetInstrument(this.value)">
+          <option value="clean" selected>Electric — Clean</option>
+          <option value="crunch">Electric — Crunch</option>
+          <option value="acoustic">Acoustic</option>
+          <option value="bass">Bass</option>
+        </select>
+      </div>
+      <div class="riff-filter-group">
+        <span class="riff-filter-label">Room</span>
+        <input type="range" id="riff-room-slider" min="0" max="100" value="25" oninput="setSampleRoomAmount(this.value/100)">
       </div>
       <button class="riff-filter-clear" onclick="clearRiffFilters()">Clear Filters</button>
     </div>

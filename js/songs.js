@@ -4,8 +4,8 @@
 // at any speed via Tone.Transport bpm scaling), section markers, drag-to-loop,
 // a practice overlay (chord diagrams + scale/fretboard), and self-grading.
 //
-// Reuses: game.js (GAME_CHORDS/drawGameChord/fretToHz), audio.js (playPluck/
-// playBendNote/playVibratoNote/getAudioCtx), scales.js (ALL_SCALES/getScaleNotes/
+// Reuses: game.js (GAME_CHORDS/drawGameChord/fretToHz), audio.js (playSampledNote/
+// ensureInstrumentReady/getAudioCtx — the sample-based guitar engine), scales.js (ALL_SCALES/getScaleNotes/
 // getBoxNotes/allScaleFrets/buildFretGrid/STRINGS/STRING_LABELS/noteAt/norm),
 // riffs.js (RIFF_LIBRARY — related riffs pulled by player tag, never duplicated),
 // progress.js (recordSongSession/loadProgress — same localStorage tracker used
@@ -472,6 +472,7 @@ function renderSongPracticeShell() {
           <option value="clean"${(song.defaultInstrument || 'clean') === 'clean' ? ' selected' : ''}>Electric — Clean</option>
           <option value="crunch"${song.defaultInstrument === 'crunch' ? ' selected' : ''}>Electric — Crunch</option>
           <option value="acoustic"${song.defaultInstrument === 'acoustic' ? ' selected' : ''}>Acoustic</option>
+          <option value="bass"${song.defaultInstrument === 'bass' ? ' selected' : ''}>Bass</option>
         </select>
       </div>
       <div style="display:flex;gap:6px;align-items:center">
@@ -1023,12 +1024,19 @@ function toggleSongRiffPlay(riffKey, gi, ri) {
   startSongRiffPlay(riffKey, gi, ri);
 }
 
-function startSongRiffPlay(riffKey, gi, ri) {
+async function startSongRiffPlay(riffKey, gi, ri) {
   const riff = RIFF_LIBRARY[gi].riffs[ri];
   const btn = document.getElementById(`song-riff-btn-${riffKey}`);
   const vol = parseInt(document.getElementById('vol-slider').value) / 100;
-  btn.textContent = '■ Stop'; btn.classList.add('playing');
+  const instrument = songPracticeState.instrument || 'clean'; // same lead voice as the song itself
+
   getAudioCtx();
+  activeSongRiffPlayers[riffKey] = true;
+  btn.textContent = '… loading'; btn.classList.add('playing');
+  await ensureInstrumentReady(instrument);
+  if (!activeSongRiffPlayers[riffKey]) return; // stopped while samples were loading
+  btn.textContent = '■ Stop';
+
   let noteIdx = 0, loopCount = 0;
 
   function playNext() {
@@ -1041,18 +1049,17 @@ function startSongRiffPlay(riffKey, gi, ri) {
     const dur = note.dur;
     const ctx = getAudioCtx();
     const freq = fretToHz(note.si, note.f);
-    const technique = note.t || 'pick';
+    const technique = note.t; // 'bend' | 'vibrato' | undefined (plain pick)
     const noteVol = technique === 'bend' ? vol * 0.9 : technique === 'vibrato' ? vol * 0.85 : vol * 0.75;
 
-    if (technique === 'bend') playBendNote(ctx.currentTime, freq, dur / 1000, noteVol, note.bendTo);
-    else if (technique === 'vibrato') playVibratoNote(ctx.currentTime, freq, dur / 1000, noteVol);
-    else playPluck(ctx.currentTime, freq, noteVol);
+    playSampledNote(instrument, ctx.currentTime, freq, dur / 1000, noteVol, {
+      technique, bendTo: note.bendTo, stringIdx: note.si,
+    });
 
     noteIdx++;
     activeSongRiffPlayers[riffKey] = setTimeout(playNext, dur);
   }
 
-  activeSongRiffPlayers[riffKey] = true;
   playNext();
 }
 

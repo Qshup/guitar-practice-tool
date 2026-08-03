@@ -722,7 +722,16 @@ function clearRiffFilters() {
   applyRiffFilters();
 }
 
-// ── Riff playback engine ──────────────────────────────────────────────────
+// ── Riff playback engine ────────────────────────────────────────────────────
+// Plays through the sample-based guitar engine (audio.js) — real recorded
+// notes, pitch-correct at every tempo slider position since the slider only
+// changes the ms gap between notes, never a sample's playbackRate.
+let riffInstrument = 'clean';
+function riffSetInstrument(key) {
+  riffInstrument = key;
+  ensureInstrumentReady(key); // preload so pressing Play doesn't stall
+}
+
 function toggleRiffPlay(riffId) {
   if (activeRiffPlayers[riffId]) {
     stopRiffPlay(riffId);
@@ -733,7 +742,7 @@ function toggleRiffPlay(riffId) {
   }
 }
 
-function startRiffPlay(riffId) {
+async function startRiffPlay(riffId) {
   const [gi, ri] = riffId.split('-').map(Number);
   const riff = RIFF_LIBRARY[gi].riffs[ri];
   if (typeof recordRiffPlayed === 'function') recordRiffPlayed(riffId, riff.title);
@@ -742,10 +751,14 @@ function startRiffPlay(riffId) {
   const speed = speedEl ? parseFloat(speedEl.value) : 1.0;
   const vol = parseInt(document.getElementById('vol-slider').value)/100;
 
-  btn.textContent = '■ Stop';
-  btn.classList.add('playing');
-
   getAudioCtx();
+  activeRiffPlayers[riffId] = true; // truthy placeholder so a click during loading can cancel
+  btn.textContent = '… loading';
+  btn.classList.add('playing');
+  await ensureInstrumentReady(riffInstrument);
+  if (!activeRiffPlayers[riffId]) return; // stopped while samples were loading
+  btn.textContent = '■ Stop';
+
   let noteIdx = 0;
   let loopCount = 0;
 
@@ -759,22 +772,17 @@ function startRiffPlay(riffId) {
     const dur = Math.round(note.dur / speed);
     const ctx = getAudioCtx();
     const freq = fretToHz(note.si, note.f);
-    const technique = note.t || 'pick';
+    const technique = note.t; // 'bend' | 'vibrato' | undefined (plain pick)
     const noteVol = technique === 'bend' ? vol*0.9 : technique === 'vibrato' ? vol*0.85 : vol*0.75;
 
-    if (technique === 'bend') {
-      playBendNote(ctx.currentTime, freq, dur/1000, noteVol, note.bendTo);
-    } else if (technique === 'vibrato') {
-      playVibratoNote(ctx.currentTime, freq, dur/1000, noteVol);
-    } else {
-      playPluck(ctx.currentTime, freq, noteVol);
-    }
+    playSampledNote(riffInstrument, ctx.currentTime, freq, dur / 1000, noteVol, {
+      technique, bendTo: note.bendTo, stringIdx: note.si,
+    });
 
     noteIdx++;
     activeRiffPlayers[riffId] = setTimeout(playNext, dur);
   }
 
-  activeRiffPlayers[riffId] = true;
   playNext();
 }
 

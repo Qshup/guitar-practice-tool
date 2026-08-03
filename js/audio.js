@@ -29,17 +29,23 @@ function stopScaleTimer() {
   }
 }
 
-// ── Tone.js voices (guitar-quality synthesis) ──────────────────────────────
-// pluckVoice: real Karplus-Strong plucked string (scale run, chord strum, chord vamp,
-//   riffs, songs) — dampening/resonance shift per-note by frequency (see stringToneFor)
-//   so low strings read as warm/round and high strings as bright/twangy, like a real set.
+// ── Tone.js voices (Karplus-Strong synthesis) ──────────────────────────────
+// Scale Run, Riffs, and Songs now play through the sample-based engine near the
+// bottom of this file (real recorded guitar/bass instead of physical modeling) —
+// see that section's header comment. The voices below still power Chords
+// (chord-run preview + strum), the Chord Game, and Listen & Repeat, which were
+// left on synthesis since they aren't in scope for the sample-engine overhaul.
+// pluckVoice: real Karplus-Strong plucked string — dampening/resonance shift
+//   per-note by frequency (see stringToneFor) so low strings read as warm/round
+//   and high strings as bright/twangy, like a real set.
 // ampInput: shared amp-style coloration (saturation -> EQ -> compression) every
 //   pluck/bend/vibrato note runs through before the reverb bus — this is what keeps
 //   the physical-modeling pluck from sounding like a clean synthesis demo.
 // bassVoice: filtered sawtooth bass for the metronome backing track
 // chordVoice: triangle pad for backing-track chord stabs
-// bendVoice + vibratoFx: pitch-automatable voice for riff/song bends & vibrato —
-//   a real guitar string bend needs continuous pitch glide, which PluckSynth can't do.
+// bendVoice + vibratoFx: pitch-automatable voice for Chords/Game/Listen & Repeat
+//   bends & vibrato — a real guitar string bend needs continuous pitch glide,
+//   which PluckSynth can't do.
 let toneReady = false;
 let bassVoice, chordVoice, bendVoice, vibratoFx, reverbBus, ampInput;
 // Tone.PluckSynth doesn't extend Monophonic, so Tone.PolySynth can't wrap it —
@@ -196,17 +202,6 @@ function playVibratoNote(time, freq, dur, vol) {
   vibratoFx.wet.value = 1;
   bendVoice.filterEnvelope.baseFrequency = Math.max(200, freq * 1.5);
   bendVoice.triggerAttackRelease(freq, dur, time, Math.min(1, vol));
-}
-
-function playSine(time, freq, vol) {
-  const ctx = getAudioCtx();
-  const osc = ctx.createOscillator();
-  const env = ctx.createGain();
-  osc.connect(env); env.connect(ctx.destination);
-  osc.type = 'sine'; osc.frequency.value = freq;
-  env.gain.setValueAtTime(vol * 0.4, time);
-  env.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
-  osc.start(time); osc.stop(time + 0.35);
 }
 
 // ── Backing track chord maps ───────────────────────────────────────────────
@@ -407,13 +402,19 @@ function highlightDot(el) {
 }
 
 function playRunNote(note) {
-  const soundType = document.getElementById('run-sound').value;
+  const instrument = document.getElementById('run-instrument').value;
   const vol = parseInt(document.getElementById('vol-slider').value) / 100;
-  if (soundType === 'muted') return;
+  if (instrument === 'muted') return;
   const ctx = getAudioCtx();
   const freq = fretToHz(note.string, note.fret);
-  if (soundType === 'pluck') playPluck(ctx.currentTime, freq, vol);
-  else if (soundType === 'sine') playSine(ctx.currentTime, freq, vol);
+  const speed = parseInt(document.getElementById('run-speed').value);
+  const dur = Math.max(0.08, (speed / 1000) * 0.92); // ring until just before the next note
+  playSampledNote(instrument, ctx.currentTime, freq, dur, vol, { stringIdx: note.string });
+}
+
+// Preload as soon as an instrument is picked so RUN SCALE doesn't stall on first press.
+function runSetInstrument(key) {
+  if (key !== 'muted') ensureInstrumentReady(key);
 }
 
 function runStep() {
@@ -449,7 +450,7 @@ function stopRun() {
   stopScaleTimer();
 }
 
-function toggleRun() {
+async function toggleRun() {
   const btn = document.getElementById('run-btn');
   if (runRunning) {
     stopRun();
@@ -460,6 +461,13 @@ function toggleRun() {
     if (!runNotes.length) {
       document.getElementById('run-display').textContent = 'No notes in current position. Try a different key or position.';
       return;
+    }
+    const instrument = document.getElementById('run-instrument').value;
+    if (instrument !== 'muted') {
+      btn.disabled = true;
+      btn.textContent = '… loading';
+      await ensureInstrumentReady(instrument);
+      btn.disabled = false;
     }
     runRunning = true;
     runIdx = 0;
@@ -505,18 +513,31 @@ function toggleMetronomeBar() {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// SAMPLE-BASED GUITAR ENGINE — Songs mode only. Real recorded guitar/bass
-// notes (gleitz/midi-js-soundfonts, MIT-licensed, CDN-hosted) instead of the
-// Tone.js synth voices above, which every OTHER mode keeps using unchanged.
-// songs.js is the only caller of the functions below.
+// SAMPLE-BASED GUITAR ENGINE — Real recorded guitar/bass notes
+// (gleitz/midi-js-soundfonts, MIT-licensed, CDN-hosted) instead of Tone.js
+// synthesis. Powers Scale Run-Through, Riffs, and Songs (audio.js/riffs.js/
+// songs.js are the callers). Chords, the Chord Game, and Listen & Repeat still
+// use the Tone.js voices above — see the comment on those voices for why.
 //
 // Each instrument file is one JS blob mapping note names ("C4", "A#2", ...)
 // to base64 data-URI mp3 samples. We load an instrument's file only when it's
 // actually selected (on-demand, not upfront), decode every sample it contains
 // once, then play any requested pitch by picking the nearest recorded note
 // and correcting pitch with playbackRate — the same technique soundfont-player
-// and WebAudioFont use. Tempo (Tone.Transport bpm) only changes *when* a note
-// fires, never playbackRate, so pitch stays correct at every speed.
+// and WebAudioFont use. Tempo (Tone.Transport bpm, or a mode's own speed
+// control) only changes *when* a note fires, never playbackRate, so pitch
+// stays correct at every speed.
+//
+// ── MIDI readiness ──────────────────────────────────────────────────────
+// playSampledNote(instrumentKey, time, freq, dur, vol, opts) below is already
+// the single entry point every mode calls to sound a note — a future Web MIDI
+// `onmidimessage` handler only needs to translate a note-on event into this
+// same call, e.g.:
+//   const freq = midiToHz(midiNote);
+//   playSampledNote(currentInstrument(), getAudioCtx().currentTime, freq, 1.5,
+//     velocity / 127, { stringIdx: midiNote }); // MIDI note # doubles as the choke key
+// Note-off should call stopRingingString(midiNote, getAudioCtx().currentTime).
+// No changes to the engine itself are needed — see CLAUDE.md "Audio Architecture".
 // ═══════════════════════════════════════════════════════════════════════════
 
 const SAMPLE_INSTRUMENTS = {
