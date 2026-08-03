@@ -22,8 +22,15 @@
 
 import { HandLandmarker, FilesetResolver } from './vendor/mediapipe/vision_bundle.mjs';
 
-const MEDIAPIPE_WASM_PATH = 'js/vendor/mediapipe/wasm';
-const MEDIAPIPE_MODEL_PATH = 'models/hand_landmarker.task';
+// Built as fully-qualified absolute URLs (via import.meta.url, i.e. relative
+// to this file's own location, not the page's) rather than bare relative
+// strings — MediaPipe's internal fetches for these assets weren't
+// verifiable without a live browser, and a bare string is ambiguous between
+// "relative to the document" and "relative to this module," which resolve
+// to different (wrong) paths for at least one of the two. An absolute URL
+// removes that ambiguity entirely regardless of which one MediaPipe uses.
+const MEDIAPIPE_WASM_PATH = new URL('vendor/mediapipe/wasm', import.meta.url).href;
+const MEDIAPIPE_MODEL_PATH = new URL('../models/hand_landmarker.task', import.meta.url).href;
 
 // 21-point connections for skeleton drawing (MediaPipe Hands standard topology).
 const HAND_CONNECTIONS = [
@@ -109,11 +116,23 @@ async function enableCamera() {
   videoEl = document.getElementById('camera-video');
   canvasEl = document.getElementById('camera-overlay-canvas');
   videoEl.srcObject = cameraStream;
-  await videoEl.play();
-  canvasEl.width = videoEl.videoWidth || 640;
-  canvasEl.height = videoEl.videoHeight || 480;
 
-  await ensureHandLandmarker();
+  // Everything past this point (video playback, MediaPipe model load) was
+  // previously unguarded — any failure here left the button stuck on
+  // "… connecting" forever with no visible error at all, which is
+  // indistinguishable from "the camera feature doesn't work."
+  try {
+    await videoEl.play();
+    canvasEl.width = videoEl.videoWidth || 640;
+    canvasEl.height = videoEl.videoHeight || 480;
+    await ensureHandLandmarker();
+  } catch (e) {
+    if (statusEl) statusEl.textContent = 'Camera failed to start: ' + (e && e.message ? e.message : e);
+    if (btn) { btn.disabled = false; btn.textContent = '📷 Camera Off'; btn.classList.remove('active'); }
+    if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
+    setCameraLoadingUI(false);
+    return;
+  }
 
   cameraEnabled = true;
   if (btn) { btn.disabled = false; btn.textContent = '📷 Camera On'; btn.classList.add('active'); }

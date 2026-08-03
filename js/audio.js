@@ -513,7 +513,12 @@ function scalesModeIsActive() {
 }
 
 function scalesHandleMicOnset(evt) {
-  if (!scalesModeIsActive() || evt.freq == null) return;
+  // React to the fast "early" pitch-only firing (~30-90ms after the attack),
+  // not the full-envelope one 450ms later — mic.js fires both per note.
+  // Waiting for the late one made every match land 2-3 notes behind on any
+  // real-tempo scale run, which read as "wrong note" even when the eventual
+  // pitch reading would have been correct.
+  if (!evt.early || !scalesModeIsActive() || evt.freq == null) return;
   const sc = currentScale();
   const boxNotes = getBoxNotes(state.key, sc.intervals, state.pos);
   let best = null, bestCents = Infinity;

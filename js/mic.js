@@ -144,17 +144,36 @@ function pollOnsetFromFrame(rms) {
   }
 }
 
+// Fires onOnset TWICE per note: once "early" (as soon as one confident
+// pitch reading comes in, typically ~30-90ms after the attack) with just
+// the pitch, and once "late" after the full ENVELOPE_WINDOW_MS with
+// technique classification added. The early firing exists because waiting
+// the full window before saying anything reads as badly-lagged/wrong
+// feedback on anything faster than a slow single note — by the time a
+// ~450ms-delayed match appeared, a scale run at any real tempo had already
+// moved 2-3 notes on, so every match looked like it was for the wrong
+// note. Consumers that only care about pitch (Scales' note matching) should
+// act on evt.early === true; consumers that need the full envelope
+// (technique labels) already only see it on the late firing, since
+// evt.technique is null on the early one.
 function captureNoteEnvelope(onsetTime) {
   const ctx = getAudioCtx();
   const samples = [];
   const maxSamples = Math.round(ENVELOPE_WINDOW_MS / ENVELOPE_SAMPLE_INTERVAL_MS);
   let count = 0;
+  let earlyFired = false;
   function sampleOnce() {
     if (!micEnabled) return;
     micAnalyser.getFloatTimeDomainData(micSampleBuffer);
     const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
     const [freq, clarity] = micPitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
-    samples.push({ t: count * ENVELOPE_SAMPLE_INTERVAL_MS, rms, freq: (freq > 60 && freq < 1400) ? freq : null, clarity });
+    const sample = { t: count * ENVELOPE_SAMPLE_INTERVAL_MS, rms, freq: (freq > 60 && freq < 1400) ? freq : null, clarity };
+    samples.push(sample);
+    if (!earlyFired && sample.freq && sample.clarity > 0.85) {
+      earlyFired = true;
+      const info = hzToNoteInfo(sample.freq);
+      onsetListeners.forEach(fn => fn({ time: onsetTime, freq: sample.freq, clarity: sample.clarity, technique: null, early: true, ...info }));
+    }
     count++;
     if (count < maxSamples) setTimeout(sampleOnce, ENVELOPE_SAMPLE_INTERVAL_MS);
     else finalize();
@@ -164,13 +183,13 @@ function captureNoteEnvelope(onsetTime) {
     if (!pitched.length) {
       // No clean pitch anywhere in the window — a percussive/muffled hit rather than a ringing note.
       const hadEnergy = samples.some(s => s.rms > micNoiseGate);
-      onsetListeners.forEach(fn => fn({ time: onsetTime, freq: null, samples, technique: hadEnergy ? 'mute' : null }));
+      onsetListeners.forEach(fn => fn({ time: onsetTime, freq: null, samples, technique: hadEnergy ? 'mute' : null, early: false }));
       return;
     }
     const attackFreq = pitched[0].freq;
     const info = hzToNoteInfo(attackFreq);
     const technique = classifyTechnique(samples, attackFreq);
-    onsetListeners.forEach(fn => fn({ time: onsetTime, freq: attackFreq, clarity: pitched[0].clarity, samples, technique, ...info }));
+    onsetListeners.forEach(fn => fn({ time: onsetTime, freq: attackFreq, clarity: pitched[0].clarity, samples, technique, early: false, ...info }));
   }
   setTimeout(sampleOnce, 30); // let the pick transient pass before the first pitch read
 }
