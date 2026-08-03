@@ -216,6 +216,16 @@ consumers just add/remove callbacks:
   and Chords' strum-timing both subscribe here; each handler checks its own
   mode is the active panel before doing anything, so both can stay
   subscribed for the app's whole lifetime without needing nav.js wiring.
+  **Fires twice per note**: an `early: true` pitch-only event ~30-90ms after
+  the attack (as soon as one confident pitch reading comes in), then the
+  original full-envelope `early: false` event after the whole
+  `ENVELOPE_WINDOW_MS`. This was added after real testing showed Scales'
+  note matching landing 2-3 notes behind on any real-tempo run — waiting
+  for the full envelope before saying anything read as "wrong note" even
+  when the eventual pitch was correct. `evt.technique` is always `null` on
+  the early firing, so technique-label consumers (mic.js's own
+  `showMicTechniqueLabel` subscriber) naturally only react to the late one
+  without needing an explicit `early` check.
 
 **Technique classification** (`classifyTechnique` in `mic.js`) reads the
 onset envelope's pitch trace in cents-from-attack:
@@ -229,14 +239,16 @@ These are heuristic thresholds tuned by ear, not measured against real
 playing — expect to retune `classifyTechnique`'s constants after trying it
 with an actual guitar.
 
-**Scales note matching** (`scalesHandleMicOnset` in `audio.js`): on each
-onset, finds the nearest dot in the *currently displayed* scale-position box
-by pitch (a monophonic detector can't know which string was played, so
-"nearest dot in the box you're looking at" stands in for "which dot you just
-played"). Green (`.quiz-correct`) within `TUNING_TOLERANCE_CENTS` (15¢) of
-that dot's exact pitch, amber (`.quiz-close`) if further off but still the
-nearest box note, or a red flash on the fretboard border if nothing in the
-box is within 60¢ of what was heard.
+**Scales note matching** (`scalesHandleMicOnset` in `audio.js`): reacts only
+to the `early: true` onset firing (see above — the `evt.early` guard is the
+first line of the function), on the nearest dot in the *currently
+displayed* scale-position box by pitch (a monophonic detector can't know
+which string was played, so "nearest dot in the box you're looking at"
+stands in for "which dot you just played"). Green (`.quiz-correct`) within
+`TUNING_TOLERANCE_CENTS` (15¢) of that dot's exact pitch, amber
+(`.quiz-close`) if further off but still the nearest box note, or a red
+flash on the fretboard border if nothing in the box is within 60¢ of what
+was heard.
 
 **Chords strum-timing grading** (`chordsHandleMicOnset` in `chords.js`):
 each `chordRunStep()` chord change stamps `chordChangeTime`; the next onset
@@ -285,6 +297,17 @@ both handled explicitly:
 loop) is touched until the nav-bar 📷 button is pressed. Turning it back off
 stops the video tracks, cancels the detection loop, *and* calls
 `handLandmarker.close()` to free the WASM-side memory — not just pausing.
+
+**Fixed after real testing surfaced it**: `MEDIAPIPE_WASM_PATH`/
+`MEDIAPIPE_MODEL_PATH` are now built as absolute URLs via
+`new URL(path, import.meta.url)` rather than bare relative strings — a bare
+string is ambiguous between "relative to the document" and "relative to
+this module," and at least one interpretation resolved to the wrong path.
+Also, `enableCamera()`'s video-playback and model-loading steps previously
+had no error handling at all: any failure left the button stuck on
+"… connecting" forever with zero visible feedback, indistinguishable from
+the whole feature silently not working. Now wrapped in try/catch with a
+real error message and a full state reset (button, status text, stream).
 
 **Pipeline**: `getUserMedia` → `HandLandmarker.detectForVideo()` each frame
 → skeleton drawn on `#camera-overlay-canvas` (mirrored via CSS
