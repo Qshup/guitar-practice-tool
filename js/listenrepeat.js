@@ -117,11 +117,40 @@ function lrStartListening() {
   micDetectedNotes = [];
   lrLastOnsetTime = -1;
   lrListening = true;
+  lrHandSamples = [];
   requestAnimationFrame(lrMicPollTick);
 }
 
 function lrStopListening() {
   lrListening = false;
+}
+
+// ── Camera hand-tracking (js/camera.js), combined with mic grading below ──
+// Full per-note finger-vs-recommended-fingering matching (like Scales mode
+// has) would need tight timestamp correlation between the camera and mic
+// streams during grading — not implemented yet. This gives an honest,
+// coarser combined signal instead: overall hand-tracking confidence across
+// the response window, alongside the existing pitch/timing grading.
+let lrHandSamples = []; // {confident} sampled while lrListening is true
+function lrHandleHandUpdate(hand) {
+  if (!lrListening) return;
+  const panel = document.getElementById('study-subtab-listen');
+  if (!panel || !panel.classList.contains('active')) return;
+  lrHandSamples.push({ confident: hand.present && hand.confidence > 0.5 });
+}
+
+function lrCameraMicSummary(fullyCorrect, results) {
+  const el = document.getElementById('camera-lr-feedback');
+  if (!el) return;
+  if (!lrHandSamples.length) { el.textContent = ''; return; }
+  const confidentFrac = lrHandSamples.filter(s => s.confident).length / lrHandSamples.length;
+  const pitchPart = results
+    ? `Mic: ${results.filter(r => r.status === 'correct').length}/${results.length} notes correct.`
+    : `Mic: ${fullyCorrect ? 'all chords on time.' : 'some chords off.'}`;
+  const camPart = confidentFrac > 0.7 ? 'Camera: hand tracked confidently throughout.'
+    : confidentFrac > 0.3 ? 'Camera: tracking was inconsistent — check lighting/angle.'
+    : "Camera: hand wasn't reliably visible — reposition for next round.";
+  el.textContent = `${pitchPart}  ${camPart}`;
 }
 
 // ── Live mic level meter — lets the user visually confirm the mic is
@@ -767,6 +796,7 @@ function lrShowFeedback(results) {
 
 // ── Session finalize: streak, progress recording, next round, celebration ──
 function lrFinalizeSequence(fullyCorrect, results) {
+  lrCameraMicSummary(fullyCorrect, results);
   const data = loadProgress();
   const lr = data.listenRepeat;
   lr.totalSequences++;

@@ -262,6 +262,73 @@
   .tuner-string-note { font-family: 'Courier New', monospace; font-size: 12px; color: #ccc; font-weight: bold; }
   .tuner-string-hz { font-family: 'Courier New', monospace; font-size: 8px; color: #555; }
 
+  /* ── Camera panel (webcam hand tracking, js/camera.js) ─────────── */
+  .camera-nav-btn.active { background: #c0392b; color: #fff; border-color: #c0392b; }
+  .camera-panel { display: none; background: #0d0d1a; border: 1px solid #1e1e3a; padding: 10px 14px; margin-bottom: 16px; }
+  .camera-panel.active { display: block; }
+  .camera-panel-body { display: flex; gap: 14px; flex-wrap: wrap; }
+  .camera-video-wrap { position: relative; width: 320px; flex-shrink: 0; }
+  #camera-overlay-canvas {
+    width: 320px; height: 240px; background: #000; border: 1px solid #1a1a3a; border-radius: 3px;
+    transform: scaleX(-1); /* mirror — reads naturally, like looking in a mirror */
+  }
+  .camera-loading, .camera-calibration-status {
+    position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 10px; background: rgba(0,0,0,0.75); font-family: Arial, sans-serif; font-size: 10px; color: #ccb84a;
+  }
+  .camera-side-panel { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
+  .camera-confidence { font-family: 'Courier New', monospace; font-size: 10px; color: #888; }
+  .camera-confidence.high { color: #4caf50; }
+  .camera-confidence.medium { color: #fb8c00; }
+  .camera-confidence.low { color: #e53935; }
+  .camera-status { font-family: 'Courier New', monospace; font-size: 9px; color: #e53935; }
+  .camera-chord-feedback, .camera-scale-feedback, .camera-lr-feedback {
+    font-family: Arial, sans-serif; font-size: 10px; color: #ccc; line-height: 1.5; min-height: 14px;
+  }
+
+  /* ── Personal song upload panel (js/upload.js) ─────────────────── */
+  .upload-panel { background: #0d0d1a; border: 1px solid #1a1a3a; padding: 18px 20px; margin-top: 10px; }
+  .upload-panel-title {
+    font-family: Arial, sans-serif; font-size: 14px; color: #fff; margin: 10px 0 14px; letter-spacing: .04em;
+  }
+  .upload-row { margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .upload-row select, .upload-row input[type="file"] {
+    background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 5px 8px; font-size: 10px; font-family: 'Courier New', monospace;
+  }
+  .upload-format-hint { font-family: Arial, sans-serif; font-size: 9px; color: #666; margin-bottom: 10px; max-width: 640px; }
+  .upload-drop-zone {
+    border: 2px dashed #333; border-radius: 4px; padding: 20px; text-align: center;
+    font-family: Arial, sans-serif; font-size: 10px; color: #666; margin-bottom: 10px; transition: all .15s;
+  }
+  .upload-drop-zone.drag-over { border-color: #5c8fff; color: #5c8fff; background: rgba(92,143,255,0.08); }
+  .upload-text-input {
+    width: 100%; min-height: 160px; background: #0a0a0a; color: #ccc; border: 1px solid #1a1a1a;
+    font-family: 'Courier New', monospace; font-size: 10px; padding: 10px; resize: vertical;
+  }
+  .upload-error { font-family: 'Courier New', monospace; font-size: 10px; color: #e53935; margin: 8px 0; min-height: 14px; }
+  .upload-preview {
+    background: #111; border: 1px solid #1a1a1a; padding: 10px 12px; margin: 8px 0 14px;
+    font-family: 'Courier New', monospace; font-size: 10px; color: #ccc; line-height: 1.6;
+  }
+  .upload-meta-heading {
+    font-family: Arial, sans-serif; font-size: 10px; color: #fff; letter-spacing: .1em; text-transform: uppercase;
+    border-bottom: 1px solid #222; padding-bottom: 6px; margin: 16px 0 12px;
+  }
+  .upload-meta-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .upload-meta-grid label { display: flex; flex-direction: column; gap: 4px; font-family: Arial, sans-serif; font-size: 9px; color: #888; }
+  .upload-meta-grid input, .upload-meta-grid select {
+    background: #1a1a1a; color: #ccc; border: 1px solid #333; padding: 6px 8px; font-size: 10px; font-family: 'Courier New', monospace;
+  }
+  .song-card-personal-tag {
+    display: inline-block; background: #5c8fff; color: #000; font-size: 8px; font-weight: bold;
+    padding: 2px 6px; border-radius: 8px; letter-spacing: .05em; margin-left: 6px;
+  }
+  .song-card-personal-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .song-card-personal-actions button {
+    font-family: Arial, sans-serif; font-size: 8px; padding: 3px 7px; border: 1px solid #333; background: #1a1a1a; color: #999; cursor: pointer;
+  }
+  .song-card-personal-actions button:hover { border-color: #5c8fff; color: #5c8fff; }
+
   /* chord fretboard overlay dots */
   .note-dot.chord-dot {
     border-width: 2px;

@@ -22,7 +22,10 @@ runs `live-server` for local dev (see `package.json`).
 Shared: `game.js` (chord-diagram drawing + chord data used by Songs/Chords),
 `progress.js` (localStorage practice tracking), `nav.js` (mode switching),
 `mic.js` (shared microphone engine — pitch detection, onset/technique
-detection, calibration — used by Scales/Chords/Tuner/Listen & Repeat).
+detection, calibration — used by Scales/Chords/Tuner/Listen & Repeat),
+`camera.js` (webcam hand tracking, toggled from a nav-bar icon rather than
+its own mode — see "Camera Architecture" below), `upload.js` (personal song
+upload, adds cards into the Songs grid — see "Personal Song Upload" below).
 
 ## Audio Architecture
 
@@ -253,3 +256,131 @@ no onset by the time the *next* one fires is graded missed. Chord *identity*
 is always self-graded (✓ Got it / ✗ Missed buttons) — deliberately not
 attempted from the mic, since a monophonic pitch detector cannot reliably
 decompose a strummed chord.
+
+**Detection thresholds are a first pass, tune them against real playing.**
+`micNoiseGate`/`micSensitivity` defaults, `MIC_MIN_ONSET_GAP`, the pitch/RMS
+thresholds inside `classifyTechnique`, and the note-matching cents tolerances
+were all picked by ear during this session, not measured against an actual
+guitar+mic+room. Expect the first real test to surface false positives/
+negatives that need threshold adjustment — this is expected next-pass work,
+not a sign anything is broken.
+
+## Camera Architecture (js/camera.js)
+
+Webcam hand tracking via **MediaPipe Tasks Vision** (`HandLandmarker`),
+served entirely from local files — `js/vendor/mediapipe/` (the WASM runtime
++ `vision_bundle.mjs`) and `models/hand_landmarker.task` (the model, ~7.8MB)
+— so no requests go to Google when the feature is used. These are real
+vendored binaries (verified: the `.wasm` file is a genuine WebAssembly
+module, the model file matches its expected size), not stubs.
+
+**Why an ES module**: MediaPipe Tasks Vision's documented API is an ES
+import (`import { HandLandmarker, FilesetResolver } from '...'`), so
+`camera.js` is the one file in this project loaded as
+`<script type="module">` rather than a classic script. Two consequences,
+both handled explicitly:
+- Its top-level declarations aren't automatically global — every function
+  index.html's inline `onclick=` handlers or other files need
+  (`toggleCamera`, `recalibrateCamera`, `onHandUpdate`, `analyzeHandCurl`,
+  `compareHandToChord`, `CURL_THRESHOLD`, `FINGER_JOINTS`) is explicitly
+  assigned onto `window` at the bottom of the file.
+- Module scripts always finish loading *after every classic `<script>` has
+  already fully run*, regardless of where the module's `<script>` tag sits
+  in the document — the reverse of the ordering constraint documented above
+  for `mic.js`/Scales (see that section). So the `onHandUpdate(...)`
+  registration calls for Chords/Scales/Listen & Repeat's handler functions
+  live inside `camera.js` itself, at its own bottom, referencing functions
+  defined in the earlier classic scripts — never the other way around.
+
+**Zero resources when off**: nothing (camera stream, MediaPipe model, RAF
+loop) is touched until the nav-bar 📷 button is pressed. Turning it back off
+stops the video tracks, cancels the detection loop, *and* calls
+`handLandmarker.close()` to free the WASM-side memory — not just pausing.
+
+**Pipeline**: `getUserMedia` → `HandLandmarker.detectForVideo()` each frame
+→ skeleton drawn on `#camera-overlay-canvas` (mirrored via CSS
+`scaleX(-1)`, the same as looking in a mirror) → confidence % from the
+handedness classifier's score → `onHandUpdate(fn)` subscribers (same
+subscriber-list pattern as `mic.js`'s `onMicOnset`/`onMicLevel`).
+
+**Calibration** (hold hand flat for 3s, `startCalibration()`): samples
+wrist-to-middle-fingertip pixel distance as a stable proxy for "how big/
+close the hand reads at this distance." This is a **hand** calibration only
+— there is no guitar-neck-position calibration step (not requested), which
+is the direct cause of the next limitation.
+
+**Accuracy limitation — read this before trusting the feedback text**:
+without knowing where the fretboard is in the camera frame, this cannot
+report an absolute fret or string number. `analyzeHandCurl()` (curl = how
+bent each finger is: fingertip-to-wrist distance vs. base-knuckle-to-wrist
+distance) only tells you *which fingers are actively curled/fretting*.
+Chord and Scale feedback below compare that — plus rough relative
+finger-to-finger ordering — against a shape's *known* finger assignment
+(`GAME_CHORDS[name].fingers` for Chords, `assignFingers()` for Scales). This
+is a genuinely useful first-pass signal ("your ring finger isn't engaged and
+this shape needs it") but it is not a precise fret reader, and specific
+per-string claims (e.g. "ring finger is muting the B string") are the
+hardest thing to get right this way — treat any such wording in the UI as
+aspirational until a neck-calibration step exists to actually ground it.
+
+- **Chords** (`compareHandToChord`, `chordsHandleHandUpdate` in `chords.js`):
+  compares curled/extended fingers against `chordModeState.key`'s
+  `GAME_CHORDS[...].fingers`, throttled to one update per 600ms.
+- **Scales** (`scalesHandleHandUpdate`/`reportScaleFingerMatch` in
+  `audio.js`): caches the latest hand-curl reading every camera frame;
+  when `scalesHandleMicOnset` (mic.js's onset handler) confirms a note, it
+  reads that cached curl state and compares the most-curled finger against
+  `assignFingers(boxNotes)`'s recommendation for that exact string/fret —
+  this is the one place camera and mic are genuinely correlated per-note.
+- **Listen & Repeat** (`lrHandleHandUpdate`/`lrCameraMicSummary` in
+  `listenrepeat.js`): coarser by design — samples hand-tracking confidence
+  across the whole response window and combines it with the existing
+  pitch-grading summary at round end, rather than attempting the same
+  per-note correlation Scales does. Precise per-note camera+mic correlation
+  for Listen & Repeat is real future work, not implemented this pass.
+
+## Personal Song Upload (js/upload.js)
+
+An "⬆ Upload Song" button in Songs mode opens a panel (drag-drop or file
+picker + a metadata form) that saves parsed songs to a personal library in
+`localStorage` (`PERSONAL_SONGS_KEY`) and merges them into `SONG_LIBRARY` via
+`registerExternalSong()` — from that point on they're indistinguishable from
+built-in songs to every other part of the app (full playback, speed, loop,
+practice overlay, self-grading, progress tracking), tagged with a
+"PERSONAL" badge and Edit/Delete buttons on their card
+(`song.personal === true`).
+
+Four formats, three fully offline:
+- **JSON** (`parseJsonSong`) — direct passthrough; must already match the
+  schema documented earlier in this file.
+- **Chord chart** (`parseChordChart`) — `"1: Dm"` lines, or a bare
+  space-separated chord list for bars 1..N. Fills `chords[]` only (no
+  melody) — `rhythmFeel`/`bassFeel` default to `'sparse'`/`'roots'`.
+- **Plain-text ASCII tab** (`parseAsciiTab`) — standard 6-line tab
+  (`e|...|`/`B|...|`/etc.), bar boundaries from `|` characters (matching
+  this app's own riff-tab convention), each character column treated as a
+  fixed time-slot within its bar. Handles `b` (bend, `7b9` = fret 7 bent to
+  fret 9's pitch), `h` (hammer-on), `p` (pull-off), `/` `\` (slide), `~`
+  (vibrato), `x` (mute), `<n>` (harmonic). Fills `leadBars` only — no chord
+  chart is derivable from a tab, so `chords[]` falls back to a flat
+  placeholder (every bar = the song's key) and the preview UI says so
+  explicitly rather than pretending otherwise.
+- **Guitar Pro** (`.gp`/`.gp3`/`.gp4`/`.gp5`/`.gpx` via AlphaTab,
+  `parseGuitarProFile`/`scoreToSongData`) — **the one exception to this
+  project's local-only-assets rule**: loaded from
+  `cdn.jsdelivr.net/npm/@coderline/alphatab@1.6.0` via a dynamic `import()`,
+  not vendored. AlphaTab's modern bundle splits into dynamically-imported
+  chunks that couldn't be reliably hand-vendored without live-testing
+  against a real browser (unavailable this session) — attempting it risked
+  shipping a bundle silently missing a chunk it needs at runtime, which is
+  worse than an honest CDN dependency for the one format that's already the
+  least tested. **This whole path is unverified against a real GP file** —
+  the AlphaTab → internal-schema mapping in `scoreToSongData` is written
+  from documented API shape, not confirmed against actual output. If it
+  throws, the error is surfaced as-is (not swallowed) so it's debuggable;
+  Plain Text Tab and JSON work fully offline regardless of whether this path
+  works.
+
+Edit (`editPersonalSongMeta`) and delete (`deletePersonalSong`) use
+`prompt()`/`confirm()` — intentionally minimal, matching the scope of "I can
+edit metadata and delete personal songs," not a full form-based editor.

@@ -430,7 +430,7 @@ function buildSongLibraryGrid() {
     card.dataset.difficulty = song.difficulty;
     card.dataset.scale = song.soloScaleId;
     card.innerHTML = `
-      <div class="song-card-title">${song.title}</div>
+      <div class="song-card-title">${song.title}${song.personal ? '<span class="song-card-personal-tag">PERSONAL</span>' : ''}</div>
       <div class="song-card-artist">${song.artist}</div>
       <div class="song-card-meta">
         <span class="song-card-key">Key of ${song.key}</span>
@@ -439,6 +439,11 @@ function buildSongLibraryGrid() {
       </div>
       <div class="song-card-diffdots">${diffDotsHTML(song.difficulty)}</div>
       <div class="song-card-coming">Click to open practice view</div>
+      ${song.personal ? `
+        <div class="song-card-personal-actions">
+          <button onclick="event.stopPropagation(); editPersonalSongMeta('${song.id}')">✎ Edit</button>
+          <button onclick="event.stopPropagation(); deletePersonalSong('${song.id}')">🗑 Delete</button>
+        </div>` : ''}
     `;
     card.onclick = () => openSongPractice(song.id);
     grid.appendChild(card);

@@ -543,8 +543,38 @@ function scalesHandleMicOnset(evt) {
     statusEl.textContent = inTune ? `✓ ${best.note} — in tune` : `${best.note} — ${exactCents > 0 ? 'sharp' : 'flat'} by ${Math.abs(exactCents)}¢`;
     statusEl.className = 'mic-scale-match-status ' + (inTune ? 'correct' : 'close');
   }
+  reportScaleFingerMatch(best, boxNotes);
 }
 onMicOnset(scalesHandleMicOnset);
+
+// ── Camera finger-vs-recommended-fingering (js/camera.js) ──────────────────
+// Camera frames (~30-60fps) and mic onsets are separate async streams — we
+// cache the latest hand-curl reading here and consult it whenever the mic
+// confirms a note, rather than trying to timestamp-match the two streams.
+let lastHandCurls = null;
+function scalesHandleHandUpdate(hand) {
+  if (!scalesModeIsActive()) return;
+  lastHandCurls = hand.present ? analyzeHandCurl(hand) : null;
+}
+
+function activeHandFingerNumber(curls) {
+  if (!curls) return null;
+  const order = ['index', 'middle', 'ring', 'pinky'];
+  let best = null, bestVal = CURL_THRESHOLD;
+  order.forEach((name, i) => { if (curls[name] > bestVal) { bestVal = curls[name]; best = i + 1; } });
+  return best;
+}
+
+function reportScaleFingerMatch(best, boxNotes) {
+  const el = document.getElementById('camera-scale-feedback');
+  if (!el || !lastHandCurls) return;
+  const seenFinger = activeHandFingerNumber(lastHandCurls);
+  const recommendedFinger = assignFingers(boxNotes)[`${best.string}-${best.fret}`];
+  if (!seenFinger) el.textContent = 'Camera: no finger clearly fretting — check hand position.';
+  else if (!recommendedFinger) el.textContent = `Camera: finger ${seenFinger} playing — this note is usually open (no fretting finger recommended).`;
+  else if (seenFinger === recommendedFinger) el.textContent = `Camera: ✓ finger ${seenFinger} matches the recommended fingering.`;
+  else el.textContent = `Camera: finger ${seenFinger} detected, but finger ${recommendedFinger} is recommended for this note.`;
+}
 
 // ── Metronome bar collapse (persistent across all modes) ──────────────────
 function applyMetronomeBarCollapsedState(collapsed) {

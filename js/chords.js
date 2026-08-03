@@ -452,6 +452,23 @@ function chordSelfGrade(success) {
   document.getElementById('chord-selfgrade-row').style.display = 'none';
 }
 
+// ── Camera hand-shape feedback (js/camera.js) ───────────────────────────────
+// See camera.js's file header for the accuracy caveat — this compares which
+// fingers are curled/fretting against the target chord's known finger
+// assignment, not an absolute fret/string reading.
+let lastChordHandFeedbackTime = 0;
+function chordsHandleHandUpdate(hand) {
+  const panel = document.getElementById('mode-panel-chords');
+  const el = document.getElementById('camera-chord-feedback');
+  if (!panel || !panel.classList.contains('active') || !el) return;
+  const now = performance.now();
+  if (now - lastChordHandFeedbackTime < 600) return; // throttle — don't rewrite the tip every frame
+  lastChordHandFeedbackTime = now;
+  if (!hand.present) { el.textContent = 'Show your fretting hand to the camera to check your shape.'; return; }
+  const tips = compareHandToChord(hand, chordModeState.key);
+  el.textContent = tips ? tips.join('  ·  ') : 'Analyzing hand position…';
+}
+
 function stopChordRun() {
   chordRunRunning=false;
   clearTimeout(chordRunTimeout);
