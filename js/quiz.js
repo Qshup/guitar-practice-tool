@@ -128,6 +128,75 @@ function generateChordPosQuestion(level) {
   };
 }
 
+// ── Rebuilding a specific item ──────────────────────────────────────────────
+// itemKeys are fully deterministic:
+//   note:{key}:{scaleId}:pos{n}:deg{n}   scalepos:{key}:{scaleId}:pos{n}
+//   chordpos:{key}:{shape}
+// so a due item can be regenerated exactly rather than approximated by its
+// tier. Without this, spaced repetition would only be able to say "you're due
+// something note-shaped" and then ask a random note question — which is what
+// the old missed-item weighting did, and why it never actually re-tested the
+// thing you got wrong.
+function generateFromItemKey(itemKey) {
+  if (!itemKey) return null;
+  const parts = itemKey.split(':');
+  try {
+    if (parts[0] === 'note') {
+      const [, key, scaleId, posPart, degPart] = parts;
+      const scale = ALL_SCALES.find(sc => sc.id === scaleId);
+      if (!scale) return null;
+      const pos = parseInt(posPart.replace('pos', ''), 10);
+      const deg = parseInt(degPart.replace('deg', ''), 10);
+      const boxNotes = getBoxNotes(key, scale.intervals, pos);
+      let targets = boxNotes.filter(n => n.order === deg);
+      if (!targets.length) return null;
+      const degreeName = FQ_DEGREE_NAMES[targets[0].order - 1] || 'root';
+      return {
+        tier: 'note', key, scaleId, pos, targetCells: targets, shownCells: [], mistakeBudget: 0,
+        promptText: `Tap the ${degreeName} of ${key} ${scale.name} in position ${pos + 1}`,
+        explanation: `${key} ${scale.name}, position ${pos + 1} — the ${degreeName} (${targets[0].note}) is on ${targets.map(t => `${STRING_LABELS[t.string]} string, fret ${t.fret}`).join(' and ')}.`,
+        itemKey, itemLabel: `${key} ${scale.name} pos${pos + 1} (${degreeName})`,
+      };
+    }
+    if (parts[0] === 'scalepos') {
+      const [, key, scaleId, posPart] = parts;
+      const scale = ALL_SCALES.find(sc => sc.id === scaleId);
+      if (!scale) return null;
+      const pos = parseInt(posPart.replace('pos', ''), 10);
+      const boxNotes = getBoxNotes(key, scale.intervals, pos);
+      if (boxNotes.length < 3) return null;
+      const pools = fqTierPools(fqDifficultyLevel(fqStreak));
+      const shuffled = [...boxNotes].sort(() => Math.random() - 0.5);
+      const hideCount = Math.max(1, Math.min(boxNotes.length - 1, Math.round(boxNotes.length * pools.hidePercent)));
+      const targets = shuffled.slice(0, hideCount);
+      const targetSet = new Set(targets.map(t => `${t.string}-${t.fret}`));
+      const shown = boxNotes.filter(n => !targetSet.has(`${n.string}-${n.fret}`));
+      return {
+        tier: 'scalePos', key, scaleId, pos, targetCells: targets, shownCells: shown,
+        mistakeBudget: Math.max(1, Math.ceil(targets.length / 2)),
+        promptText: `Tap the ${targets.length} missing note${targets.length === 1 ? '' : 's'} to complete ${key} ${scale.name}, position ${pos + 1}`,
+        explanation: `Missing notes: ${targets.map(t => `${t.note} (${STRING_LABELS[t.string]} string, fret ${t.fret})`).join(', ')}.`,
+        itemKey, itemLabel: `${key} ${scale.name} pos${pos + 1}`,
+      };
+    }
+    if (parts[0] === 'chordpos') {
+      const [, key, shape] = parts;
+      const frets = getShapeFrets(shape, key);
+      const targets = [];
+      frets.forEach((f, si) => { if (f >= 0) targets.push({ string: si, fret: f, note: noteAt(STRINGS[si], f) }); });
+      if (targets.length < 2) return null;
+      return {
+        tier: 'chordPos', key, shape, targetCells: targets, shownCells: [],
+        mistakeBudget: Math.max(1, Math.ceil(targets.length / 2)),
+        promptText: `Tap all the notes of the ${key} chord (${shape} shape) in this position`,
+        explanation: `${key} (${shape} shape) notes: ${targets.map(t => `${t.note} (${STRING_LABELS[t.string]} string, fret ${t.fret})`).join(', ')}.`,
+        itemKey, itemLabel: `${key} ${shape} shape`,
+      };
+    }
+  } catch (e) { return null; }
+  return null;
+}
+
 function generateForTier(tier, level) {
   let q = null, attempts = 0;
   while (!q && attempts < 20) {
@@ -139,18 +208,16 @@ function generateForTier(tier, level) {
   return q;
 }
 
+// Priority: overdue review items first (most overdue first), then new material.
+// fqSessionQueue is built once per session by toggleFretboardQuiz.
+let fqSessionQueue = [];
+
 function generateQuestion(level) {
-  const data = loadProgress();
-  const missedKeys = Object.keys(data.fretboardQuiz.missedItems);
-  if (missedKeys.length && Math.random() < 0.4) {
-    const weights = missedKeys.map(k => data.fretboardQuiz.missedItems[k].missCount);
-    const totalW = weights.reduce((a, b) => a + b, 0);
-    let r = Math.random() * totalW, chosen = missedKeys[0];
-    for (let i = 0; i < missedKeys.length; i++) { r -= weights[i]; if (r <= 0) { chosen = missedKeys[i]; break; } }
-    const prefix = chosen.split(':')[0];
-    const tier = prefix === 'note' ? 'note' : prefix === 'scalepos' ? 'scalePos' : 'chordPos';
-    const q = generateForTier(tier, level);
-    if (q) return q;
+  while (fqSessionQueue.length) {
+    const next = fqSessionQueue.shift();
+    const q = generateFromItemKey(next.key);
+    if (q) { q.srsBox = next.item.box || 1; q.srsDue = true; return q; }
+    // Item no longer buildable (e.g. a scale that has since changed) — drop it.
   }
   return generateForTier(fqPickTier(level), level);
 }
@@ -163,6 +230,7 @@ function renderQuizQuestion(q) {
 
   document.getElementById('quiz-prompt').textContent = q.promptText;
   document.getElementById('quiz-explanation').textContent = '';
+  renderSrsBoxIndicator(q);
 
   const shownMap = {};
   q.shownCells.forEach(t => shownMap[`${t.string}-${t.fret}`] = t);
@@ -209,6 +277,7 @@ function questionSucceeded() {
     if (fqStreak > data.fretboardQuiz.bestStreak) { data.fretboardQuiz.bestStreak = fqStreak; saveProgress(data); }
   }
   updateFqStatsDisplay();
+  renderSrsQueueSummary();
   document.getElementById('quiz-explanation').textContent = cleanClear ? '✓ Correct!' : `Cleared with ${fqMistakes} mistake(s).`;
   if (cleanClear) {
     if (typeof pulseSuccess === 'function') pulseSuccess(document.getElementById('quiz-fretboard'));
@@ -227,6 +296,7 @@ function questionFailed() {
   });
   recordFretboardQuizAnswer(fqCurrentQuestion.tier, false, fqCurrentQuestion.itemKey, fqCurrentQuestion.itemLabel);
   updateFqStatsDisplay();
+  renderSrsQueueSummary();
   document.getElementById('quiz-explanation').textContent = '✗ ' + fqCurrentQuestion.explanation;
   setTimeout(nextQuizQuestion, 1800);
 }
@@ -271,11 +341,49 @@ function toggleFretboardQuiz() {
   } else {
     fqRunning = true;
     fqStreak = 0;
+    // Advance the session counter (boxes 1-3 are paced in sessions) and build
+    // this session's review queue before the first question is generated.
+    srsBeginSession();
+    fqSessionQueue = srsDueQueue();
+    renderSrsQueueSummary();
     btn.textContent = '■ STOP QUIZ';
     btn.classList.add('running');
     updateFqStatsDisplay();
     nextQuizQuestion();
   }
+}
+
+// ── Spaced-repetition UI ────────────────────────────────────────────────────
+function renderSrsQueueSummary() {
+  const el = document.getElementById('fq-srs-summary');
+  if (!el) return;
+  const counts = srsBoxCounts();
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+  const due = fqSessionQueue.length;
+  if (!total) {
+    el.innerHTML = `<span class="srs-queue-line">First session — everything is new material.</span>`;
+    return;
+  }
+  const boxes = [1,2,3,4,5].map(b =>
+    `<span class="srs-box-chip srs-box-${b}" title="Box ${b}: ${b<=3?`every ${{1:1,2:2,3:4}[b]} session(s)`:`every ${{4:7,5:14}[b]} days`}">${b}<em>${counts[b]}</em></span>`
+  ).join('');
+  el.innerHTML =
+    `<span class="srs-queue-line">${due ? `<strong>${due}</strong> item${due===1?'':'s'} due for review` : 'Nothing due — new material only'}` +
+    ` · ${total} item${total===1?'':'s'} tracked</span><span class="srs-box-row">${boxes}</span>`;
+}
+
+function renderSrsBoxIndicator(q) {
+  const el = document.getElementById('fq-box-indicator');
+  if (!el) return;
+  if (!q || !q.itemKey) { el.textContent = ''; el.className = 'srs-indicator'; return; }
+  const fq = loadProgress().fretboardQuiz;
+  const item = (fq.srsItems || {})[q.itemKey];
+  const box = item ? Math.min(5, Math.max(1, item.box || 1)) : 1;
+  el.className = `srs-indicator srs-box-${box}` + (q.srsDue ? ' is-due' : '');
+  el.innerHTML = item
+    ? `<span class="srs-indicator-box">Box ${box}/5</span>` +
+      `<span class="srs-indicator-meta">${item.correct}✓ ${item.incorrect}✗${q.srsDue ? ' · due for review' : ''}</span>`
+    : `<span class="srs-indicator-box">New</span><span class="srs-indicator-meta">first time seeing this</span>`;
 }
 
 // ── Init: delegated click handler + initial stats ───────────────────────────

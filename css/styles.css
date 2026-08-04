@@ -2016,3 +2016,37 @@
   .song-card-title, .score-val, .tuner-note, .compact-bpm-value, .riff-title {
     font-weight: 700;
   }
+
+  /* ── Spaced repetition (fretboard quiz) ───────────────────────────────────
+     Box colour runs cool -> warm as an item matures, so the row reads as a
+     progress gradient at a glance rather than five arbitrary chips. */
+  .srs-summary {
+    display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3);
+    flex-wrap: wrap; margin-bottom: var(--sp-2); padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .srs-queue-line { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim); }
+  .srs-queue-line strong { color: var(--amber); font-weight: 600; }
+  .srs-box-row { display: flex; gap: var(--sp-1); }
+  .srs-box-chip {
+    display: inline-flex; align-items: baseline; gap: 3px;
+    font-family: var(--font-mono); font-size: var(--fs-micro); font-weight: 600;
+    padding: 2px 6px; border: 1px solid var(--border); background: var(--surface-2);
+    color: var(--text-mute);
+  }
+  .srs-box-chip em { font-style: normal; color: var(--text); }
+  .srs-box-1 { border-color: var(--error); color: var(--error); }
+  .srs-box-2 { border-color: var(--warning); color: var(--warning); }
+  .srs-box-3 { border-color: var(--amber); color: var(--amber); }
+  .srs-box-4 { border-color: var(--blue); color: var(--blue); }
+  .srs-box-5 { border-color: var(--success); color: var(--success); }
+  .srs-indicator {
+    display: flex; align-items: center; gap: var(--sp-2); min-height: 18px;
+    margin-bottom: var(--sp-1); font-family: var(--font-body); font-size: var(--fs-micro);
+  }
+  .srs-indicator-box {
+    font-family: var(--font-mono); font-weight: 600; letter-spacing: .04em;
+    padding: 1px 6px; border: 1px solid currentColor;
+  }
+  .srs-indicator-meta { color: var(--text-mute); font-family: var(--font-mono); }
+  .srs-indicator.is-due .srs-indicator-meta { color: var(--amber); }

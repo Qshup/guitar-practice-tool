@@ -133,7 +133,72 @@ function defaultFretboardQuizProgress() {
     bestStreak: 0,
     tierUnlocked: { note:true, scalePos:false, chordPos:false },
     totalQuestions: 0,
+    // ── Spaced repetition ────────────────────────────────────────────────
+    // srsItems[itemKey] = { box 1-5, correct, incorrect, lastSeen (ISO date),
+    //                       lastSeenSession, tier, label }
+    // Previously the quiz only recorded MISSES and stored no timestamps, so
+    // it had no way to know what had gone stale or what was due — it could
+    // only weight toward things you'd got wrong at some point, forever.
+    srsItems: {},
+    sessionCount: 0,
   };
+}
+
+// ── Leitner spaced repetition ───────────────────────────────────────────────
+// Boxes 1-3 are paced by SESSIONS (short-term: you want these back the same or
+// next time you sit down). Boxes 4-5 are paced by CALENDAR DAYS, because once
+// something is genuinely known, "4 sessions" could be 4 days or 4 weeks apart
+// and only elapsed time reflects real forgetting.
+const SRS_MAX_BOX = 5;
+const SRS_SESSION_INTERVAL = { 1: 1, 2: 2, 3: 4 };  // review every N sessions
+const SRS_DAY_INTERVAL = { 4: 7, 5: 14 };           // review every N days
+
+function srsDefaultItem(tier, label) {
+  return { box: 1, correct: 0, incorrect: 0, lastSeen: null, lastSeenSession: 0, tier, label };
+}
+
+// How overdue an item is. >= 0 means due now; larger is more overdue, which is
+// what the queue sorts on. Never-seen items are treated as maximally due.
+function srsOverdueBy(item, sessionCount, now) {
+  if (!item || !item.lastSeen) return Number.MAX_SAFE_INTEGER;
+  const box = Math.min(SRS_MAX_BOX, Math.max(1, item.box || 1));
+  if (SRS_SESSION_INTERVAL[box] !== undefined) {
+    return (sessionCount - (item.lastSeenSession || 0)) - SRS_SESSION_INTERVAL[box];
+  }
+  const days = (now - new Date(item.lastSeen).getTime()) / 86400000;
+  return days - SRS_DAY_INTERVAL[box];
+}
+
+function srsIsDue(item, sessionCount, now) {
+  return srsOverdueBy(item, sessionCount, now) >= 0;
+}
+
+// The review queue for this session: overdue items first (most overdue first).
+function srsDueQueue(data) {
+  const fq = (data || loadProgress()).fretboardQuiz;
+  const now = Date.now(), sc = fq.sessionCount || 0;
+  return Object.entries(fq.srsItems || {})
+    .map(([key, item]) => ({ key, item, overdue: srsOverdueBy(item, sc, now) }))
+    .filter(x => x.overdue >= 0)
+    .sort((a, b) => b.overdue - a.overdue);
+}
+
+// Called once when a quiz session starts.
+function srsBeginSession() {
+  const data = loadProgress();
+  data.fretboardQuiz.sessionCount = (data.fretboardQuiz.sessionCount || 0) + 1;
+  saveProgress(data);
+  return data.fretboardQuiz.sessionCount;
+}
+
+function srsBoxCounts(data) {
+  const fq = (data || loadProgress()).fretboardQuiz;
+  const counts = { 1:0, 2:0, 3:0, 4:0, 5:0 };
+  Object.values(fq.srsItems || {}).forEach(i => {
+    const b = Math.min(SRS_MAX_BOX, Math.max(1, i.box || 1));
+    counts[b]++;
+  });
+  return counts;
 }
 
 function defaultListenRepeatProgress() {
@@ -170,6 +235,8 @@ function loadProgress() {
   if (data.ui.micBarCollapsed === undefined) data.ui.micBarCollapsed = false;
   if (data.ui.compactExpanded === undefined) data.ui.compactExpanded = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
+  if (!data.fretboardQuiz.srsItems) data.fretboardQuiz.srsItems = {};
+  if (data.fretboardQuiz.sessionCount === undefined) data.fretboardQuiz.sessionCount = 0;
   if (!data.listenRepeat) data.listenRepeat = defaultListenRepeatProgress();
   if (!data.songs) data.songs = {};
   if (!data.version) data.version = PROGRESS_VERSION;
@@ -188,6 +255,24 @@ function recordFretboardQuizAnswer(tier, correct, itemKey, itemLabel) {
     const m = fq.missedItems[itemKey] || (fq.missedItems[itemKey] = { missCount: 0, label: itemLabel });
     m.missCount++;
     m.label = itemLabel;
+  }
+
+  // Spaced repetition: every answer is recorded, not just failures, and every
+  // one carries a timestamp — that pair is what makes scheduling possible.
+  if (itemKey) {
+    if (!fq.srsItems) fq.srsItems = {};
+    const it = fq.srsItems[itemKey] || (fq.srsItems[itemKey] = srsDefaultItem(tier, itemLabel));
+    it.tier = tier;
+    if (itemLabel) it.label = itemLabel;
+    if (correct) {
+      it.correct++;
+      it.box = Math.min(SRS_MAX_BOX, (it.box || 1) + 1);   // promote one box
+    } else {
+      it.incorrect++;
+      it.box = 1;                                          // straight back to box 1
+    }
+    it.lastSeen = new Date().toISOString();
+    it.lastSeenSession = fq.sessionCount || 0;
   }
   saveProgress(data);
 }
