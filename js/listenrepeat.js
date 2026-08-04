@@ -7,7 +7,9 @@
 // No note/chord data is duplicated here — only sequence-shaping logic.
 // ═══════════════════════════════════════════════════════════════════════════
 
-const LR_INSTRUMENT = 'clean'; // Electric Clean — quiz sequences always use this voice
+// Follows the app-wide voice (see currentInstrument in audio.js) so ear
+// training matches whatever the rest of the app is currently sounding like.
+function lrInstrument() { return typeof currentInstrument === 'function' ? currentInstrument() : 'clean'; }
 
 // ── Difficulty presets ───────────────────────────────────────────────────
 const LR_DIFFICULTY_ORDER = ['beginner', 'intermediate', 'advanced', 'zappa'];
@@ -530,7 +532,7 @@ function lrPlayNoteSequence(seq, onAllDone) {
       // 'chromatic' (Zappa-style passing tone) isn't a playSampledNote technique —
       // it's just a plain note a half-step off, same as before.
       const technique = n.technique === 'chromatic' ? undefined : n.technique;
-      playSampledNote(LR_INSTRUMENT, t, freq, n.dur * 0.85, vol * 0.85, { technique, bendTo: n.bendTo, stringIdx: n.string });
+      playSampledNote(lrInstrument(), t, freq, n.dur * 0.85, vol * 0.85, { technique, bendTo: n.bendTo, stringIdx: n.string });
     });
     // Visual lighting synced to the same schedule (relative ms from now)
     const delayMs = Math.max(0, (startTime - ctx.currentTime) * 1000);
@@ -552,7 +554,7 @@ function lrPlayChordSequence(seq, onAllDone) {
       const chord = GAME_CHORDS[chordEvent.chordName];
       if (!chord) return;
       const t = startTime + chordEvent.time;
-      chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(LR_INSTRUMENT, t + si * 0.03, fretToHz(si, f), chordEvent.dur * 0.85, vol * 0.7, { stringIdx: si }); });
+      chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(lrInstrument(), t + si * 0.03, fretToHz(si, f), chordEvent.dur * 0.85, vol * 0.7, { stringIdx: si }); });
     });
   }, seqDur, onAllDone);
 }

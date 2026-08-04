@@ -501,14 +501,21 @@ function playChordSound(chordObj) {
   const activeFrets = frets.map((f,i)=>({f,si:i})).filter(x=>x.f>=0);
   const now = ctx.currentTime;
 
+  // Sampled guitar, not the Karplus-Strong pluck. This and the Chord Game were
+  // the last two places still using synthesis for musical content, which is why
+  // Chords sounded like a synth while Songs sounded like a guitar. stringIdx is
+  // passed so the engine's per-string choking applies — a strum should cut off
+  // whatever was ringing on that string, exactly like a real one does.
+  const inst = typeof currentInstrument === 'function' ? currentInstrument() : 'clean';
+  if (typeof ensureInstrumentReady === 'function') ensureInstrumentReady(inst);
   if(soundType==='block') {
     activeFrets.forEach(({f,si})=>{
-      playPluck(now, fretToHz(si,f), vol*0.6);
+      playSampledNote(inst, now, fretToHz(si,f), 1.6, vol*0.6, { stringIdx: si });
     });
   } else {
     // Arpeggiated strum (low to high)
     activeFrets.forEach(({f,si},i)=>{
-      playPluck(now+i*0.04, fretToHz(si,f), vol*0.55);
+      playSampledNote(inst, now+i*0.04, fretToHz(si,f), 1.8, vol*0.55, { stringIdx: si });
     });
   }
 }

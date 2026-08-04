@@ -551,10 +551,14 @@ function strumGameChord(chordName) {
   getAudioCtx();
   const vol = 0.45;
   const ctx = getAudioCtx();
+  // Sampled guitar so the game matches Songs/Scales/Riffs rather than sounding
+  // like a different instrument. Same shared voice as everywhere else.
+  const inst = typeof currentInstrument === 'function' ? currentInstrument() : 'clean';
+  if (typeof ensureInstrumentReady === 'function') ensureInstrumentReady(inst);
   chord.f.forEach((f,si) => {
     if (f < 0) return;
     const delay = si * 0.03; // strum delay
-    playPluck(ctx.currentTime + delay, fretToHz(si, f), vol);
+    playSampledNote(inst, ctx.currentTime + delay, fretToHz(si, f), 1.7, vol, { stringIdx: si });
   });
 }
 

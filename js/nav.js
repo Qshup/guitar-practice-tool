@@ -48,6 +48,7 @@ function switchMode(mode) {
 (function initNav() {
   if (typeof restoreScalesState === 'function') restoreScalesState();
   if (typeof restoreChordsState === 'function') restoreChordsState();
+  if (typeof syncInstrumentSelectors === 'function') syncInstrumentSelectors();
   const data = loadProgress();
   const mode = NAV_MODES.includes(data.ui.activeNavMode) ? data.ui.activeNavMode : 'scales';
   switchMode(mode);

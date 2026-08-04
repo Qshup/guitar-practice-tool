@@ -624,6 +624,7 @@ function playRunNote(note) {
 
 // Preload as soon as an instrument is picked so RUN SCALE doesn't stall on first press.
 function runSetInstrument(key) {
+  setCurrentInstrument(key);
   if (key !== 'muted') ensureInstrumentReady(key);
 }
 
@@ -900,6 +901,40 @@ const SAMPLE_INSTRUMENTS = {
   bass: 'electric_bass_finger',
 };
 const SAMPLE_INSTRUMENT_LABELS = { clean: 'Clean Electric', crunch: 'Crunch Electric', acoustic: 'Acoustic', bass: 'Bass' };
+
+// ── App-wide instrument voice ──────────────────────────────────────────────
+// Every sampled-playback surface reads this, so choosing "Acoustic" in Scales
+// also changes how the Chords strum and the Chord Game sound. Previously each
+// surface had its own selector (or a hardcoded voice), which is half of why
+// the app sounded like two different instruments depending on which mode you
+// were in. Persisted per profile in ui.instrument.
+function currentInstrument() {
+  try {
+    if (typeof loadProgress === 'function') {
+      const v = loadProgress().ui.instrument;
+      if (v && SAMPLE_INSTRUMENT_LABELS[v]) return v;
+    }
+  } catch (e) {}
+  return 'clean';
+}
+// Called once at startup so every selector on the page shows the persisted
+// voice rather than whatever its markup happened to mark as selected.
+function syncInstrumentSelectors() {
+  const cur = currentInstrument();
+  document.querySelectorAll('#run-instrument, #riff-instrument-select, .instrument-select')
+    .forEach(sel => { sel.value = cur; });
+}
+
+function setCurrentInstrument(key) {
+  if (!SAMPLE_INSTRUMENT_LABELS[key]) return;
+  if (typeof loadProgress === 'function') {
+    const d = loadProgress(); d.ui.instrument = key; saveProgress(d);
+  }
+  if (typeof ensureInstrumentReady === 'function') ensureInstrumentReady(key);
+  // Keep every on-screen selector in agreement.
+  document.querySelectorAll('#run-instrument, #riff-instrument-select, .instrument-select')
+    .forEach(sel => { if (sel.value !== key) sel.value = key; });
+}
 const SOUNDFONT_BASE = 'https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/';
 const SAMPLE_NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 

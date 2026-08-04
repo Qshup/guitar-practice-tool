@@ -2130,3 +2130,7 @@
   .session-bar-btn:hover { color: var(--amber); border-color: var(--amber-dim); background: transparent; }
   @media (max-width: 1024px) { .session-bar { min-width: 200px; } .session-bar-title { display: none; } }
   @media (max-width: 768px)  { .session-bar { display: none !important; } }
+  .instrument-select {
+    background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-xs); padding: 4px 6px;
+  }
