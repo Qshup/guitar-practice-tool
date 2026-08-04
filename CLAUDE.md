@@ -545,6 +545,55 @@ NOT at the bottom of mic.js — mic.js loads at index.html:1284 and progress.js
 at 1290, so a call there finds no `loadProgress` and silently skips. Same trap
 that made `saveScalesState` throw.
 
+## Rhythm Training (js/rhythm.js, Study > Rhythm)
+
+Three trainers for the material the Zappa guide teaches but nothing drilled:
+
+- **Subdivision** — quarter/eighth/triplet/16th/quintuplet over any meter
+  including 7 and 11. Tap along; each tap is graded against the scheduled
+  event time.
+- **Polyrhythm** — 3, 5 or 7 against 4, as two rows (top is yours, bottom
+  plays), locking on the first cell of each cycle.
+- **Displacement** — snare marks phrase entry on beat 1, the "and" of 1,
+  beat 2, the "and" of 2, beat 3, or the "e" of 1.
+
+Grading: ≤45ms locked, ≤100ms close. The stats line reports **signed** average
+too, so it names rushing vs dragging rather than only magnitude. Results feed
+`data.rhythm`, keyed per trainer+setting.
+
+Runs its **own** Web Audio scheduler rather than hooking `scheduleMetro` —
+that loop is built around one chord-vamp-per-beat, and grafting sub-beat grids
+and two simultaneous pulse trains onto it would mean rewriting it. BPM and
+time signature are still read from `#bpm-slider`/`#time-sig`.
+
+Two gotchas preserved in code: **Space taps the grid** while this sub-tab is
+open (shortcuts.js checks `rhythmPanelActive()` first) — taking Space for the
+metronome here would make the trainer unusable with a guitar in hand. And
+`rhyStart` bails with a visible message if the AudioContext won't resume,
+because a frozen `currentTime` makes the scheduler's while-loop exit every
+tick and the trainer would *look* active while producing nothing.
+
+**`switchStudySubtab` validates its argument.** The panel is
+`study-subtab-listen`, not `listenrepeat`; the function matches ids literally,
+so a wrong name used to deactivate every panel and render Study blank with no
+error. It now warns and returns.
+
+## Recorded Takes (storage.js + listenrepeat.js + progress.js)
+
+Audio blobs live in a dedicated `takes` object store (IndexedDB **v2**) and
+are **never** mirrored to localStorage — a few MB of audio would blow its
+~5MB budget, and the `gpt_`-prefixed mirror logic must not sweep them.
+
+"Keep this take" appears once a recording finishes and saves the blob with
+date, sequence, scale, key, round accuracy, profile id, mime type and size.
+Listing/rename/delete live in the **progress panel**, not Listen & Repeat,
+because comparing takes over time is a progress question. Loading is lazy and
+object URLs are revoked on re-render rather than leaked.
+
+If you bump `IDB_VERSION` again, re-verify that the `kv` store and boot
+recovery still work afterwards — that was checked for v1→v2 and is the main
+risk of a schema change here.
+
 ## Audio Architecture
 
 ### Two engines, split by mode
