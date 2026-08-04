@@ -149,11 +149,76 @@ function playBass(time, freq, dur, vol) {
   bassVoice.triggerAttackRelease(freq / 2, dur * 0.8, time, Math.min(1, vol * 0.9));
 }
 
-function playChord(time, freqs, dur, vol) {
+function playChord(time, freqs, dur, vol, velocity) {
   getAudioCtx();
+  const v = velocity == null ? 1 : velocity;
   freqs.forEach(freq => {
-    chordVoice.triggerAttackRelease(freq, dur * 0.7, time, Math.min(1, vol * 0.35));
+    chordVoice.triggerAttackRelease(freq, dur * 0.7, time, Math.min(1, vol * 0.35 * v));
   });
+}
+
+// ── Percussion voices (raw Web Audio — kept deliberately subtle so the guitar/
+// bass are always the loudest thing in the mix) ────────────────────────────
+let noiseBufferCache = null;
+function getNoiseBuffer(ctx) {
+  if (noiseBufferCache && noiseBufferCache.ctx === ctx) return noiseBufferCache.buffer;
+  const len = Math.floor(ctx.sampleRate * 0.5);
+  const buffer = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  noiseBufferCache = { ctx, buffer };
+  return buffer;
+}
+
+function playKick(time, vol) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const env = ctx.createGain();
+  osc.connect(env); env.connect(ctx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(120, time);
+  osc.frequency.exponentialRampToValueAtTime(45, time + 0.09);
+  const v = vol * 0.26;
+  env.gain.setValueAtTime(v, time);
+  env.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
+  osc.start(time); osc.stop(time + 0.18);
+}
+
+function playSnare(time, vol, ghost) {
+  const ctx = getAudioCtx();
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer(ctx);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass'; bp.frequency.value = 1800; bp.Q.value = 0.6;
+  const env = ctx.createGain();
+  noise.connect(bp); bp.connect(env); env.connect(ctx.destination);
+  const dur = ghost ? 0.035 : 0.09;
+  const v = vol * (ghost ? 0.05 : 0.17);
+  env.gain.setValueAtTime(v, time);
+  env.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  noise.start(time); noise.stop(time + dur + 0.02);
+  const osc = ctx.createOscillator();
+  const oenv = ctx.createGain();
+  osc.connect(oenv); oenv.connect(ctx.destination);
+  osc.type = 'triangle'; osc.frequency.value = 180;
+  oenv.gain.setValueAtTime(v * 0.45, time);
+  oenv.gain.exponentialRampToValueAtTime(0.001, time + dur * 0.6);
+  osc.start(time); osc.stop(time + dur * 0.6 + 0.01);
+}
+
+function playHihat(time, vol) {
+  const ctx = getAudioCtx();
+  const noise = ctx.createBufferSource();
+  noise.buffer = getNoiseBuffer(ctx);
+  const hp = ctx.createBiquadFilter();
+  hp.type = 'highpass'; hp.frequency.value = 7500;
+  const env = ctx.createGain();
+  noise.connect(hp); hp.connect(env); env.connect(ctx.destination);
+  const dur = 0.035;
+  const v = vol * 0.08;
+  env.gain.setValueAtTime(v, time);
+  env.gain.exponentialRampToValueAtTime(0.001, time + dur);
+  noise.start(time); noise.stop(time + dur + 0.02);
 }
 
 // Real guitar strings aren't tonally uniform — the wound low E/A/D strings ring
@@ -241,7 +306,89 @@ function getVampChords(key, style) {
     [{label:key,   notes:[0,4,7]}],
     [{label:r(2),  notes:[2,6,9]}],
   ];
+  if (style === 'knopfler') return [
+    [{label:key,   notes:[0,4,7]}],
+    [{label:r(5),  notes:[5,9,12]}],
+    [{label:key,   notes:[0,4,7]}],
+    [{label:r(7),  notes:[7,11,14]}],
+  ];
+  if (style === 'hazel') return [
+    [{label:key,   notes:[0,3,7]}],
+    [{label:r(5),  notes:[5,9,12]}],
+  ];
   return [];
+}
+
+// ── Per-style rhythm patterns ────────────────────────────────────────────────
+// Everything below returns sub-events for ONE quarter-note beat — offset is a
+// fraction of that beat (0 = right on it, 0.5 = the straight 8th "and", 0.667 =
+// the swung/triplet "and"). This layers real feel (swing, syncopation, ghost
+// notes, walking bass, fingerpicked arpeggios) on top of the existing per-beat
+// scheduler without needing a full step-sequencer rewrite. Percussion is a
+// shared baseline (kick on 1, backbeat snare/rim, closed hihat) — kept subtle
+// so the guitar/bass patterns below are always the loudest thing in the mix.
+function getStyleBeatEvents(style, beatInBar, beats, chordRoot) {
+  const events = [];
+  if (style === 'none') return events;
+
+  const backbeatIdx = beats <= 3 ? 1 : 2;
+  if (beatInBar === 0) events.push({ offset: 0, type: 'kick' });
+  if (beatInBar === backbeatIdx) events.push({ offset: 0, type: 'snare' });
+  if (style === 'blues') {
+    if (beatInBar === 1 || beatInBar === 3) events.push({ offset: 0, type: 'hihat' });
+  } else {
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 0.5, type: 'hihat' });
+  }
+
+  const fifth = chordRoot + 7;
+  const third = chordRoot + 4;
+  const minorThird = chordRoot + 3;
+  const flat7 = chordRoot + 10;
+
+  if (style === 'blues') {
+    // Shuffle: root/5th alternating bass, comp chord stab pushed to the swung "and."
+    const bassNote = (beatInBar % 2 === 0) ? chordRoot : fifth;
+    events.push({ offset: 0, type: 'bass', note: bassNote });
+    events.push({ offset: 0.667, type: 'chord', notes: [third, fifth], velocity: 0.55 });
+  } else if (style === 'minor') {
+    // Walking bass across root/b3/5th/b7, ghost stab leading into a chord hit
+    // that lands just behind the beat.
+    const walk = [chordRoot, minorThird, fifth, flat7];
+    events.push({ offset: 0, type: 'bass', note: walk[beatInBar % walk.length] });
+    if (beatInBar % 2 === 1) {
+      events.push({ offset: 0.4, type: 'ghost-chord', notes: [minorThird, fifth] });
+      events.push({ offset: 0.58, type: 'chord', notes: [minorThird, fifth], velocity: 0.7 });
+    }
+  } else if (style === 'mixo') {
+    // Country-rock straight-eighth "train beat": root-5th bass on the beat and
+    // the off-beat, chord chuck landing with the off-beat bass note.
+    events.push({ offset: 0, type: 'bass', note: chordRoot });
+    events.push({ offset: 0.5, type: 'bass', note: fifth, velocity: 0.7 });
+    events.push({ offset: 0.5, type: 'chord', notes: [third, fifth], velocity: 0.5 });
+  } else if (style === 'knopfler') {
+    // Celtic fingerpicked arpeggio: bass on beat 1, chord tones climbing on 2-3-4.
+    const arp = [chordRoot, third, fifth, fifth + 5];
+    if (beatInBar % 4 === 0) events.push({ offset: 0, type: 'bass', note: arp[0], velocity: 0.8 });
+    else events.push({ offset: 0, type: 'pluck', note: arp[beatInBar % 4], velocity: 0.55 });
+  } else if (style === 'hazel') {
+    // Syncopated 2-chord Dorian vamp: chords on the upbeats, bass on 1 and "and of 3."
+    if (beatInBar === 0) events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.85 });
+    if (beatInBar === 2) events.push({ offset: 0.5, type: 'bass', note: fifth, velocity: 0.8 });
+    events.push({ offset: 0.5, type: 'chord', notes: [minorThird, fifth, flat7], velocity: 0.5 });
+  } else if (style === 'zappa') {
+    events.push({ offset: 0, type: 'bass', note: chordRoot });
+    events.push({ offset: 0, type: 'chord', notes: [third, fifth], velocity: 0.6 });
+    // Odd-meter melody fragment on the "extra" beats of 7/8 and 11/8, hinting
+    // ambiguously at Mixolydian (b7/nat4) vs Lydian (nat7/#4).
+    if ((beats === 7 || beats === 11) && beatInBar >= 4) {
+      const frag = [fifth, chordRoot + 9, flat7, chordRoot + 6, third];
+      events.push({ offset: 0, type: 'pluck', note: frag[(beatInBar - 4) % frag.length], velocity: 0.6 });
+    }
+  } else if (style === 'drone') {
+    if (beatInBar === 0) events.push({ offset: 0, type: 'bass', note: chordRoot, dur: beats, velocity: 0.9 });
+  }
+  return events;
 }
 
 // ── Beat display ──────────────────────────────────────────────────────────
@@ -280,6 +427,11 @@ function scheduleMetro() {
   const chords = getVampChords(state.key, style);
   const beatDur = 60 / bpm;
 
+  const root = CHROMATIC.indexOf(norm(state.key));
+  const baseHz = midiToHz(36 + root); // low bass register
+  const bassHz = semitones => baseHz * Math.pow(2, semitones / 12);
+  const chordToneHz = semitones => midiToHz(48 + root + semitones);
+
   while (metroNextTime < ctx.currentTime + LOOK_AHEAD) {
     const isAccent = (metroBeat % beats) === 0;
     const beatInBar = metroBeat % beats;
@@ -288,26 +440,43 @@ function scheduleMetro() {
     // Click
     playClick(t, isAccent, vol);
 
-    // Backing chords / bass on beat 1 of each pattern
     if (chords.length > 0) {
       const patLen = chords.length;
       const patBeat = metroBeat % (patLen * beats);
       const barIdx = Math.floor(patBeat / beats);
       const chord = chords[barIdx % chords.length][0];
 
-      if (isAccent && chord) {
-        const root = CHROMATIC.indexOf(norm(state.key));
-        const baseHz = midiToHz(36 + root); // low bass
-        playBass(t, baseHz * Math.pow(2, chord.notes[0]/12), beatDur * beats * 0.9, vol);
-        // Upper chord tones
-        const chordHz = chord.notes.slice(1).map(n => midiToHz(48 + root + n));
-        playChord(t, chordHz, beatDur * beats * 0.85, vol);
+      if (chord) {
+        const chordRoot = chord.notes[0];
+        const subEvents = getStyleBeatEvents(style, beatInBar, beats, chordRoot);
+        subEvents.forEach(ev => {
+          const evTime = t + ev.offset * beatDur;
+          const evVel = ev.velocity == null ? 1 : ev.velocity;
+          if (ev.type === 'kick') playKick(evTime, vol);
+          else if (ev.type === 'snare') playSnare(evTime, vol, false);
+          else if (ev.type === 'hihat') playHihat(evTime, vol);
+          else if (ev.type === 'bass') {
+            const durBeats = ev.dur || (1 - ev.offset);
+            playBass(evTime, bassHz(ev.note), beatDur * durBeats * 0.9, vol * evVel);
+          } else if (ev.type === 'pluck') {
+            const durBeats = ev.dur || (1 - ev.offset);
+            playChord(evTime, [chordToneHz(ev.note)], beatDur * durBeats * 0.85, vol, evVel);
+          } else if (ev.type === 'chord') {
+            const durBeats = ev.dur || (1 - ev.offset);
+            playChord(evTime, ev.notes.map(chordToneHz), beatDur * durBeats * 0.85, vol, evVel);
+          } else if (ev.type === 'ghost-chord') {
+            // A quiet, short pre-echo of the chord stab that follows — the
+            // "ghost note" feel, not a drum hit.
+            playChord(evTime, ev.notes.map(chordToneHz), beatDur * 0.18, vol, 0.18);
+          }
+        });
 
-        // Update chord display
-        const beatTime = (metroNextTime - ctx.currentTime) * 1000;
-        setTimeout(() => {
-          document.getElementById('chord-display').textContent = chord.label;
-        }, Math.max(0, beatTime));
+        if (isAccent) {
+          const beatTime = (metroNextTime - ctx.currentTime) * 1000;
+          setTimeout(() => {
+            document.getElementById('chord-display').textContent = chord.label;
+          }, Math.max(0, beatTime));
+        }
       }
     }
 
