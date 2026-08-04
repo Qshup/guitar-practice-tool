@@ -1078,7 +1078,11 @@
     <div id="riff-panels"></div>
     <div class="riff-panel" id="riff-filtered-panel" style="display:none">
       <div class="riff-grid" id="riff-filtered-grid"></div>
-      <div id="riff-filtered-empty" style="display:none;font-family:'Inter',Arial,sans-serif;font-size:10px;color:#555;padding:20px;text-align:center">No riffs match these filters yet.</div>
+      <div class="empty-state" id="riff-filtered-empty" style="display:none">
+        <div class="empty-state-icon">♪</div>
+        <div class="empty-state-title">No riffs match these filters</div>
+        <div class="empty-state-sub">Try a different player, technique, or scale.</div>
+      </div>
     </div>
   </div>
 </div>
@@ -1120,7 +1124,11 @@
   </div>
 
   <div class="songs-grid" id="songs-grid"></div>
-  <div id="songs-filtered-empty" style="display:none;font-family:'Inter',Arial,sans-serif;font-size:10px;color:#555;padding:20px;text-align:center">No songs match these filters.</div>
+  <div class="empty-state" id="songs-filtered-empty" style="display:none">
+    <div class="empty-state-icon">🎵</div>
+    <div class="empty-state-title">No songs match these filters</div>
+    <div class="empty-state-sub">Try clearing a filter, or upload your own tab to add it to the library.</div>
+  </div>
 
   <!-- Personal song upload panel — js/upload.js -->
   <div class="upload-panel" id="upload-panel" style="display:none">

@@ -837,6 +837,7 @@ function lrFinalizeSequence(fullyCorrect, results) {
 
   document.getElementById('lr-streak').textContent = lrStreak;
   document.getElementById('lr-best-streak').textContent = lr.bestStreak;
+  if (fullyCorrect && typeof bounceStreak === 'function') bounceStreak(document.getElementById('lr-streak'));
 
   if (fullyCorrect) {
     playPluck(getAudioCtx().currentTime, 880, 0.5);

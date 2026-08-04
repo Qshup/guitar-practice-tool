@@ -221,6 +221,40 @@ function playHihat(time, vol) {
   noise.start(time); noise.stop(time + dur + 0.02);
 }
 
+// ── Success micro-feedback (amber pulse + streak bounce + chime) ──────────
+// Shared across Fretboard Quiz, Chord Game, Listen & Repeat, and Scale
+// Run-Through so every "got it right" moment reads and sounds the same.
+function playSuccessChime(vol) {
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  [880, 1108.73].forEach((f, i) => { // A5 + C#6 — a bright major-third "ding"
+    const osc = ctx.createOscillator();
+    const env = ctx.createGain();
+    osc.connect(env); env.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = f;
+    const t = now + i * 0.03;
+    const v = (vol == null ? 0.5 : vol) * 0.18;
+    env.gain.setValueAtTime(0, t);
+    env.gain.linearRampToValueAtTime(v, t + 0.008);
+    env.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    osc.start(t); osc.stop(t + 0.4);
+  });
+}
+
+function pulseSuccess(el) {
+  if (!el) return;
+  el.classList.remove('success-pulse'); void el.offsetWidth; // restart if already animating
+  el.classList.add('success-pulse');
+  setTimeout(() => el.classList.remove('success-pulse'), 500);
+}
+
+function bounceStreak(el) {
+  if (!el) return;
+  el.classList.remove('streak-bounce'); void el.offsetWidth;
+  el.classList.add('streak-bounce');
+  setTimeout(() => el.classList.remove('streak-bounce'), 400);
+}
+
 // Real guitar strings aren't tonally uniform — the wound low E/A/D strings ring
 // warm and dark with long sustain, the plain high G/B/e strings are brighter and
 // decay faster. Frequency is a solid proxy for "which string" without needing to
@@ -592,7 +626,7 @@ function runSetInstrument(key) {
 function runStep() {
   if (!runRunning || runIdx >= runNotes.length) {
     if (runRunning && runIdx >= runNotes.length) {
-      stopRun();
+      stopRun(true);
     }
     return;
   }
@@ -611,7 +645,7 @@ function runStep() {
   runTimeout = setTimeout(runStep, speed);
 }
 
-function stopRun() {
+function stopRun(completed) {
   runRunning = false;
   clearTimeout(runTimeout);
   if (lastHighlightEl) { lastHighlightEl.classList.remove('run-highlight'); lastHighlightEl = null; }
@@ -620,6 +654,10 @@ function stopRun() {
   btn.classList.remove('running');
   document.getElementById('run-display').textContent = 'Run complete. Press again to repeat.';
   stopScaleTimer();
+  if (completed) {
+    if (typeof pulseSuccess === 'function') pulseSuccess(document.getElementById('run-display'));
+    if (typeof playSuccessChime === 'function') playSuccessChime();
+  }
 }
 
 async function toggleRun() {

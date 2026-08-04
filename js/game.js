@@ -651,6 +651,8 @@ function gradeSwitch(success) {
     }
     gameHistory[0] = '✓ ' + (gameHistory[0]||'');
     maybeRampDifficulty();
+    if (typeof pulseSuccess === 'function') pulseSuccess(document.querySelector('.game-arena'));
+    if (typeof playSuccessChime === 'function') playSuccessChime();
   } else {
     gameStreak = 0;
     gameMissed++;
@@ -662,6 +664,7 @@ function gradeSwitch(success) {
     gameHistory[0] = '✗ ' + (gameHistory[0]||'');
   }
   document.getElementById('game-streak').textContent = gameStreak;
+  if (success && typeof bounceStreak === 'function') bounceStreak(document.getElementById('game-streak'));
   document.getElementById('stat-got').textContent = gameGot;
   document.getElementById('stat-missed').textContent = gameMissed;
   const total = gameGot + gameMissed;

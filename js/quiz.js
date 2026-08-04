@@ -210,6 +210,11 @@ function questionSucceeded() {
   }
   updateFqStatsDisplay();
   document.getElementById('quiz-explanation').textContent = cleanClear ? '✓ Correct!' : `Cleared with ${fqMistakes} mistake(s).`;
+  if (cleanClear) {
+    if (typeof pulseSuccess === 'function') pulseSuccess(document.getElementById('quiz-fretboard'));
+    if (typeof bounceStreak === 'function') bounceStreak(document.getElementById('fq-streak'));
+    if (typeof playSuccessChime === 'function') playSuccessChime();
+  }
   setTimeout(nextQuizQuestion, 900);
 }
 

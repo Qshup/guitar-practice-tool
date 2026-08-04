@@ -286,7 +286,7 @@ async function toggleMicEnabled() {
     await micSetEnabled(false);
     if (btn) { btn.textContent = '▶ MIC ON'; btn.classList.remove('running'); }
     if (compactBtn) compactBtn.classList.remove('active');
-    if (status) status.textContent = 'Off — enable to hear note matching, tuning, and technique detection';
+    if (status) status.textContent = '🎤 Off — enable to hear note matching, tuning, and technique detection';
     updateMicTunerReadout(null);
     return;
   }
@@ -294,11 +294,11 @@ async function toggleMicEnabled() {
   const ok = await micSetEnabled(true);
   if (btn) btn.disabled = false;
   if (!ok) {
-    if (status) status.textContent = micUnavailableMessage('microphone features');
+    if (status) status.textContent = '🎤 ' + micUnavailableMessage('microphone features');
     if (btn) btn.textContent = '▶ MIC ON';
     return;
   }
   if (btn) { btn.textContent = '■ MIC OFF'; btn.classList.add('running'); }
   if (compactBtn) compactBtn.classList.add('active');
-  if (status) status.textContent = 'Listening — play a note to see note matching, tuning, and technique detection live.';
+  if (status) status.textContent = '🎙️ Listening — play a note to see note matching, tuning, and technique detection live.';
 }

@@ -52,3 +52,25 @@ function switchMode(mode) {
   const mode = NAV_MODES.includes(data.ui.activeNavMode) ? data.ui.activeNavMode : 'scales';
   switchMode(mode);
 })();
+
+// ── Custom range-slider fill (amber-filled track, see styles.css) ─────────
+// Sets a --range-progress custom property per slider so the CSS gradient
+// track fill tracks the actual value. Delegated + a MutationObserver so this
+// covers every slider that already exists AND every one rendered later
+// (song/game panels build their sliders via innerHTML well after this runs).
+function updateRangeFill(el) {
+  const min = parseFloat(el.min || 0), max = parseFloat(el.max || 100), val = parseFloat(el.value);
+  const pct = max > min ? ((val - min) / (max - min)) * 100 : 0;
+  el.style.setProperty('--range-progress', pct + '%');
+}
+document.addEventListener('input', e => {
+  if (e.target.matches && e.target.matches('input[type=range]')) updateRangeFill(e.target);
+});
+document.querySelectorAll('input[type=range]').forEach(updateRangeFill);
+new MutationObserver(muts => {
+  muts.forEach(m => m.addedNodes.forEach(node => {
+    if (node.nodeType !== 1) return;
+    if (node.matches && node.matches('input[type=range]')) updateRangeFill(node);
+    if (node.querySelectorAll) node.querySelectorAll('input[type=range]').forEach(updateRangeFill);
+  }));
+}).observe(document.body, { childList: true, subtree: true });
