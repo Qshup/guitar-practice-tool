@@ -292,10 +292,10 @@ function renderProgressPanel() {
   if (timeEl) timeEl.textContent = `${Math.floor(liveSeconds/60)}m ${liveSeconds%60}s`;
 
   const scalesEl = document.getElementById('prog-scales-list');
-  if (scalesEl) scalesEl.textContent = day.scalesPracticed.length ? day.scalesPracticed.join(', ') : '—';
+  if (scalesEl) scalesEl.textContent = day.scalesPracticed.length ? day.scalesPracticed.join(', ') : 'Nothing yet today';
 
   const riffsEl = document.getElementById('prog-riffs-list');
-  if (riffsEl) riffsEl.textContent = day.riffsPlayed.length ? `${day.riffsPlayed.length} riff${day.riffsPlayed.length===1?'':'s'} played` : '—';
+  if (riffsEl) riffsEl.textContent = day.riffsPlayed.length ? `${day.riffsPlayed.length} riff${day.riffsPlayed.length===1?'':'s'} played` : 'No riffs yet today';
 
   const gameEl = document.getElementById('prog-game-sessions');
   if (gameEl) gameEl.textContent = day.gameSessions;

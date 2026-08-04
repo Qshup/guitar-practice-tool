@@ -247,7 +247,9 @@ function updateFqStatsDisplay() {
   document.getElementById('fq-level').textContent = fqDifficultyLevel(fqStreak);
   const totalAttempts = Object.values(fq.accuracyByType).reduce((a, s) => a + s.attempts, 0);
   const totalCorrect = Object.values(fq.accuracyByType).reduce((a, s) => a + s.correct, 0);
-  document.getElementById('fq-accuracy').textContent = totalAttempts ? Math.round(totalCorrect / totalAttempts * 100) + '%' : '—';
+  const fqAccEl = document.getElementById('fq-accuracy');
+  fqAccEl.textContent = totalAttempts ? Math.round(totalCorrect / totalAttempts * 100) + '%' : '—';
+  fqAccEl.classList.toggle('is-empty', !totalAttempts); // dims the placeholder so it reads as 'no data yet', not broken
 
   const byTypeEl = document.getElementById('fq-accuracy-by-type');
   const labels = { note: 'Notes', scalePos: 'Scale Pos', chordPos: 'Chord Pos' };

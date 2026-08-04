@@ -42,6 +42,56 @@ features, pure UI/UX polish plus a real backing-track rhythm rewrite. This
 section documents the resulting system so later sessions extend it
 consistently instead of reintroducing ad-hoc colors/spacing/timings.
 
+### Refinement pass (second design session)
+
+The first design session established the system below but only partly applied
+it — a later pass measured the drift and closed it. What it found:
+
+- **166 places bypassed the font variables** (111 literal
+  `'Inter', Arial, sans-serif`, 55 literal `'Courier New', monospace`), and
+  `body` itself defaulted to `--font-mono`, so anything without an explicit
+  font inherited Courier. Body default is now `--font-body`.
+- **~218 raw grey hexes** (`#222 #333 #444 #555 #666 #888 #999 #ccc #ddd
+  #2a2a2a`) did the work of `--text`/`--text-dim`/`--border`. All routed to
+  tokens; `--text-mute` and `--border-hover` were added because the greys
+  encoded three text tiers and two border tiers that the palette didn't name.
+- **38 off-palette accents** — `#fb8c00` orange ×16 (now `--warning`),
+  `#c0392b` ×10 (now `--error`), `#4cff50` neon green (now `--success`).
+- **13 cold-tinted panels** (`#0d1a0d` green-black metronome/practice,
+  `#0d0d1a` blue-black mic/camera/upload) in an otherwise warm palette —
+  pre-redesign leftovers reading as a different design language. They now sit
+  on `--surface` and carry identity in a 2px accent left border.
+- **Type was 7-11px for almost everything** (88 declarations at ≤9px), too
+  small for a tablet at arm's length. Now a six-step scale, `--fs-micro`
+  (9px) through `--fs-xl` (17px).
+- **No `@media` rules at all** — see "Responsive" below.
+- **No `max-width`** — on a 2560px display panels ran edge to edge and
+  sliders stretched past 2400px. Body is now a centred 1680px column; the nav
+  stays full-bleed with its contents aligned to that column via
+  `padding: 0 max(20px, calc((100vw - 1680px) / 2 + 20px))`.
+- **Primary CTAs were three different colours** — `.btn-go` green,
+  `.btn-run` blue, `.game-btn-start` green — while the palette reserves amber
+  for primary actions. All amber now, leaving `--success`/`--blue` purely
+  semantic.
+- **One focus rule in the whole stylesheet**, so keyboard navigation was
+  invisible. Global `:focus-visible` added, plus a
+  `prefers-reduced-motion` block.
+
+Two real bugs surfaced while looking:
+
+1. **The active Study sub-tab label was invisible.** `.subtab-btn` elements
+   are `<button>`s, so the generic `button.active { background:
+   var(--btn-active) }` rule filled them with the light `--text` colour,
+   while `.subtab-btn.active` (higher specificity) only overrode `color` — to
+   another light value. Fixed with an explicit `background: transparent`, and
+   the indicator moved to amber so the app has one tab-bar language instead
+   of two. A scripted contrast audit across all six modes confirmed this was
+   the only instance.
+2. **The 12th-fret double inlay was diagonal, not stacked.**
+   `buildFretInlays` offset the two dots `left-5`/`left+5` while CSS offset
+   them vertically. Both now share the fret centre, and `.fret-inlay` uses
+   `translateX(-50%)` so `left` means centre rather than left edge.
+
 ### Palette (`:root` custom properties)
 
 ```
@@ -171,6 +221,17 @@ Wood-grain rosewood gradient background, metallic nut, silver fret-line
 gradients, gold/bronze gradient string coloring for the wound low strings
 (D/A/low-E) vs. silver for the plain high strings (e/B/G).
 
+The refinement pass took the neck further, because it still read as a flat
+brown rectangle with lines on it: the board now carries **cylindrical
+shading** (a neck is round, so its top and bottom edges fall away from the
+light) plus a coarser grain layer under the fine one; **fret wire** is a
+3px rounded nickel bar whose cross-section runs dark edge → bright crown →
+dark edge, rather than a 1.5px flat line; **position inlays** went from 8px
+of dark brown at `opacity: .5` (effectively invisible, though they are the
+main way you navigate a real neck at a glance) to 13px mother-of-pearl with
+an off-centre highlight; **strings** cast a shadow onto the board; and the
+**nut** got the same rounded cross-section treatment in bone tones.
+
 **String coloring is keyed off `data-string`, never `:nth-child`** — and it
 matters that it stays that way. This selector has been wrong twice. The
 redesign session tried to fix an off-by-one by moving the rules from
@@ -280,6 +341,27 @@ backing-track rhythm patterns actually *sound* like the swing / behind-the-
 beat / syncopation they're described as (see "Backing Track Rhythm Engine"),
 whether the mic detection thresholds hold up against real playing, and the
 Guitar Pro import path against a real `.gp` file.
+
+### Responsive (added in the refinement pass)
+
+The stylesheet had **no `@media` rules at all**, so every layout was frozen at
+its desktop shape. Three breakpoints now exist:
+
+- **1024px** — the 4-column `.game-layout` drops to 2.
+- **768px — the primary target** (tablet propped next to a guitar). Nav gaps
+  and button padding tighten so all seven nav buttons plus logo and Progress
+  fit without the horizontal scroll they used to trigger; the 2-column
+  `.info-box`/`.zappa-grid` and the 4-column `.game-layout` go single-column;
+  `.progress-stats-row` goes 4→2; `.bottom-section` stacks; the hard-coded
+  320px camera preview becomes fluid; tap targets and slider thumbs grow.
+- **560px** — nav labels hide (`.nav-label`, wrapped in spans for this
+  purpose — the camera one keeps its `#camera-btn-label` id since camera.js
+  writes to it), leaving recognisable icons; grids go single-column.
+
+Verified at 768px by loading the app in a 768px-wide iframe, which gives a
+real viewport so the media queries actually evaluate — `resize_window` was
+blocked by the maximised browser window. Result: media query active, no
+horizontal overflow, nav no longer scrolls.
 
 ### macOS `sed` gotcha (if you need bulk find/replace again)
 

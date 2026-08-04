@@ -35,11 +35,11 @@
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Scales Today</div>
-        <div class="progress-stat-val" id="prog-scales-list" style="font-size:10px">—</div>
+        <div class="progress-stat-val" id="prog-scales-list" style="font-size:var(--fs-sm)">Nothing yet today</div>
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Riffs Today</div>
-        <div class="progress-stat-val" id="prog-riffs-list" style="font-size:10px">—</div>
+        <div class="progress-stat-val" id="prog-riffs-list" style="font-size:var(--fs-sm)">No riffs yet today</div>
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Game Sessions Today</div>
@@ -66,13 +66,13 @@
 <header class="app-nav" id="app-nav">
   <div class="app-logo">🪶<span>FRETBOARD</span></div>
   <nav class="nav-bar" id="nav-bar">
-    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')"><span class="nav-icon">🎸</span>Scales</button>
-    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')"><span class="nav-icon">🎹</span>Chords</button>
-    <button class="nav-btn" data-mode="study" onclick="switchMode('study')"><span class="nav-icon">📚</span>Study</button>
-    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')"><span class="nav-icon">♪</span>Riffs</button>
-    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')"><span class="nav-icon">🎵</span>Songs</button>
-    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><span class="nav-icon">🎤</span>Tuner</button>
-    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><span class="nav-icon">📷</span><span id="camera-btn-label">Camera Off</span></button>
+    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')"><span class="nav-icon">🎸</span><span class="nav-label">Scales</span></button>
+    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')"><span class="nav-icon">🎹</span><span class="nav-label">Chords</span></button>
+    <button class="nav-btn" data-mode="study" onclick="switchMode('study')"><span class="nav-icon">📚</span><span class="nav-label">Study</span></button>
+    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')"><span class="nav-icon">♪</span><span class="nav-label">Riffs</span></button>
+    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')"><span class="nav-icon">🎵</span><span class="nav-label">Songs</span></button>
+    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><span class="nav-icon">🎤</span><span class="nav-label">Tuner</span></button>
+    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><span class="nav-icon">📷</span><span class="nav-label" id="camera-btn-label">Camera Off</span></button>
   </nav>
   <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress">Progress</button>
 </header>
@@ -699,7 +699,7 @@
               <div class="score-label">Switched</div>
             </div>
             <div class="score-block">
-              <div class="score-val" id="game-accuracy">—</div>
+              <div class="score-val is-empty" id="game-accuracy">—</div>
               <div class="score-label">Accuracy</div>
             </div>
           </div>
@@ -846,7 +846,7 @@
           <div class="score-label">Level</div>
         </div>
         <div class="score-block">
-          <div class="score-val" id="fq-accuracy">—</div>
+          <div class="score-val is-empty" id="fq-accuracy">—</div>
           <div class="score-label">Accuracy</div>
         </div>
       </div>

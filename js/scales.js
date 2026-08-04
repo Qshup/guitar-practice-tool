@@ -363,8 +363,12 @@ function buildFretInlays(container, fretsCount) {
     if (f >= fretsCount) return;
     const left = 52 + (f + 0.5) * FRET_W;
     if (f === 12) {
-      const a = document.createElement('div'); a.className = 'fret-inlay double'; a.style.left = (left - 5) + 'px';
-      const b = document.createElement('div'); b.className = 'fret-inlay double'; b.style.left = (left + 5) + 'px';
+      // Both dots share the fret's horizontal centre and are separated
+      // vertically by CSS (.fret-inlay.double margin-top) — a 12th-fret double
+      // inlay is stacked, not diagonal. These used to be offset left-5/left+5,
+      // which combined with the vertical offsets to put them on a diagonal.
+      const a = document.createElement('div'); a.className = 'fret-inlay double'; a.style.left = left + 'px';
+      const b = document.createElement('div'); b.className = 'fret-inlay double'; b.style.left = left + 'px';
       container.appendChild(a); container.appendChild(b);
     } else {
       const dot = document.createElement('div'); dot.className = 'fret-inlay'; dot.style.left = left + 'px';

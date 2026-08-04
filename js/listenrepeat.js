@@ -864,7 +864,9 @@ function lrUpdateStatsDisplay() {
   document.getElementById('lr-best-streak').textContent = lr.bestStreak;
   document.getElementById('lr-total-sequences').textContent = lr.totalSequences;
   const acc = lr.totalSequences ? Math.round(lr.correctSequences / lr.totalSequences * 100) : 0;
-  document.getElementById('lr-accuracy').textContent = lr.totalSequences ? `${acc}%` : '—';
+  const lrAccEl = document.getElementById('lr-accuracy');
+  lrAccEl.textContent = lr.totalSequences ? `${acc}%` : '—';
+  lrAccEl.classList.toggle('is-empty', !lr.totalSequences);
 }
 
 function lrRenderMissedNotesHeatmap() {

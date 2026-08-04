@@ -668,7 +668,9 @@ function gradeSwitch(success) {
   document.getElementById('stat-got').textContent = gameGot;
   document.getElementById('stat-missed').textContent = gameMissed;
   const total = gameGot + gameMissed;
-  document.getElementById('game-accuracy').textContent = total>0 ? Math.round(gameGot/total*100)+'%' : '—';
+  const gAccEl = document.getElementById('game-accuracy');
+  gAccEl.textContent = total>0 ? Math.round(gameGot/total*100)+'%' : '—';
+  gAccEl.classList.toggle('is-empty', !(total>0));
   ges('btn-got').style.display='none';
   ges('btn-missed').style.display='none';
   updateHistoryLog();
