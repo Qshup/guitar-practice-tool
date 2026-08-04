@@ -1,5 +1,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// PRACTICE PROGRESS TRACKER — localStorage-backed, collapsible panel
+// PRACTICE PROGRESS TRACKER — durable (IndexedDB + localStorage mirror)
+// Storage goes through durableGet/durableSet in js/storage.js — see that file
+// for why both stores exist rather than IndexedDB alone.
 // ═══════════════════════════════════════════════════════════════════════════
 
 const PROGRESS_KEY = 'gpt_progress';
@@ -13,11 +15,11 @@ const PROFILES_KEY = 'gpt_profiles';
 const PROFILE_AVATARS = ['🎸','🎵','🎶','🤘','⭐','🔥','🌟','🎯'];
 
 function loadProfilesMeta() {
-  try { const raw = localStorage.getItem(PROFILES_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
+  try { const raw = durableGet(PROFILES_KEY); if (raw) return JSON.parse(raw); } catch (e) {}
   return null;
 }
 function saveProfilesMeta(meta) {
-  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(meta)); } catch (e) {}
+  durableSet(PROFILES_KEY, JSON.stringify(meta));
 }
 
 // First run (or an install from before profiles existed): migrate any
@@ -25,12 +27,19 @@ function saveProfilesMeta(meta) {
 // default profile, so adding this feature never loses anyone's history.
 function ensureProfilesInitialized() {
   let meta = loadProfilesMeta();
-  if (meta && meta.profiles && meta.profiles.length) return meta;
+  if (meta && meta.profiles && meta.profiles.length) {
+    // Idempotent write-through. Without this the profiles meta is only ever
+    // written on the load that creates it, so an existing profile never
+    // reaches IndexedDB — and recovery would then restore progress under a
+    // profile id the app has no record of, leaving the data invisible.
+    saveProfilesMeta(meta);
+    return meta;
+  }
   const defaultId = 'p_' + Date.now().toString(36);
   meta = { profiles: [{ id: defaultId, name: 'Player 1', avatar: '🎸' }], activeProfileId: defaultId };
   try {
-    const legacyRaw = localStorage.getItem(PROGRESS_KEY);
-    if (legacyRaw) localStorage.setItem(PROGRESS_KEY + '_' + defaultId, legacyRaw);
+    const legacyRaw = durableGet(PROGRESS_KEY);
+    if (legacyRaw) durableSet(PROGRESS_KEY + '_' + defaultId, legacyRaw);
   } catch (e) {}
   saveProfilesMeta(meta);
   return meta;
@@ -68,7 +77,10 @@ function deleteProfile(id) {
   if (!p || !confirm(`Delete "${p.name}" and all their progress? This cannot be undone.`)) return;
   meta.profiles = meta.profiles.filter(x => x.id !== id);
   if (meta.activeProfileId === id) meta.activeProfileId = meta.profiles[0].id;
-  try { localStorage.removeItem(PROGRESS_KEY + '_' + id); } catch (e) {}
+  // durableRemove, not localStorage.removeItem: deleting only the mirror
+  // would leave the profile in IndexedDB, and boot recovery would restore
+  // the 'deleted' data on the next load.
+  durableRemove(PROGRESS_KEY + '_' + id);
   saveProfilesMeta(meta);
   location.reload();
 }
@@ -143,7 +155,7 @@ function defaultProgress() {
 function loadProgress() {
   let data = null;
   try {
-    const raw = localStorage.getItem(activeProgressKey());
+    const raw = durableGet(activeProgressKey());
     if (raw) data = JSON.parse(raw);
   } catch (e) { data = null; }
   if (!data || typeof data !== 'object') data = defaultProgress();
@@ -181,8 +193,7 @@ function recordFretboardQuizAnswer(tier, correct, itemKey, itemLabel) {
 }
 
 function saveProgress(data) {
-  try { localStorage.setItem(activeProgressKey(), JSON.stringify(data)); }
-  catch (e) { /* storage full/unavailable — practice continues, just isn't persisted this session */ }
+  durableSet(activeProgressKey(), JSON.stringify(data));
 }
 
 function dateKey(d) {
@@ -367,6 +378,136 @@ function exportProgressJSON() {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+// ── Progress import ───────────────────────────────────────────────────────
+// The counterpart exportProgressJSON never had. Without this the export was a
+// one-way door: a file you could produce but nothing could read back.
+//
+// The merge is deliberately NON-DESTRUCTIVE and idempotent — re-importing the
+// same file twice must not double your totals. So counters take max() rather
+// than summing, and per-day records keep whichever side recorded more
+// practice. Nothing in the incoming file can reduce a value you already have.
+
+function progressImportSummary(incoming) {
+  const cur = loadProgress();
+  const days = Object.keys(incoming.days || {});
+  const newDays = days.filter(d => !cur.days || !cur.days[d]).length;
+  return {
+    totalDays: days.length,
+    newDays,
+    overlappingDays: days.length - newDays,
+    chordPairs: Object.keys(incoming.chordPairs || {}).length,
+    riffs: Object.keys(incoming.riffTotals || {}).length,
+    quizQuestions: (incoming.fretboardQuiz && incoming.fretboardQuiz.totalQuestions) || 0,
+    lrSequences: (incoming.listenRepeat && incoming.listenRepeat.totalSequences) || 0,
+    songs: Object.keys(incoming.songs || {}).length,
+  };
+}
+
+function validateProgressPayload(parsed) {
+  if (!parsed || typeof parsed !== 'object') return 'File is not valid JSON object data.';
+  const d = parsed.data || parsed; // accept a bare progress object too
+  if (typeof d !== 'object' || d === null) return 'No progress data found in file.';
+  const looksRight = ['days', 'chordPairs', 'riffTotals', 'fretboardQuiz', 'listenRepeat', 'songs']
+    .some(k => d[k] !== undefined);
+  if (!looksRight) return 'This does not look like a guitar-practice progress export.';
+  if (d.version && Number(d.version) > PROGRESS_VERSION) {
+    return `File was written by a newer version (v${d.version}, this app reads v${PROGRESS_VERSION}).`;
+  }
+  return null; // valid
+}
+
+function mergeNumericMap(target, incoming, field) {
+  Object.entries(incoming || {}).forEach(([k, v]) => {
+    if (typeof v === 'number') {
+      target[k] = Math.max(target[k] || 0, v);
+    } else if (v && typeof v === 'object') {
+      const t = target[k] || (target[k] = {});
+      Object.entries(v).forEach(([kk, vv]) => {
+        if (typeof vv === 'number') t[kk] = Math.max(t[kk] || 0, vv);
+        else if (t[kk] === undefined) t[kk] = vv;
+      });
+    }
+  });
+}
+
+function mergeProgress(cur, inc) {
+  // Days: keep whichever side recorded more practice for that date.
+  Object.entries(inc.days || {}).forEach(([day, entry]) => {
+    const existing = cur.days[day];
+    if (!existing) { cur.days[day] = entry; return; }
+    const a = existing.totalSeconds || 0, b = (entry && entry.totalSeconds) || 0;
+    if (b > a) cur.days[day] = entry;
+  });
+  mergeNumericMap(cur.chordPairs, inc.chordPairs);
+  mergeNumericMap(cur.riffTotals, inc.riffTotals);
+  mergeNumericMap(cur.songs, inc.songs);
+
+  if (inc.fretboardQuiz) {
+    const t = cur.fretboardQuiz, i = inc.fretboardQuiz;
+    t.totalQuestions = Math.max(t.totalQuestions || 0, i.totalQuestions || 0);
+    t.bestStreak = Math.max(t.bestStreak || 0, i.bestStreak || 0);
+    mergeNumericMap(t.accuracyByType, i.accuracyByType);
+    mergeNumericMap(t.missedItems, i.missedItems);
+    Object.entries(i.missedItems || {}).forEach(([k, v]) => {
+      if (v && v.label && cur.fretboardQuiz.missedItems[k]) cur.fretboardQuiz.missedItems[k].label = v.label;
+    });
+    Object.entries(i.tierUnlocked || {}).forEach(([k, v]) => { if (v) t.tierUnlocked[k] = true; });
+  }
+  if (inc.listenRepeat) {
+    const t = cur.listenRepeat, i = inc.listenRepeat;
+    ['sessions', 'totalSequences', 'correctSequences', 'bestStreak'].forEach(k => {
+      t[k] = Math.max(t[k] || 0, i[k] || 0);
+    });
+    mergeNumericMap(t.accuracyByNote, i.accuracyByNote);
+    mergeNumericMap(t.missedNotes, i.missedNotes);
+  }
+  // ui is intentionally NOT merged — panel/collapse state is a local preference
+  // of this device, not practice history worth importing.
+  return cur;
+}
+
+function triggerProgressImport() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'application/json,.json';
+  input.onchange = () => {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try { parsed = JSON.parse(reader.result); }
+      catch (e) { alert('Could not read that file — it is not valid JSON.'); return; }
+      const err = validateProgressPayload(parsed);
+      if (err) { alert('Import cancelled.\n\n' + err); return; }
+      const incoming = parsed.data || parsed;
+      const s = progressImportSummary(incoming);
+      const from = parsed.exportedAt ? new Date(parsed.exportedAt).toLocaleString() : 'unknown date';
+      const ok = confirm(
+        `Import practice history?\n\n` +
+        `Exported: ${from}\n\n` +
+        `${s.totalDays} day(s) of history — ${s.newDays} new, ${s.overlappingDays} already present\n` +
+        `${s.chordPairs} chord pair(s)\n` +
+        `${s.riffs} riff(s)\n` +
+        `${s.quizQuestions} fretboard-quiz question(s)\n` +
+        `${s.lrSequences} listen-and-repeat sequence(s)\n` +
+        `${s.songs} song record(s)\n\n` +
+        `Nothing will be overwritten with a lower value — where both sides have ` +
+        `a record, the one with more practice is kept. Importing the same file ` +
+        `twice is safe.\n\nImport into "${(getActiveProfile() || {}).name || 'this profile'}"?`
+      );
+      if (!ok) return;
+      const merged = mergeProgress(loadProgress(), incoming);
+      saveProgress(merged);
+      alert(`Imported ${s.totalDays} day(s) of history into "${(getActiveProfile() || {}).name || 'this profile'}".\n\nReloading to apply.`);
+      location.reload();
+    };
+    reader.onerror = () => alert('Could not read that file.');
+    reader.readAsText(file);
+  };
+  input.click();
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────

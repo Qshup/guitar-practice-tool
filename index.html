@@ -46,6 +46,7 @@
         <div class="profile-menu" id="profile-menu" style="display:none" onclick="event.stopPropagation()"></div>
       </span>
       <button class="progress-export-btn" onclick="event.stopPropagation(); exportProgressJSON()" title="Download all progress data as a JSON file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-download"/></svg>Export</button>
+      <button class="progress-export-btn" onclick="event.stopPropagation(); triggerProgressImport()" title="Restore progress from a previously exported JSON file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-upload"/></svg>Import</button>
       <span class="progress-panel-chevron" id="progress-panel-chevron">▾</span>
     </span>
   </div>
@@ -1264,6 +1265,8 @@
   </div>
 </div>
 
+<!-- Durable storage layer — must load before any file that reads progress -->
+<script src="js/storage.js"></script>
 <script src="js/vendor/Tone.js"></script>
 <script src="js/vendor/pitchy.js"></script>
 <script src="js/scales.js"></script>
