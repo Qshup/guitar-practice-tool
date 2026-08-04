@@ -132,245 +132,22 @@ function sectionColor(label) {
 }
 
 const SONG_LIBRARY = [
-  {
-    id: 'sultans-of-swing', title: 'Sultans of Swing', artist: 'Dire Straits', playerTag: 'Knopfler',
-    key: 'Dm', bpm: 148, timeSig: 4, difficulty: 4, defaultInstrument: 'clean',
-    soloScaleId: 'majpent', soloScaleKey: 'D', altScaleId: 'natmin', altScaleKey: 'D',
-    tip: "Knopfler's solo famously leans on D major pentatonic OVER the Dm chords — a deliberate major/minor clash that gives it that bittersweet lift. Fingers, not a pick, for his percussive attack.",
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse1', label: 'Verse', startBar: 5, endBar: 12 },
-      { id: 'chorus', label: 'Chorus / Hook', startBar: 13, endBar: 16 },
-      { id: 'solo', label: 'Solo', startBar: 17, endBar: 24, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 25, endBar: 28 },
-    ],
-    chords: ['Dm', 'C', 'Dm', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Bb', 'C', 'Dm', 'C',
-             'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Bb', 'C', 'Dm', 'C', 'Dm', 'C'],
-    rhythmFeel: 'fingerstyle', bassFeel: 'rootfifth',
-    leadBars: {
-      1: [{ string: 3, fret: 7, beat: 0, dur: 0.5 }, { string: 3, fret: 5, beat: 1, dur: 0.5 }, { string: 4, fret: 7, beat: 2, dur: 0.5 }, { string: 4, fret: 5, beat: 3, dur: 1 }],
-      13: [{ string: 3, fret: 7, beat: 2, dur: 0.5 }, { string: 3, fret: 9, beat: 2.5, dur: 0.5 }, { string: 3, fret: 10, beat: 3, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 9, beat: 1, dur: 0.5 }, { string: 4, fret: 7, beat: 1.5, dur: 0.5 }, { string: 3, fret: 7, beat: 2, dur: 1 }, { string: 4, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      18: [{ string: 4, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 3, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 9, beat: 3, dur: 1, technique: 'vibrato' }],
-      19: [{ string: 5, fret: 5, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 5, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      20: [{ string: 5, fret: 5, beat: 0, dur: 0.5, technique: 'hammer' }, { string: 5, fret: 7, beat: 0.5, dur: 0.5 }, { string: 4, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 5, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      21: [{ string: 3, fret: 9, beat: 0, dur: 0.5 }, { string: 3, fret: 7, beat: 0.5, dur: 0.5, technique: 'pulloff' }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 5, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      22: [{ string: 3, fret: 9, beat: 0, dur: 1 }, { string: 3, fret: 7, beat: 1, dur: 1 }, { string: 4, fret: 5, beat: 2, dur: 1 }, { string: 5, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      23: [{ string: 5, fret: 7, beat: 0, dur: 1 }, { string: 5, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      24: [{ string: 5, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1, dur: 1 }, { string: 4, fret: 7, beat: 2, dur: 1 }, { string: 3, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      25: [{ string: 4, fret: 7, beat: 0, dur: 1 }, { string: 4, fret: 5, beat: 1.5, dur: 1 }, { string: 5, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'romeo-and-juliet', title: 'Romeo and Juliet', artist: 'Dire Straits', playerTag: 'Knopfler',
-    key: 'F', bpm: 116, timeSig: 4, difficulty: 3, defaultInstrument: 'acoustic',
-    soloScaleId: 'majpent', soloScaleKey: 'F', altScaleId: 'majscl', altScaleKey: 'F',
-    tip: 'Fingerstyle throughout — thumb keeps a steady bass pulse on the low strings while your fingers pick the melody on top. Let chords ring into each other rather than damping.',
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 12, solo: true },
-      { id: 'bridge', label: 'Bridge', startBar: 13, endBar: 16 },
-      { id: 'outro', label: 'Outro', startBar: 17, endBar: 20 },
-    ],
-    chords: ['F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'F', 'Dm', 'Bb', 'C', 'Am', 'Dm', 'Gm', 'C', 'F', 'Dm', 'Bb', 'C'],
-    rhythmFeel: 'fingerstyle', bassFeel: 'roots',
-    leadBars: {
-      1: [{ string: 2, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 0, beat: 0.5, dur: 0.5 }, { string: 4, fret: 1, beat: 1, dur: 0.5 }, { string: 4, fret: 3, beat: 1.5, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 1, technique: 'vibrato' }],
-      5: [{ string: 3, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 2, beat: 1, dur: 0.5, technique: 'hammer' }, { string: 4, fret: 3, beat: 2, dur: 1, technique: 'vibrato' }],
-      9: [{ string: 3, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 2, beat: 0.5, dur: 0.5, technique: 'hammer' }, { string: 3, fret: 5, beat: 1, dur: 1 }, { string: 5, fret: 1, beat: 2, dur: 1 }, { string: 5, fret: 3, beat: 3, dur: 1, technique: 'vibrato' }],
-      11: [{ string: 3, fret: 7, beat: 0, dur: 1 }, { string: 3, fret: 5, beat: 1, dur: 0.5 }, { string: 3, fret: 2, beat: 1.5, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 1, technique: 'vibrato' }],
-      13: [{ string: 2, fret: 0, beat: 0, dur: 1 }, { string: 2, fret: 2, beat: 1, dur: 1 }, { string: 3, fret: 3, beat: 2, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 2, fret: 0, beat: 0, dur: 0.5 }, { string: 3, fret: 0, beat: 0.5, dur: 0.5 }, { string: 4, fret: 1, beat: 1, dur: 0.5 }, { string: 5, fret: 1, beat: 2, dur: 2, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'suffragette-city', title: 'Suffragette City', artist: 'David Bowie', playerTag: 'Ronson',
-    key: 'A', bpm: 136, timeSig: 4, difficulty: 2, defaultInstrument: 'crunch',
-    soloScaleId: 'minpent', soloScaleKey: 'A', altScaleId: 'majpent', altScaleKey: 'A',
-    tip: 'Driving, palm-muted eighth-note strumming — attack and energy over subtlety. Lead lines are quick A minor pentatonic bursts, not long sustained phrases.',
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 12 },
-      { id: 'prechorus', label: 'Pre-Chorus', startBar: 13, endBar: 14 },
-      { id: 'chorus', label: 'Chorus', startBar: 15, endBar: 19, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 20, endBar: 22 },
-    ],
-    chords: ['A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'D', 'A', 'G', 'G', 'A', 'D', 'A', 'D', 'G', 'A', 'A', 'D', 'G'],
-    rhythmFeel: 'driving', bassFeel: 'pulse8',
-    leadBars: {
-      1: [{ string: 0, fret: 0, beat: 0, dur: 0.5, technique: 'mute' }, { string: 0, fret: 0, beat: 1, dur: 0.5, technique: 'mute' }, { string: 1, fret: 2, beat: 2, dur: 0.5 }, { string: 1, fret: 0, beat: 3, dur: 1 }],
-      13: [{ string: 1, fret: 0, beat: 0, dur: 0.5 }, { string: 1, fret: 2, beat: 1, dur: 0.5 }, { string: 2, fret: 2, beat: 2, dur: 0.5 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      15: [{ string: 1, fret: 3, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      16: [{ string: 1, fret: 0, beat: 0, dur: 1, technique: 'mute' }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      20: [{ string: 1, fret: 0, beat: 0, dur: 0.5, technique: 'mute' }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'moonage-daydream', title: 'Moonage Daydream', artist: 'David Bowie', playerTag: 'Ronson',
-    key: 'A', bpm: 136, timeSig: 4, difficulty: 3, defaultInstrument: 'crunch',
-    soloScaleId: 'minpent', soloScaleKey: 'A', altScaleId: 'mixo', altScaleKey: 'A',
-    tip: 'The solo section is where Ronson opens up — lean on A minor pentatonic with wide bends, then let a Mixolydian passing tone or two sneak in for extra lift.',
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 12 },
-      { id: 'chorus', label: 'Chorus', startBar: 13, endBar: 16 },
-      { id: 'solo', label: 'Solo', startBar: 17, endBar: 24, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 25, endBar: 28 },
-    ],
-    chords: ['A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'D', 'A', 'E', 'A',
-             'A', 'E', 'F#m', 'D', 'A', 'E', 'F#m', 'D', 'A', 'E', 'D', 'A'],
-    rhythmFeel: 'medium', bassFeel: 'pulse8',
-    leadBars: {
-      1: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1.5, dur: 1, technique: 'bend', bendTo: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-      13: [{ string: 2, fret: 0, beat: 0, dur: 1 }, { string: 2, fret: 2, beat: 1, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 1 }, { string: 1, fret: 3, beat: 3, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1, dur: 1, technique: 'bend', bendTo: 2 }, { string: 2, fret: 0, beat: 2, dur: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-      18: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1, dur: 1 }, { string: 2, fret: 2, beat: 2, dur: 1 }, { string: 2, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      19: [{ string: 2, fret: 2, beat: 0, dur: 1 }, { string: 2, fret: 0, beat: 1, dur: 1, technique: 'pulloff' }, { string: 1, fret: 3, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      20: [{ string: 1, fret: 3, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 8, beat: 3, dur: 1, technique: 'vibrato' }],
-      21: [{ string: 0, fret: 5, beat: 0, dur: 1 }, { string: 0, fret: 8, beat: 1, dur: 1 }, { string: 1, fret: 5, beat: 2, dur: 1 }, { string: 1, fret: 7, beat: 3, dur: 1, technique: 'vibrato' }],
-      22: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 5, beat: 1, dur: 1 }, { string: 1, fret: 7, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      23: [{ string: 1, fret: 7, beat: 0, dur: 1 }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 8, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      25: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 3, beat: 1.5, dur: 1 }, { string: 2, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'can-you-get-to-that', title: 'Can You Get to That', artist: 'Funkadelic', playerTag: 'Hazel',
-    key: 'E', bpm: 104, timeSig: 4, difficulty: 3, defaultInstrument: 'clean',
-    soloScaleId: 'dorian', soloScaleKey: 'E', altScaleId: 'minpent', altScaleKey: 'E',
-    tip: 'Funky, syncopated strumming with emphasis on the off-beats. Keep the Dorian color (raised 6th, C#) in mind if you solo over this — it keeps it soulful rather than bluesy.',
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 12, solo: true },
-      { id: 'chorus', label: 'Chorus', startBar: 13, endBar: 16 },
-      { id: 'outro', label: 'Outro', startBar: 17, endBar: 18 },
-    ],
-    chords: ['E', 'A', 'B7', 'E', 'E', 'A', 'E', 'B7', 'E', 'A', 'B7', 'E', 'A', 'B7', 'E', 'E', 'E', 'A'],
-    rhythmFeel: 'driving', bassFeel: 'walking',
-    leadBars: {
-      1: [{ string: 0, fret: 0, beat: 0.5, dur: 0.5 }, { string: 0, fret: 2, beat: 1, dur: 0.5 }, { string: 1, fret: 0, beat: 2, dur: 0.5 }, { string: 1, fret: 2, beat: 2.5, dur: 0.5, technique: 'vibrato' }],
-      5: [{ string: 0, fret: 0, beat: 3, dur: 1 }],
-      9: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 2, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1 }, { string: 0, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      13: [{ string: 0, fret: 2, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1, dur: 0.5 }, { string: 0, fret: 5, beat: 2, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 2, beat: 1, dur: 0.5 }, { string: 0, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'maggot-brain', title: 'Maggot Brain', artist: 'Funkadelic', playerTag: 'Hazel',
-    key: 'Em', bpm: 60, timeSig: 4, difficulty: 4, defaultInstrument: 'crunch',
-    soloScaleId: 'minpent', soloScaleKey: 'E', altScaleId: 'dorian', altScaleKey: 'E',
-    tip: "The entire solo lives on a single Em chord — no harmonic complexity to hide behind, every note has to justify itself. Prioritize space, dynamics, and sustain over speed; let notes ring and decay fully before the next one.",
-    sections: [
-      { id: 'intro', label: 'Intro (Spoken Word)', startBar: 1, endBar: 4 },
-      { id: 'solo', label: 'Solo (Em Throughout)', startBar: 5, endBar: 20, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
-    ],
-    chords: Array(22).fill('Em'),
-    rhythmFeel: 'sparse', bassFeel: 'roots',
-    leadBars: {
-      2: [{ string: 0, fret: 12, beat: 2, dur: 2, technique: 'vibrato' }],
-      6: [{ string: 0, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
-      10: [{ string: 0, fret: 15, beat: 0, dur: 3, technique: 'bend', bendTo: 2 }],
-      14: [{ string: 1, fret: 12, beat: 0, dur: 3, technique: 'vibrato' }],
-      18: [{ string: 0, fret: 12, beat: 1, dur: 2, technique: 'harmonic' }],
-      21: [{ string: 0, fret: 12, beat: 0, dur: 4, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'transdermal-celebration', title: 'Transdermal Celebration', artist: 'Ween', playerTag: 'Dean Ween',
-    key: 'E', bpm: 72, timeSig: 4, difficulty: 4, defaultInstrument: 'crunch',
-    soloScaleId: 'minpent', soloScaleKey: 'E', altScaleId: 'blues', altScaleKey: 'E',
-    tip: 'Loose, unpredictable phrasing — treat the rhythm almost like a lead line. The solo sections are straight E minor pentatonic, but play a little rough around the edges; over-cleanliness kills the character.',
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 8 },
-      { id: 'chorus', label: 'Chorus', startBar: 9, endBar: 12 },
-      { id: 'solo', label: 'Solo (Pentatonic)', startBar: 13, endBar: 20, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
-    ],
-    chords: ['E', 'A', 'E', 'A', 'E', 'A', 'B', 'E', 'A', 'B', 'E', 'E', 'E', 'A', 'B', 'E', 'E', 'A', 'B', 'E', 'E', 'A'],
-    rhythmFeel: 'medium', bassFeel: 'rootfifth',
-    leadBars: {
-      1: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1, technique: 'bend', bendTo: 1 }, { string: 1, fret: 0, beat: 3, dur: 1 }],
-      5: [{ string: 1, fret: 2, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
-      9: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1, dur: 0.5 }, { string: 1, fret: 2, beat: 2, dur: 1, technique: 'vibrato' }],
-      13: [{ string: 0, fret: 0, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 1, fret: 2, beat: 2, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      14: [{ string: 0, fret: 3, beat: 0, dur: 1 }, { string: 0, fret: 0, beat: 1.5, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 0, fret: 3, beat: 0, dur: 1, technique: 'bend', bendTo: 1 }, { string: 0, fret: 0, beat: 1, dur: 1 }, { string: 1, fret: 0, beat: 2, dur: 1 }, { string: 1, fret: 2, beat: 3, dur: 1, technique: 'vibrato' }],
-      18: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1.5, dur: 1 }, { string: 0, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      21: [{ string: 0, fret: 0, beat: 0, dur: 0.5 }, { string: 0, fret: 3, beat: 1.5, dur: 2.5, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'black-napkins', title: 'Black Napkins', artist: 'Frank Zappa', playerTag: 'Zappa',
-    key: 'Em', bpm: 92, timeSig: 4, difficulty: 3, defaultInstrument: 'crunch',
-    soloScaleId: 'dorian', soloScaleKey: 'E', altScaleId: 'minpent', altScaleKey: 'E',
-    tip: "A slow, spacious i–bVII vamp (Em to D) — Zappa's sustain and dynamics showcase. Let notes bloom and decay fully; this is about phrasing and tone, not speed.",
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'theme', label: 'Theme', startBar: 5, endBar: 8 },
-      { id: 'solo', label: 'Solo (Dorian)', startBar: 9, endBar: 20, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
-    ],
-    chords: ['Em', 'D', 'Em', 'D', 'Em', 'D', 'C', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'D', 'Em', 'Em'],
-    rhythmFeel: 'sparse', bassFeel: 'roots',
-    leadBars: {
-      1: [{ string: 0, fret: 0, beat: 0, dur: 2, technique: 'vibrato' }, { string: 0, fret: 3, beat: 2, dur: 2 }],
-      5: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1, dur: 1 }, { string: 0, fret: 0, beat: 2, dur: 2, technique: 'vibrato' }],
-      9: [{ string: 0, fret: 0, beat: 0, dur: 2, technique: 'vibrato' }, { string: 0, fret: 2, beat: 2, dur: 1 }, { string: 0, fret: 3, beat: 3, dur: 1 }],
-      10: [{ string: 1, fret: 2, beat: 0, dur: 1 }, { string: 1, fret: 0, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 2, technique: 'vibrato' }],
-      13: [{ string: 1, fret: 0, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1, dur: 1 }, { string: 1, fret: 4, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1, technique: 'vibrato' }],
-      14: [{ string: 1, fret: 4, beat: 0, dur: 1 }, { string: 1, fret: 2, beat: 1.5, dur: 1 }, { string: 1, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      17: [{ string: 0, fret: 7, beat: 0, dur: 1 }, { string: 0, fret: 9, beat: 1, dur: 1, technique: 'slide' }, { string: 0, fret: 10, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 0, beat: 3, dur: 1 }],
-      18: [{ string: 0, fret: 9, beat: 0, dur: 1 }, { string: 0, fret: 7, beat: 1.5, dur: 1 }, { string: 0, fret: 0, beat: 3, dur: 1, technique: 'vibrato' }],
-      21: [{ string: 0, fret: 0, beat: 0, dur: 4, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'inca-roads', title: 'Inca Roads', artist: 'Frank Zappa', playerTag: 'Zappa',
-    key: 'F', bpm: 120, timeSig: 4, difficulty: 5, defaultInstrument: 'clean',
-    soloScaleId: 'mixo', soloScaleKey: 'F', altScaleId: 'majscl', altScaleKey: 'F',
-    tip: "The solo section is a two-chord F–Eb Mixolydian vamp (I–bVII) — Zappa's signature move. Keep the phrasing floating and unpredictable rather than locking into the groove.",
-    sections: [
-      { id: 'head', label: 'Head', startBar: 1, endBar: 4 },
-      { id: 'melody', label: 'Melody', startBar: 5, endBar: 12 },
-      { id: 'vamp', label: 'Vamp / Solo (2-Chord)', startBar: 13, endBar: 20, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 21, endBar: 22 },
-    ],
-    chords: ['F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'Bb', 'F', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb', 'F', 'Eb'],
-    rhythmFeel: 'medium', bassFeel: 'rootfifth',
-    leadBars: {
-      1: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
-      5: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 5, beat: 1, dur: 1 }, { string: 0, fret: 3, beat: 2, dur: 1 }, { string: 0, fret: 1, beat: 3, dur: 1, technique: 'vibrato' }],
-      13: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
-      14: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 8, beat: 1, dur: 1 }, { string: 0, fret: 10, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 1, beat: 3, dur: 1 }],
-      17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 0, fret: 11, beat: 2, dur: 1, technique: 'vibrato' }, { string: 0, fret: 1, beat: 3, dur: 1 }],
-      18: [{ string: 0, fret: 1, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1, dur: 1 }, { string: 0, fret: 5, beat: 2, dur: 1 }, { string: 0, fret: 6, beat: 3, dur: 1, technique: 'vibrato' }],
-      21: [{ string: 0, fret: 6, beat: 0, dur: 1 }, { string: 0, fret: 3, beat: 1.5, dur: 1 }, { string: 0, fret: 1, beat: 3, dur: 1, technique: 'vibrato' }],
-    },
-  },
-  {
-    id: 'montana', title: 'Montana', artist: 'Frank Zappa', playerTag: 'Zappa',
-    key: 'C', bpm: 132, timeSig: 4, difficulty: 5, defaultInstrument: 'clean',
-    soloScaleId: 'lydian', soloScaleKey: 'C', altScaleId: 'mixo', altScaleKey: 'C',
-    tip: "The marked Lydian section is the heart of it — the #4 (F#) gives Montana its floating, absurd brightness. Commit fully to the #4, don't resolve it early.",
-    sections: [
-      { id: 'intro', label: 'Intro', startBar: 1, endBar: 4 },
-      { id: 'verse', label: 'Verse', startBar: 5, endBar: 12 },
-      { id: 'lydian', label: 'Lydian Section', startBar: 13, endBar: 20, solo: true },
-      { id: 'outro', label: 'Outro', startBar: 21, endBar: 24 },
-    ],
-    chords: ['C', 'D', 'C', 'D', 'C', 'Bb', 'F', 'C', 'C', 'Bb', 'F', 'C', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'D', 'C', 'C'],
-    rhythmFeel: 'medium', bassFeel: 'walking',
-    leadBars: {
-      1: [{ string: 1, fret: 5, beat: 0, dur: 0.5 }, { string: 1, fret: 7, beat: 0.5, dur: 0.5 }, { string: 0, fret: 8, beat: 1, dur: 0.5 }, { string: 0, fret: 5, beat: 2, dur: 1, technique: 'vibrato' }],
-      5: [{ string: 1, fret: 9, beat: 0, dur: 1 }, { string: 1, fret: 7, beat: 1, dur: 1 }, { string: 1, fret: 5, beat: 2, dur: 2, technique: 'vibrato' }],
-      13: [{ string: 1, fret: 9, beat: 0, dur: 1, technique: 'vibrato' }, { string: 1, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 7, beat: 2, dur: 1 }, { string: 1, fret: 5, beat: 3, dur: 1 }],
-      14: [{ string: 1, fret: 9, beat: 0, dur: 1 }, { string: 1, fret: 10, beat: 1, dur: 1, technique: 'vibrato' }, { string: 1, fret: 7, beat: 2.5, dur: 1.5 }],
-      17: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 9, beat: 2, dur: 2, technique: 'vibrato' }],
-      18: [{ string: 0, fret: 8, beat: 0, dur: 1 }, { string: 0, fret: 10, beat: 1, dur: 1 }, { string: 1, fret: 9, beat: 2, dur: 2, technique: 'vibrato' }],
-      21: [{ string: 1, fret: 5, beat: 0, dur: 1 }, { string: 1, fret: 7, beat: 1.5, dur: 1 }, { string: 1, fret: 9, beat: 3, dur: 1, technique: 'vibrato' }],
-    },
-  },
+  // DELIBERATELY EMPTY.
+  //
+  // Ten hand-written songs used to live here (Sultans of Swing, Maggot Brain,
+  // Black Napkins, …). They were stylistically-composed approximations, not
+  // transcriptions — the chord charts and lead lines were written to sound
+  // plausible for the artist rather than to match the record. That is worse
+  // than having no songs at all: an inaccurate chart teaches the wrong notes
+  // and you practise the mistake until it is muscle memory.
+  //
+  // Songs now come from Guitar Pro files you import (see js/upload.js and the
+  // empty state in buildSongLibraryGrid). Those are note-for-note
+  // transcriptions made by guitarists listening to the actual recording, and
+  // are the only source accurate enough to practise from.
+  //
+  // If you want the old data back for reference it is in git history at
+  // 5b5ef50 and earlier.
 ];
 
 // ── Guitar Pro import (future session) ──────────────────────────────────────
@@ -425,6 +202,10 @@ function buildSongLibraryGrid() {
   const grid = document.getElementById('songs-grid');
   if (!grid) return;
   grid.innerHTML = '';
+  // A genuinely empty library is a different state from "filters matched
+  // nothing" (#songs-filtered-empty) and needs its own honest explanation of
+  // why there is nothing here and what to do about it.
+  renderSongLibraryEmptyState(SONG_LIBRARY.length === 0);
   SONG_LIBRARY.forEach(song => {
     const scale = ALL_SCALES.find(s => s.id === song.soloScaleId);
     const card = document.createElement('div');
@@ -1253,3 +1034,14 @@ function stopSongRiffPlay(riffKey) {
 // ── Init ──────────────────────────────────────────────────────────────────
 buildSongLibraryFilters();
 buildSongLibraryGrid();
+
+
+// ── Empty library state ────────────────────────────────────────────────────
+function renderSongLibraryEmptyState(show) {
+  const el = document.getElementById('songs-empty-library');
+  const filters = document.getElementById('songs-filter-bar');
+  if (!el) return;
+  el.style.display = show ? '' : 'none';
+  // Filtering an empty library is meaningless, so hide the controls entirely.
+  if (filters) filters.style.display = show ? 'none' : '';
+}

@@ -583,8 +583,8 @@
         <div class="chord-grading-status" id="chord-grading-status"></div>
         <div class="chord-selfgrade-row" id="chord-selfgrade-row" style="display:none">
           <span id="chord-selfgrade-label"></span>
-          <button class="quiz-mode-btn" class="u-ok" onclick="chordSelfGrade(true)">✓ Got it</button>
-          <button class="quiz-mode-btn" class="u-bad" onclick="chordSelfGrade(false)">✗ Missed</button>
+          <button onclick="chordSelfGrade(true)" class="quiz-mode-btn u-ok">✓ Got it</button>
+          <button onclick="chordSelfGrade(false)" class="quiz-mode-btn u-bad">✗ Missed</button>
         </div>
       </div>
 
@@ -779,7 +779,7 @@
             <label for="game-autoadvance">Auto-advance chords</label>
           </div>
 
-          <div class="gs-row" class="u-divider">
+          <div class="gs-row u-divider">
             <div class="gs-label">Fretboard mode</div>
             <select id="game-fret-mode">
               <option value="static">Static (show chord shape)</option>
@@ -841,8 +841,8 @@
             <button class="game-btn game-btn-skip" onclick="skipChord()" style="display:none" id="game-skip-btn">Skip →</button>
           </div>
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="grade-btns" style="display:none">
-            <button class="game-btn game-btn-got" onclick="gradeSwitch(true)" style="display:none" class="game-btn-grade" id="btn-got">✓ Got it</button>
-            <button class="game-btn game-btn-missed" onclick="gradeSwitch(false)" style="display:none" class="game-btn-grade" id="btn-missed">✗ Missed</button>
+            <button onclick="gradeSwitch(true)" style="display:none" id="btn-got" class="game-btn game-btn-got game-btn-grade">✓ Got it</button>
+            <button onclick="gradeSwitch(false)" style="display:none" id="btn-missed" class="game-btn game-btn-missed game-btn-grade">✗ Missed</button>
           </div>
 
           <div class="game-message ready" id="game-message">Choose your settings and press START</div>
@@ -920,9 +920,9 @@
           <div class="quiz-result" id="quiz-result"></div>
         </div>
         <div class="quiz-controls">
-          <div class="ctrl-label" class="u-caps">SELF GRADE</div>
-          <button class="quiz-mode-btn" class="u-ok" onclick="gradeCard(true)">✓ Got it</button>
-          <button class="quiz-mode-btn" class="u-bad" onclick="gradeCard(false)">✗ Missed</button>
+          <div class="ctrl-label u-caps">SELF GRADE</div>
+          <button onclick="gradeCard(true)" class="quiz-mode-btn u-ok">✓ Got it</button>
+          <button onclick="gradeCard(false)" class="quiz-mode-btn u-bad">✗ Missed</button>
           <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
           <div class="u-note-dim">
             Cards cycle through<br>all chord types<br>in the current key.<br><br>
@@ -1205,8 +1205,8 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-songs">
   <div class="riff-title"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-songs"/></svg><span>Song Library</span></div>
-  <div class="riff-subtitle">Full chord charts, tab, and a scrolling synced practice player for each song below —
-    pick a song to open the practice view, drill a section on loop, then branch into a matching riff from the Riffs library.</div>
+  <div class="riff-subtitle">Import Guitar Pro files for note-for-note accurate tab, then drill any section on loop
+    with a synced scrolling player and branch into a matching riff from the Riffs library.</div>
 
   <div class="songs-filter-bar" id="songs-filter-bar">
     <div class="riff-filter-group">
@@ -1233,7 +1233,15 @@
       <select id="songs-filter-scale" onchange="applySongFilters()"><option value="all">All Scales</option></select>
     </div>
     <button class="riff-filter-clear" onclick="clearSongFilters()">Clear Filters</button>
-    <button class="riff-filter-clear" class="u-accent-btn" onclick="openUploadPanel()">⬆ Upload Song</button>
+    <button class="riff-filter-clear u-accent-btn" onclick="openUploadPanel()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-upload"/></svg>Upload Song</button>
+  </div>
+
+  <div class="empty-state songs-empty-library" id="songs-empty-library" style="display:none">
+    <div class="empty-state-icon"><svg class="empty-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-songs"/></svg></div>
+    <div class="empty-state-title">Your song library is empty</div>
+    <div class="empty-state-sub">Add Guitar Pro files for accurate note-for-note tabs. Download .gp files from Ultimate Guitar or Songsterr for any song you want to practice.</div>
+    <button class="big-btn btn-go songs-empty-cta" onclick="openUploadPanel()">Upload Song</button>
+    <div class="songs-empty-footnote">Hardcoded chord charts have been removed — only import verified tab files so you are always learning the right notes.</div>
   </div>
 
   <div class="songs-grid" id="songs-grid"></div>
@@ -1251,10 +1259,10 @@
     <div class="upload-row">
       <span class="prac-label">Format</span>
       <select id="upload-format" onchange="uploadFormatChanged()">
+        <option value="gp">Guitar Pro (.gp / .gp3-5 / .gpx) — most accurate</option>
         <option value="tab">Plain Text Tab</option>
         <option value="chords">Chord Chart</option>
         <option value="json">JSON (songs.js schema)</option>
-        <option value="gp">Guitar Pro (.gp/.gp3-5/.gpx)</option>
       </select>
     </div>
     <div class="upload-format-hint" id="upload-format-hint"></div>
