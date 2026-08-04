@@ -443,6 +443,108 @@ silently matches almost nothing. Use `perl -i -pe 's/#fff\b/.../g'` instead;
 it supports `\b` correctly. Verify with a grep occurrence-count before/after
 either way.
 
+## Durable Storage (js/storage.js)
+
+Progress lives in **both** stores, deliberately:
+
+- **localStorage** — the synchronous working mirror. Every read hits this.
+- **IndexedDB** — the durable backing store, written through on every save.
+
+Why not IndexedDB alone (the obvious ask): `loadProgress()`/`saveProgress()`
+are synchronous and called from several hundred sites across every file,
+including at script-load time in `scales.js` before `progress.js` has run.
+IndexedDB has no synchronous API, so removing localStorage means making every
+one of those call sites async — a rewrite of the app's control flow for a
+storage change. The split gets the durability (history survives localStorage
+eviction and private-window resets) with zero changes to the sync API.
+
+`recoverFromDurableStore()` runs on boot, repopulates the mirror for any key
+localStorage lost, and reloads. `migrateLocalStorageToDurable()` runs on
+**every** load over **every** `gpt_` key — it has to be convergent, not
+one-shot: `gpt_profiles` is only written when first created, so an existing
+profile never triggered a write-through and the one-shot version raced past
+it. Losing that one key is worse than losing a progress key, because recovery
+would then restore history under a profile id the app no longer knows about
+and the data comes back invisible. `deleteProfile` uses `durableRemove`, not
+`localStorage.removeItem` — otherwise boot recovery resurrects deleted data.
+
+**Progress import** (`triggerProgressImport`) is the counterpart export never
+had. The merge is non-destructive and idempotent: counters take `max()` rather
+than summing and per-day records keep whichever side logged more practice, so
+nothing incoming lowers an existing value and re-importing the same file twice
+is a no-op. `ui` state is deliberately not merged — panel collapse is a local
+device preference, not history.
+
+## Spaced Repetition (fretboard quiz)
+
+`recordFretboardQuizAnswer` records **every** answer with a timestamp, not
+just failures. Per item: box 1-5, correct, incorrect, lastSeen,
+lastSeenSession. Correct promotes one box (capped at 5); wrong drops straight
+to box 1.
+
+Leitner intervals are split by pacing unit on purpose:
+- **Boxes 1-3 — sessions** (1/2/4). Short-term recall should return the same
+  or next time you sit down.
+- **Boxes 4-5 — calendar days** (7/14). Once something is genuinely known,
+  "4 sessions" could be four days or four weeks and only elapsed time tracks
+  real forgetting.
+
+`generateFromItemKey` (quiz.js) is what makes this real SRS rather than a
+weighting heuristic — itemKeys are fully deterministic
+(`note:{key}:{scaleId}:pos{n}:deg{n}`), so a due item is rebuilt **exactly**.
+The old missed-item logic parsed the key only to recover its tier and then
+asked a random question of that tier, so it never re-tested the actual item.
+
+## Practice Session Spine (js/session.js)
+
+Answers "what should I practice for the next 30 minutes?" — the gap nothing
+else filled. Reads history already being collected: stalest scale (scanning
+`days[].scalesPracticed` backwards), the SRS due queue, weakest chord pair by
+success rate with a 3-attempt minimum, least-played riff, focus-matched song.
+Every activity carries a reason drawn from real data.
+
+Durations are proportions of the total, so a 15-minute plan is the same shape
+as a 60-minute one rather than a truncated version. The planner is an
+**option, never a gate**: skip dismisses it for an hour, an active plan never
+blocks navigation, and the nav bar only reports progress.
+
+Riffs have **no `id` field** — riffs.js identifies them positionally as
+`` `${groupIndex}-${riffIndex}` `` and `recordRiffPlayed` stores
+`{ playCount, title, lastPlayed }`. Reading `r.id` made "least played" return
+the first riff every time; anything ranking riffs must use the positional key.
+
+## Keyboard Shortcuts (js/shortcuts.js)
+
+Space (metronome), M (mic), R (scale run), G (chord game), arrows
+(position/chord), 1-5 (jump position), Tab (cycle modes), ? (help), Esc.
+
+Two invariants worth preserving: every handler bails when focus is in an
+input/textarea/select/**contenteditable** (the compact BPM field is
+contenteditable — stealing Space or a digit from it would be worse than having
+no shortcuts), and `preventDefault` runs only on the handled path, so Space
+still scrolls and Tab still moves focus everywhere else.
+
+## Mic Calibration (js/mic.js, bottom)
+
+The detection constants are no longer guesses. Six guided steps — silence,
+soft, hard, then bend / vibrato / slide separately (you cannot segment three
+techniques out of one capture; you have to prompt for them individually).
+
+Derivation: gate sits 20% above the **95th percentile** of silence (not the
+max, so one cough doesn't set the session threshold), then is lowered if it
+would exceed your softest playing — a slightly noisy gate beats one that
+silently drops quiet notes. Sensitivity scales the hard peak toward ~0.6 RMS.
+Technique thresholds land at ~60% of what you actually played.
+
+`classifyTechnique`'s numbers are now `micTech` state rather than literals, so
+they can be calibrated and persist per profile in `micCalibration`. Sliders
+remain for fine-tuning.
+
+**Load order**: `loadMicCalibration()` is called from `nav.js`'s `initNav()`,
+NOT at the bottom of mic.js — mic.js loads at index.html:1284 and progress.js
+at 1290, so a call there finds no `loadProgress` and silently skips. Same trap
+that made `saveScalesState` throw.
+
 ## Audio Architecture
 
 ### Two engines, split by mode
@@ -453,10 +555,20 @@ Songs' "related riffs" mini-player). Real recorded guitar/bass notes instead
 of synthesis.
 
 **Tone.js synthesis voices** (`audio.js`, top section — Karplus-Strong pluck,
-bend/vibrato mono-synth). Still power **Chords** (chord-run preview + strum),
-the **Chord Game**, and **Listen & Repeat**. Left unchanged — those are
-ear-training/reference tools where the practice content itself (not tone
-realism) is the point, and converting them was out of scope for this pass.
+bend/vibrato mono-synth). **No longer power any musical content.** The Chords
+strum (`playChordSound`) and the Chord Game strum (`strumGameChord`) were the
+last two and now call `playSampledNote`; Listen & Repeat's sequences already
+did. The only remaining synthesis is Listen & Repeat's correct-answer chime
+(880Hz + 1108.7Hz) and the metronome click/percussion — correctly, since a
+"ding" is not a guitar note.
+
+**App-wide voice**: `currentInstrument()`/`setCurrentInstrument()` (persisted
+in `ui.instrument`) is read by every sampled surface, so choosing Acoustic in
+Scales also changes the Chords and Chord Game strum. Previously each surface
+had its own selector or a hardcoded voice (Listen & Repeat was pinned to an
+`LR_INSTRUMENT` constant), which is half of why the app sounded like different
+instruments in different modes. `syncInstrumentSelectors()` runs at init so
+every selector shows the persisted voice rather than its markup default.
 The metronome click and backing-track chords/bass (`playClick`/`playBass`/
 `playChord`) are untouched everywhere.
 
