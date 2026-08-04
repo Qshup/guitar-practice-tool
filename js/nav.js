@@ -23,12 +23,37 @@ function switchMode(mode) {
     if (typeof activeSongRiffPlayers !== 'undefined') Object.keys(activeSongRiffPlayers).forEach(id => stopSongRiffPlay(id));
   }
 
+  // Overlap the two panels so there is no blank frame between them: the old
+  // one keeps painting (absolutely positioned, so it does not push layout)
+  // while the new one animates in, then is removed once its exit finishes.
+  // MEASURE FIRST, then mutate. .exiting is absolutely positioned against
+  // <body>, so it needs an explicit top or it jumps to the top of the
+  // document. That top has to be read before the incoming panel is shown —
+  // NAV_MODES puts 'scales' ahead of 'songs', so measuring inside the loop
+  // read the outgoing panel's position *after* the new one was already in
+  // flow and had pushed it down (2288px instead of 130px).
+  const outgoing = (prevMode && prevMode !== mode) ? document.getElementById(`mode-panel-${prevMode}`) : null;
+  const outgoingTop = outgoing && outgoing.classList.contains('active') ? outgoing.offsetTop : null;
+
   NAV_MODES.forEach(m => {
     const panel = document.getElementById(`mode-panel-${m}`);
-    if (panel) panel.classList.toggle('active', m === mode);
+    if (!panel) return;
+    const becomingActive = m === mode;
+    if (becomingActive) {
+      panel.classList.remove('exiting');
+      panel.classList.add('active');
+    } else if (panel === outgoing && outgoingTop !== null) {
+      panel.style.top = outgoingTop + 'px';
+      panel.classList.remove('active');
+      panel.classList.add('exiting');
+      setTimeout(() => { panel.classList.remove('exiting'); panel.style.top = ''; }, 170);
+    } else {
+      panel.classList.remove('active');
+    }
     const btn = document.querySelector(`.nav-btn[data-mode="${m}"]`);
-    if (btn) btn.classList.toggle('active', m === mode);
+    if (btn) btn.classList.toggle('active', becomingActive);
   });
+  moveNavIndicator();
 
   const data = loadProgress();
   if (mode === 'scales') render();
@@ -78,3 +103,26 @@ new MutationObserver(muts => {
     if (node.querySelectorAll) node.querySelectorAll('input[type=range]').forEach(updateRangeFill);
   }));
 }).observe(document.body, { childList: true, subtree: true });
+
+
+// ── Sliding active-tab indicator ───────────────────────────────────────────
+// A single bar that travels between tabs, rather than a bottom border being
+// switched off one button and on another.
+function moveNavIndicator() {
+  const bar = document.querySelector('.nav-bar');
+  if (!bar) return;
+  let ind = bar.querySelector('.nav-indicator');
+  if (!ind) {
+    ind = document.createElement('div');
+    ind.className = 'nav-indicator';
+    bar.appendChild(ind);
+  }
+  const active = bar.querySelector('.nav-btn.active');
+  if (!active) { ind.classList.remove('visible'); return; }
+  // offsetLeft is relative to .nav-bar (position: relative), and stays correct
+  // while the bar is scrolled sideways at narrow widths.
+  ind.style.left = active.offsetLeft + 'px';
+  ind.style.width = active.offsetWidth + 'px';
+  ind.classList.add('visible');
+}
+window.addEventListener('resize', moveNavIndicator);

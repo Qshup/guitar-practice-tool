@@ -677,7 +677,11 @@ function gradeSwitch(success) {
     gameHistory[0] = '✗ ' + (gameHistory[0]||'');
   }
   document.getElementById('game-streak').textContent = gameStreak;
-  if (success && typeof bounceStreak === 'function') bounceStreak(document.getElementById('game-streak'));
+  if (success && typeof springStreak === 'function') springStreak(document.getElementById('game-streak'));
+  if (!success) {
+    if (typeof pulseError === 'function') pulseError(document.querySelector('.game-arena'));
+    if (typeof playErrorThud === 'function') playErrorThud();
+  }
   document.getElementById('stat-got').textContent = gameGot;
   document.getElementById('stat-missed').textContent = gameMissed;
   const total = gameGot + gameMissed;

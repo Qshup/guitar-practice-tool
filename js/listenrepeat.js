@@ -500,7 +500,11 @@ function lrLightSequence(notes, onDone) {
     setTimeout(() => {
       if (lastDot) lastDot.classList.remove('lr-playing');
       const dot = lrGetDot(n.string, n.fret);
-      if (dot) { dot.classList.add('lr-playing'); dot.textContent = n.note; lastDot = dot; }
+      if (dot) {
+        dot.classList.add('lr-playing'); dot.textContent = n.note;
+        dot.classList.remove('note-pop'); void dot.offsetWidth; dot.classList.add('note-pop');
+        lastDot = dot;
+      }
     }, n.time * 1000);
   });
   const last = notes[notes.length - 1];
@@ -845,7 +849,11 @@ function lrFinalizeSequence(fullyCorrect, results) {
 
   document.getElementById('lr-streak').textContent = lrStreak;
   document.getElementById('lr-best-streak').textContent = lr.bestStreak;
-  if (fullyCorrect && typeof bounceStreak === 'function') bounceStreak(document.getElementById('lr-streak'));
+  if (fullyCorrect && typeof springStreak === 'function') springStreak(document.getElementById('lr-streak'));
+  if (!fullyCorrect) {
+    if (typeof pulseError === 'function') pulseError(document.getElementById('lr-sequence-display'));
+    if (typeof playErrorThud === 'function') playErrorThud();
+  }
 
   if (fullyCorrect) {
     playPluck(getAudioCtx().currentTime, 880, 0.5);

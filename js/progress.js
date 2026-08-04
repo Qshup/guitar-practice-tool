@@ -438,7 +438,7 @@ function applyPanelCollapsedState(collapsed) {
   const body = document.getElementById('progress-panel-body');
   const chevron = document.getElementById('progress-panel-chevron');
   if (panel) panel.classList.toggle('open', !collapsed);
-  if (body) body.style.display = collapsed ? 'none' : '';
+  if (body) { body.classList.add('collapsible'); body.classList.toggle('collapsed', !!collapsed); }
   if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
 }
 

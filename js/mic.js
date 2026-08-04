@@ -306,7 +306,7 @@ onMicOnset((evt) => { if (evt.technique) showMicTechniqueLabel(evt.technique); }
 function applyMicBarCollapsedState(collapsed) {
   const body = document.getElementById('mic-bar-body');
   const chevron = document.getElementById('mic-bar-chevron');
-  if (body) body.style.display = collapsed ? 'none' : '';
+  if (body) { body.classList.add('collapsible'); body.classList.toggle('collapsed', !!collapsed); }
   if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
 }
 function toggleMicBar() {

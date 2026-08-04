@@ -258,6 +258,7 @@ function handleQuizTap(dot) {
     fqRemainingTargets.splice(idx, 1);
     dot.classList.remove('quiz-blank');
     dot.classList.add('quiz-correct');
+    dot.classList.remove('note-pop'); void dot.offsetWidth; dot.classList.add('note-pop');
     dot.textContent = noteAt(STRINGS[si], f);
     if (fqRemainingTargets.length === 0) questionSucceeded();
   } else {
@@ -281,13 +282,16 @@ function questionSucceeded() {
   document.getElementById('quiz-explanation').textContent = cleanClear ? '✓ Correct!' : `Cleared with ${fqMistakes} mistake(s).`;
   if (cleanClear) {
     if (typeof pulseSuccess === 'function') pulseSuccess(document.getElementById('quiz-fretboard'));
-    if (typeof bounceStreak === 'function') bounceStreak(document.getElementById('fq-streak'));
+    if (typeof springStreak === 'function') springStreak(document.getElementById('fq-streak'));
     if (typeof playSuccessChime === 'function') playSuccessChime();
   }
   setTimeout(nextQuizQuestion, 900);
 }
 
 function questionFailed() {
+  // Wrong-answer counterpart to the success pulse/chime below.
+  if (typeof pulseError === 'function') pulseError(document.getElementById('quiz-fretboard'));
+  if (typeof playErrorThud === 'function') playErrorThud();
   fqStreak = 0;
   fqRemainingTargets.forEach(k => {
     const [si, f] = k.split('-').map(Number);

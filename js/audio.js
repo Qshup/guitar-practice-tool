@@ -362,6 +362,44 @@ function pulseSuccess(el) {
   setTimeout(() => el.classList.remove('success-pulse'), 500);
 }
 
+// Spring bounce for streak counters — overshoots to 1.15 then settles, which
+// reads as a reaction rather than a resize. Supersedes bounceStreak's linear
+// scale for score moments; bounceStreak is kept for existing callers.
+function springStreak(el) {
+  if (!el) return;
+  el.classList.remove('streak-spring'); void el.offsetWidth;
+  el.classList.add('streak-spring');
+  setTimeout(() => el.classList.remove('streak-spring'), 320);
+}
+
+// The counterpart to pulseSuccess — a brief red ring for a wrong answer.
+function pulseError(el) {
+  if (!el) return;
+  el.classList.remove('error-pulse'); void el.offsetWidth;
+  el.classList.add('error-pulse');
+  setTimeout(() => el.classList.remove('error-pulse'), 460);
+}
+
+// A short dull thud: low triangle dropping in pitch with a fast decay. Kept
+// deliberately unmusical and well below the guitar so a wrong answer registers
+// without becoming a percussion hit competing with what you are playing.
+function playErrorThud(vol) {
+  try {
+    const ctx = getAudioCtx();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator(), g = ctx.createGain(), lp = ctx.createBiquadFilter();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(58, t + 0.16);
+    lp.type = 'lowpass'; lp.frequency.setValueAtTime(420, t);
+    const level = (vol === undefined ? (typeof mixVol === 'function' ? mixVol('metronome', 0.5) : 0.3) : vol);
+    g.gain.setValueAtTime(level, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    osc.connect(lp); lp.connect(g); g.connect(ctx.destination);
+    osc.start(t); osc.stop(t + 0.24);
+  } catch (e) { /* audio unavailable — feedback is visual only */ }
+}
+
 function bounceStreak(el) {
   if (!el) return;
   el.classList.remove('streak-bounce'); void el.offsetWidth;
@@ -722,7 +760,12 @@ let lastHighlightEl = null;
 
 function highlightDot(el) {
   if (lastHighlightEl) lastHighlightEl.classList.remove('run-highlight');
-  if (el) { el.classList.add('run-highlight'); lastHighlightEl = el; }
+  if (el) {
+    el.classList.add('run-highlight');
+    // Restart the pop each time so consecutive notes each register.
+    el.classList.remove('note-pop'); void el.offsetWidth; el.classList.add('note-pop');
+    lastHighlightEl = el;
+  }
 }
 
 function playRunNote(note) {
@@ -914,7 +957,8 @@ function reportScaleFingerMatch(best, boxNotes) {
 function applyMetronomeBarCollapsedState(collapsed) {
   const body = document.getElementById('metronome-bar-body');
   const chevron = document.getElementById('metronome-bar-chevron');
-  if (body) body.style.display = collapsed ? 'none' : '';
+  // .collapsible animates max-height; display:none snapped.
+  if (body) { body.classList.add('collapsible'); body.classList.toggle('collapsed', !!collapsed); }
   if (chevron) chevron.textContent = collapsed ? '▸' : '▾';
 }
 

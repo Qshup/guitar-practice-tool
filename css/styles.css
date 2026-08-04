@@ -454,14 +454,27 @@
   /* Every active tab uses the amber accent + bottom-border indicator —
      a proper tab bar, not a different fill color per mode. */
   .nav-btn.active {
-    color: var(--amber); border-bottom-color: var(--amber);
+    color: var(--amber); border-bottom-color: transparent;
     background: linear-gradient(180deg, rgba(200,168,75,0.08), transparent);
   }
   .camera-nav-btn.active { color: var(--error); border-bottom-color: var(--error); background: linear-gradient(180deg, rgba(200,90,74,0.08), transparent); }
 
   /* ── Mode Panels ─────────────────────────────────────────── */
-  .mode-panel { display: none; }
-  .mode-panel.active { display: block; animation: modeFadeIn var(--ease-fade); }
+  /* ── Mode transitions ─────────────────────────────────────────────────
+     Panels used to appear via a flat opacity fade — they arrived without
+     direction. Now the outgoing panel lifts and fades on an ease-IN (leaving
+     accelerates away) while the incoming one rises into place on an ease-OUT
+     (arriving decelerates). The two overlap so there is never a blank frame:
+     nav.js keeps the old panel painted for 160ms while the new one starts. */
+  .mode-panel { display: none; position: relative; }
+  .mode-panel.active { display: block; animation: modeEnter 200ms cubic-bezier(.16,.84,.44,1) both; }
+  .mode-panel.exiting {
+    display: block; position: absolute; left: 0; right: 0; pointer-events: none;
+    animation: modeExit 160ms cubic-bezier(.4,0,.9,.4) both;
+  }
+  @keyframes modeEnter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @keyframes modeExit  { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-8px); } }
+  /* Kept: several panels still reference it. */
   @keyframes modeFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
   /* Each mode gets a faint ambient tint on the page background showing
@@ -1409,8 +1422,15 @@
   .subtab-btn.active {
     background: transparent; color: var(--amber); border-bottom-color: var(--amber);
   }
+  /* Sub-tabs read as a smaller movement, so 120ms and a shorter travel. */
   .subtab-panel { display: none; }
-  .subtab-panel.active { display: block; animation: modeFadeIn .2s ease; }
+  .subtab-panel.active { display: block; animation: subtabEnter 120ms cubic-bezier(.16,.84,.44,1) both; }
+  .subtab-panel.exiting {
+    display: block; position: absolute; left: 0; right: 0; pointer-events: none;
+    animation: subtabExit 100ms cubic-bezier(.4,0,.9,.4) both;
+  }
+  @keyframes subtabEnter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+  @keyframes subtabExit  { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-5px); } }
 
 /* ═══════════════════════════════════════════════════════════════
      CHORD GAME (Study > Chord Game — moved out of a Chords-mode drawer
@@ -2409,3 +2429,47 @@
     line-height: 1.6; margin-bottom: var(--sp-2);
   }
   .mixer-actions { margin-top: var(--sp-1); }
+
+  /* ── Sliding nav indicator ────────────────────────────────────────────────
+     One bar that travels to the active tab, instead of a border toggling off
+     one button and on another. Position and width are set from nav.js. */
+  .nav-bar { position: relative; }
+  .nav-indicator {
+    position: absolute; bottom: 0; height: 2px; background: var(--amber);
+    box-shadow: 0 0 10px var(--amber-glow);
+    transition: left 260ms cubic-bezier(.16,.84,.44,1), width 260ms cubic-bezier(.16,.84,.44,1);
+    pointer-events: none; opacity: 0;
+  }
+  .nav-indicator.visible { opacity: 1; }
+
+  /* ── Feedback moments ─────────────────────────────────────────────────── */
+  @keyframes streakSpring {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(1.15); }
+    70%  { transform: scale(0.97); }
+    100% { transform: scale(1); }
+  }
+  .streak-spring { display: inline-block; animation: streakSpring 300ms cubic-bezier(.34,1.56,.64,1); }
+  @keyframes errorPulse {
+    0%   { box-shadow: 0 0 0 0 rgba(200,90,74,.5); }
+    50%  { box-shadow: 0 0 0 9px rgba(200,90,74,.28); }
+    100% { box-shadow: 0 0 0 0 rgba(200,90,74,0); }
+  }
+  .error-pulse { animation: errorPulse .45s ease-out; }
+
+  /* Note dots pop rather than blink into existence. */
+  @keyframes notePop { from { transform: scale(.7); } to { transform: scale(1); } }
+  .note-dot.note-pop { animation: notePop 80ms cubic-bezier(.16,.84,.44,1); }
+
+  /* ── Smooth collapse ──────────────────────────────────────────────────────
+     These panels toggled display:none, which snaps. max-height animates and
+     matches the pattern .compact-expanded already used. */
+  .collapsible {
+    overflow: hidden; max-height: 1400px;
+    transition: max-height var(--ease-panel), opacity 160ms ease;
+  }
+  .collapsible.collapsed { max-height: 0; opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-indicator { transition: none; }
+  }
