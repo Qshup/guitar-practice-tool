@@ -2542,3 +2542,38 @@
   .u-ml-2 { margin-left: var(--sp-2); }
   .u-ghost-btn { background: transparent; color: var(--text-mute); border: 1px solid var(--border); }
   .u-error-text { color: var(--error); }
+
+  /* ── Trend charts ─────────────────────────────────────────────────────── */
+  .trends-section { margin-top: var(--sp-3); border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+  .trends-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none; margin-bottom: var(--sp-2);
+  }
+  .trends-header:hover .progress-stat-label { color: var(--text); }
+  .trends-chevron { color: var(--amber); font-size: var(--fs-sm); }
+  .trends-body { display: flex; flex-direction: column; gap: var(--sp-3); }
+  .trend-block { border-bottom: 1px solid var(--border); padding-bottom: var(--sp-2); }
+  .trend-title {
+    display: flex; align-items: baseline; gap: var(--sp-2);
+    font-family: var(--font-body); font-size: var(--fs-xs); font-weight: 600; color: var(--text);
+    margin-bottom: var(--sp-1);
+  }
+  .trend-sub { font-weight: 400; color: var(--text-mute); font-size: var(--fs-micro); }
+  .trend-chart svg { width: 100%; height: 74px; display: block; }
+  .trend-meta {
+    display: flex; justify-content: space-between; gap: var(--sp-2);
+    font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-mute); margin-top: 2px;
+  }
+  .trend-dir.up { color: var(--success); }
+  .trend-dir.down { color: var(--warning); }
+  .trend-empty {
+    font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute);
+    line-height: 1.6; padding: var(--sp-2) 0;
+  }
+  .coverage-grid { display: flex; flex-wrap: wrap; gap: 3px; margin: var(--sp-1) 0; }
+  .coverage-chip {
+    font-family: var(--font-body); font-size: var(--fs-micro); padding: 3px 7px;
+    border: 1px solid var(--border); color: var(--text-mute); background: var(--surface-2);
+  }
+  .coverage-chip.done { color: var(--success); border-color: var(--success); background: #1c2a1e; }
+  .coverage-chip.untouched { opacity: .65; border-style: dashed; }

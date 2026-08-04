@@ -59,8 +59,13 @@ function weakestChordPair(data) {
   const entries = Object.entries(data.chordPairs || {})
     .map(([pair, v]) => {
       if (typeof v === 'number') return { pair, attempts: v, rate: null };
-      const attempts = (v.success || 0) + (v.fail || 0);
-      return { pair, attempts, rate: attempts ? (v.success || 0) / attempts : null };
+      // recordChordPairResult stores { attempts, correct, bestStreak, curStreak }.
+      // This used to read v.success / v.fail, which do not exist — so every
+      // pair scored null and the weakest-transition line never appeared in a
+      // real plan. It only looked right in testing because the fixture used
+      // the invented field names.
+      const attempts = v.attempts || 0;
+      return { pair, attempts, rate: attempts ? (v.correct || 0) / attempts : null };
     })
     .filter(e => e.attempts >= 3 && e.rate !== null);
   if (!entries.length) return null;

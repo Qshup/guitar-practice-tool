@@ -55,6 +55,14 @@
     </span>
   </div>
   <div class="progress-panel-body" id="progress-panel-body">
+    <div class="trends-section">
+      <div class="trends-header" onclick="toggleTrends()">
+        <span class="progress-stat-label">Trends</span>
+        <span class="trends-chevron" id="trends-chevron">▸</span>
+      </div>
+      <div class="trends-body collapsible collapsed" id="trends-body"></div>
+    </div>
+
     <div class="takes-section">
       <div class="takes-header"><span class="progress-stat-label">Recordings</span><button class="progress-export-btn" onclick="renderTakesList()" title="Refresh the list">Refresh</button></div>
       <div class="takes-list" id="takes-list"></div>
@@ -1360,6 +1368,7 @@
 <script src="js/nav.js"></script>
 <script src="js/rhythm.js"></script>
 <script src="js/shortcuts.js"></script>
+<script src="js/trends.js"></script>
 <script src="js/session.js"></script>
 <script src="js/fretboard-vision.js"></script>
 <script type="module" src="js/camera.js"></script>

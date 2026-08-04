@@ -525,7 +525,12 @@ function mergeProgress(cur, inc) {
   Object.entries(inc.days || {}).forEach(([day, entry]) => {
     const existing = cur.days[day];
     if (!existing) { cur.days[day] = entry; return; }
-    const a = existing.totalSeconds || 0, b = (entry && entry.totalSeconds) || 0;
+    // Day entries store scaleSeconds, not totalSeconds — comparing the wrong
+    // field made both sides 0, so an imported day with more practice could
+    // never win and the incoming record was always discarded.
+    const dayWeight = e => (e ? (e.scaleSeconds || 0) + (e.gameSessions || 0) * 60 +
+      (e.listenRepeatSequences || 0) * 10 + (e.songSessions || 0) * 60 : 0);
+    const a = dayWeight(existing), b = dayWeight(entry);
     if (b > a) cur.days[day] = entry;
   });
   mergeNumericMap(cur.chordPairs, inc.chordPairs);

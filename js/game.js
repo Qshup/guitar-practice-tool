@@ -657,6 +657,15 @@ function gradeSwitch(success) {
   if (gamePrevChord && gameCurrentChord && typeof recordChordPairResult === 'function') {
     recordChordPairResult(gamePrevChord, gameCurrentChord, success);
   }
+  // Tempo history for the trend charts. Only successes count — the question
+  // being answered is "how fast can I make this change cleanly", so a failed
+  // attempt at a high BPM is not evidence of speed. This is the data that did
+  // not exist before: chordPairs stores no tempo and no dates.
+  if (success && typeof recordTrendPoint === 'function' && gamePrevChord && gameCurrentChord) {
+    const bpmEl = document.getElementById('game-bpm');
+    const bpm = bpmEl ? parseInt(bpmEl.value, 10) : null;
+    if (bpm) recordTrendPoint('chordBpm', bpm, `${gamePrevChord}>${gameCurrentChord}`);
+  }
   if (success) {
     gameStreak++;
     gameGot++;

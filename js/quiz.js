@@ -321,6 +321,11 @@ function updateFqStatsDisplay() {
   document.getElementById('fq-level').textContent = fqDifficultyLevel(fqStreak);
   const totalAttempts = Object.values(fq.accuracyByType).reduce((a, s) => a + s.attempts, 0);
   const totalCorrect = Object.values(fq.accuracyByType).reduce((a, s) => a + s.correct, 0);
+  // Snapshot this session's accuracy for the trend chart — previously only a
+  // running lifetime total was kept, which cannot show direction.
+  if (totalAttempts && typeof recordTrendPoint === 'function') {
+    recordTrendPoint('quizAccuracy', Math.round(totalCorrect / totalAttempts * 100));
+  }
   const fqAccEl = document.getElementById('fq-accuracy');
   fqAccEl.textContent = totalAttempts ? Math.round(totalCorrect / totalAttempts * 100) + '%' : '—';
   fqAccEl.classList.toggle('is-empty', !totalAttempts); // dims the placeholder so it reads as 'no data yet', not broken
