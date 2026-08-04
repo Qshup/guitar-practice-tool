@@ -2,8 +2,14 @@
 
 A browser-based practice tool built for a ~7-month guitarist (Yamaha Pacifica)
 studying the vocabulary of Mark Knopfler, Mick Ronson, Eddie Hazel, Frank
-Zappa, and Dean Ween. Pure static HTML/CSS/JS — no build step. `npm start`
-runs `live-server` for local dev (see `package.json`).
+Zappa, and Dean Ween. Pure static HTML/CSS/JS — no build step.
+
+- `npm start` — `live-server` on :8080, opens your default browser. (It used
+  to hardcode a Windows Brave path, `C:\Program Files\BraveSoftware\…`, which
+  simply fails on macOS; it now just uses the system default browser so the
+  script is portable.)
+- `npm run serve` — same server, `--no-browser`. Use this when driving the
+  page from an already-open tab or from browser automation.
 
 ## Modes (js/nav.js)
 
@@ -163,11 +169,25 @@ tuned to their own visual timing, not an interaction-feedback purpose.
 
 Wood-grain rosewood gradient background, metallic nut, silver fret-line
 gradients, gold/bronze gradient string coloring for the wound low strings
-(D/A/low-E) vs. silver for the plain high strings (e/B/G) — **fixed a
-pre-existing bug** in the process: the `:nth-child` selectors targeting
-string rows were off by one (`:nth-child(2..7)` when the real DOM order per
-`buildFretGrid()` is `.nut`(1), `.fret-numbers`(2), then string-rows
-starting at (3)), so this coloring had never actually applied before.
+(D/A/low-E) vs. silver for the plain high strings (e/B/G).
+
+**String coloring is keyed off `data-string`, never `:nth-child`** — and it
+matters that it stays that way. This selector has been wrong twice. The
+redesign session tried to fix an off-by-one by moving the rules from
+`:nth-child(2..7)` to `(3..8)`, documenting the DOM order as `.nut`(1),
+`.fret-numbers`(2), then string-rows from (3). That order was wrong: an
+`.arrow-canvas` sits at (3), so the rows actually start at (4) and the real
+low-E row at (9) fell outside the rule range entirely and rendered
+completely unstyled. The coloring had therefore *still* never applied
+correctly, in either version. The underlying problem is that `buildFretGrid`
+is shared by **six** fretboards (Scales, Fretboard Quiz, Listen & Repeat ×2,
+Songs ×2) whose containers hold different sibling elements, so any
+positional selector is correct on at most one of them. `buildFretGrid` now
+sets `row.dataset.string = si` (the real index into
+`STRING_LABELS = ['E','A','D','G','B','e']`, so 0 = low E, 5 = high e) and
+the CSS matches `.string-row[data-string="N"]`. Verified in-browser across
+all six fretboards: e/B/G silver at 0.8/1.0/1.3px, D/A/E bronze at
+1.8/2.4/3.2px. Don't reintroduce a positional selector here.
 Position markers (frets 3/5/7/9/12) are now real DOM elements
 (`buildFretInlays()` in `scales.js`, `.fret-inlay`/`.fret-inlay.double`)
 rather than a pseudo-element hack. Note dots get an inner highlight via
@@ -206,22 +226,60 @@ card, since they're single-line status readouts, not empty grids.
 
 ### A note on how these edits were verified
 
-No browser was available during the redesign session (no Claude-in-Chrome
-browser tools enabled), so every change was verified statically: `node
---check` per edited file, a "concat check" (every classic script
-concatenated in `index.html`'s exact load order, then `node --check`, to
-catch cross-file redeclaration issues — vendor files `Tone.js`/`pitchy.js`
+The redesign session had no browser available, so every change was verified
+statically: `node --check` per edited file, a "concat check" (every classic
+script concatenated in `index.html`'s exact load order, then `node --check`,
+to catch cross-file redeclaration issues — vendor files `Tone.js`/`pitchy.js`
 are excluded from this check, since `Tone.js` lacks a trailing newline and
 merges with the next file's first line when naively concatenated; that's a
 harmless artifact of the check itself, not a real bug), a Node div-count
 script for HTML structural balance, a `{`/`}` count for CSS brace balance,
 and a grep of every `onclick=`/`onchange=`/`oninput=` handler in `index.html`
-against `function <name>(` definitions across all JS files. **None of this
-substitutes for actually opening the app in a browser** — visually confirm
-the gradients, animations, and slider fill actually look right, and
-listen to the new backing-track rhythm patterns (see "Backing Track Rhythm
-Engine" under Audio Architecture) against a real guitar before trusting them
-tonally.
+against `function <name>(` definitions across all JS files.
+
+**A later session did open it in a real browser, and the static suite had
+missed three real bugs** — recorded here because the pattern is instructive,
+not to re-litigate the redesign:
+
+1. **An uncaught `ReferenceError` on every single page load.** `scales.js`
+   loads at `index.html:1222`, `progress.js` at 1229; the init `render()` at
+   the bottom of `scales.js` called `saveScalesState()` → `loadProgress()`
+   before that function existed. Scales state persistence had therefore
+   *never once saved* since the feature was added, and the thrown exception
+   also aborted the rest of `scales.js`'s init block, silently killing the
+   `window.addEventListener('resize', …)` fretboard-redraw handler below it.
+   Fixed with a `typeof loadProgress !== 'function'` guard in
+   `saveScalesState()` and `saveChordsState()` — the same defensive idiom
+   `progress.js`'s own init already uses for its forward dependencies.
+   Skipping that first save is correct, not a workaround: `nav.js`'s
+   `initNav()` runs `restoreScalesState()` after every script has loaded,
+   and that render saves properly.
+2. **`restoreScalesState()` didn't resync the Fingers overlay.** It resynced
+   the key and position buttons but not the Fingers button/legend, so after
+   a reload with the overlay on, the fretboard drew finger numbers while the
+   button still read "👆 Fingers" and the legend stayed hidden.
+3. **The fretboard string coloring was still wrong** — see the Fretboard
+   redesign section above for the full story.
+
+Note what static checking cannot catch: all three files passed `node
+--check` cleanly the whole time, because none of these are syntax errors —
+they're load-order, state-sync, and DOM-shape errors that only exist at
+runtime. **Static verification tells you the code parses, not that it
+runs.** Open the app.
+
+What *is* now browser-verified: clean console on load, all six modes and all
+five Study sub-tabs render without throwing, Scales state persistence
+round-trips through a reload, slider `--range-progress` fill computes
+correctly, all 10 song cards carry their `player-*` gradient class, the song
+practice view opens with its sticky transport bar, and
+`getStyleBeatEvents()` returns well-formed events for all 8 backing-track
+styles across 4/3/7/11 time signatures.
+
+**Still unverified — needs ears and a guitar, not a browser**: whether the
+backing-track rhythm patterns actually *sound* like the swing / behind-the-
+beat / syncopation they're described as (see "Backing Track Rhythm Engine"),
+whether the mic detection thresholds hold up against real playing, and the
+Guitar Pro import path against a real `.gp` file.
 
 ### macOS `sed` gotcha (if you need bulk find/replace again)
 

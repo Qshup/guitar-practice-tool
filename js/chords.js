@@ -161,6 +161,10 @@ const CHORD_INTERVALS_MAP = {
 // Survives page reload, not just SPA tab switches — renderChordFretboard()
 // runs after every key/shape/type change, so this covers every mutation site.
 function saveChordsState() {
+  // Same load-order guard as saveScalesState() — chords.js also loads before
+  // progress.js, so any render triggered during init would throw. The real
+  // restore/save path is nav.js's initNav() → restoreChordsState().
+  if (typeof loadProgress !== 'function') return;
   const data = loadProgress();
   data.ui.chordsState = { key: chordModeState.key, shape: chordModeState.shape, type: chordModeState.type };
   saveProgress(data);

@@ -4,7 +4,8 @@
   "private": true,
   "description": "Guitar scale/chord/riff practice tool",
   "scripts": {
-    "start": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --open=index.html --browser=\"C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe\""
+    "start": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --open=index.html",
+    "serve": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --no-browser"
   },
   "devDependencies": {
     "live-server": "^1.2.2"

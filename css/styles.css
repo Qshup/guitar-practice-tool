@@ -119,17 +119,21 @@
   .string-row { display: flex; align-items: center; position: relative; height: 38px; }
   .string-name { width: 52px; text-align: center; font-size: 11px; color: #b0a894; font-weight: bold; flex-shrink: 0; font-family: var(--font-heading); }
   .string-line { position: absolute; left: 52px; right: 0; height: 1px; background: var(--string-col); top: 50%; opacity: .7; pointer-events: none; box-shadow: 0 1px 1px rgba(0,0,0,0.3); }
-  /* Real DOM order is .nut, .fret-numbers, then string-rows high-e→low-E
-     (see buildFretGrid's stringOrder=[5,4,3,2,1,0] in scales.js) — so the
-     first .string-row is nth-child(3), not (2). A standard electric set has
-     the top 3 (e/B/G) plain/unwound (silver) and the bottom 3 (D/A/E)
-     wound (bronze), getting visibly thicker toward the low E. */
-  .string-row:nth-child(3) .string-line { height: .8px; opacity: .8; background: linear-gradient(180deg, #e8ecf2, #b8bec8); }
-  .string-row:nth-child(4) .string-line { height: 1px; opacity: .78; background: linear-gradient(180deg, #e0e4ea, #aeb4c0); }
-  .string-row:nth-child(5) .string-line { height: 1.3px; opacity: .75; background: linear-gradient(180deg, #d8dce4, #a0a6b4); }
-  .string-row:nth-child(6) .string-line { height: 1.8px; opacity: .85; background: linear-gradient(180deg, #d4b876, #8a6a30); }
-  .string-row:nth-child(7) .string-line { height: 2.4px; opacity: .88; background: linear-gradient(180deg, #d4b876, #82621e); }
-  .string-row:nth-child(8) .string-line { height: 3.2px; opacity: .92; background: linear-gradient(180deg, #c8a860, #765a1a); }
+  /* Keyed off data-string (set in buildFretGrid), which is the real string
+     index from STRING_LABELS = ['E','A','D','G','B','e'] — so 0 is the low E
+     and 5 the high e, regardless of where the row sits among its siblings.
+     This deliberately does NOT use :nth-child(): buildFretGrid is shared by
+     six fretboards whose containers hold different extra elements (Scales has
+     an .arrow-canvas before the rows, the others don't), so any positional
+     selector is correct on at most one of them. A standard electric set has
+     the top 3 (e/B/G) plain/unwound (silver) and the bottom 3 (D/A/E) wound
+     (bronze), getting visibly thicker toward the low E. */
+  .string-row[data-string="5"] .string-line { height: .8px; opacity: .8; background: linear-gradient(180deg, #e8ecf2, #b8bec8); }
+  .string-row[data-string="4"] .string-line { height: 1px; opacity: .78; background: linear-gradient(180deg, #e0e4ea, #aeb4c0); }
+  .string-row[data-string="3"] .string-line { height: 1.3px; opacity: .75; background: linear-gradient(180deg, #d8dce4, #a0a6b4); }
+  .string-row[data-string="2"] .string-line { height: 1.8px; opacity: .85; background: linear-gradient(180deg, #d4b876, #8a6a30); }
+  .string-row[data-string="1"] .string-line { height: 2.4px; opacity: .88; background: linear-gradient(180deg, #d4b876, #82621e); }
+  .string-row[data-string="0"] .string-line { height: 3.2px; opacity: .92; background: linear-gradient(180deg, #c8a860, #765a1a); }
   .frets { display: flex; flex: 1; position: relative; z-index: 1; }
   .fret-cell { display: flex; align-items: center; justify-content: center; position: relative; flex-shrink: 0; }
   .fret-cell::after { content: ''; position: absolute; right: 0; top: -6px; bottom: -6px; width: 1.5px; background: linear-gradient(180deg, #e4e8ee, #9aa0a8); opacity: .65; box-shadow: 0 0 2px rgba(255,255,255,0.15); }

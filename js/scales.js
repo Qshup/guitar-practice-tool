@@ -333,6 +333,10 @@ function buildFretGrid(container, decorate, fretsCount) {
   const stringOrder=[5,4,3,2,1,0];
   stringOrder.forEach(si=>{
     const row=document.createElement('div'); row.className='string-row';
+    // Gauge/material styling keys off this, NOT sibling position — every caller
+    // (scales, quiz, listenrepeat x2, songs x2) has a different mix of siblings
+    // in the container, so :nth-child() lands on a different row in each one.
+    row.dataset.string=si;
     const label=document.createElement('div'); label.className='string-name'; label.textContent=STRING_LABELS[si]; row.appendChild(label);
     const sl=document.createElement('div'); sl.className='string-line'; row.appendChild(sl);
     const fd=document.createElement('div'); fd.className='frets';
@@ -538,6 +542,14 @@ function toggleFingers(btn) {
 // buttons all call it), so hooking the save there covers every mutation site
 // without needing one at each button handler individually.
 function saveScalesState() {
+  // scales.js loads before progress.js (see index.html script order), and the
+  // init render() at the bottom of this file runs immediately — so on first
+  // load loadProgress() genuinely does not exist yet. Skipping that one save
+  // is correct, not just defensive: nav.js's initNav() calls
+  // restoreScalesState() once every script is loaded, and that render() saves
+  // properly. Without this guard the ReferenceError also aborted the rest of
+  // this file's init block, silently killing the resize handler below.
+  if (typeof loadProgress !== 'function') return;
   const data = loadProgress();
   data.ui.scalesState = { scaleId: state.scaleId, key: state.key, pos: state.pos, group: state.group, showFingers: state.showFingers };
   saveProgress(data);
@@ -550,6 +562,16 @@ function restoreScalesState() {
   // highlighted — resync them to whatever state was actually restored.
   document.querySelectorAll('[data-group="key"]').forEach(b => b.classList.toggle('active', b.textContent === state.key));
   document.querySelectorAll('[data-group="pos"]').forEach((b, i) => b.classList.toggle('active', i === state.pos));
+  // The Fingers overlay needs the same treatment: render() below draws finger
+  // numbers straight off state.showFingers, so without this the fretboard came
+  // back showing fingers while the button still read "Fingers" and the legend
+  // stayed hidden. Mirrors what toggleFingers() does to the same three things.
+  const fingerBtn = document.getElementById('finger-toggle-btn');
+  if (fingerBtn) {
+    fingerBtn.classList.toggle('active', state.showFingers);
+    fingerBtn.textContent = state.showFingers ? '👆 Fingers ON' : '👆 Fingers';
+  }
+  document.getElementById('finger-legend').classList.toggle('visible', state.showFingers);
   buildScaleSelector();
   render();
 }
