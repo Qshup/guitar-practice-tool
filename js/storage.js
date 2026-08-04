@@ -27,7 +27,8 @@
 
 const IDB_NAME = 'gpt_store';
 const IDB_STORE = 'kv';
-const IDB_VERSION = 1;
+const IDB_TAKES = 'takes';
+const IDB_VERSION = 2;   // v2 adds the 'takes' store for recorded audio blobs
 
 let _idbPromise = null;
 function idbOpen() {
@@ -38,6 +39,12 @@ function idbOpen() {
     req.onupgradeneeded = () => {
       const db = req.result;
       if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+      // Audio blobs live in their own store: they are large, binary, and must
+      // never be swept by the gpt_-prefixed key logic that mirrors to
+      // localStorage — a few MB of audio would blow its ~5MB budget instantly.
+      if (!db.objectStoreNames.contains(IDB_TAKES)) {
+        db.createObjectStore(IDB_TAKES, { keyPath: 'id', autoIncrement: true });
+      }
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
@@ -158,3 +165,38 @@ async function migrateLocalStorageToDurable() {
     }
   });
 })();
+
+// ── Recorded takes ─────────────────────────────────────────────────────────
+// Blobs only ever live in IndexedDB — never mirrored to localStorage.
+function saveTake(record) {
+  return idbOpen().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_TAKES, 'readwrite');
+    const req = tx.objectStore(IDB_TAKES).add(record);
+    req.onsuccess = () => resolve(req.result);
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function listTakes() {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_TAKES, 'readonly');
+    const r = tx.objectStore(IDB_TAKES).getAll();
+    r.onsuccess = () => resolve((r.result || []).sort((a, b) => b.createdAt - a.createdAt));
+    r.onerror = () => resolve([]);
+  })).catch(() => []);
+}
+function deleteTake(id) {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_TAKES, 'readwrite');
+    tx.objectStore(IDB_TAKES).delete(id);
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  })).catch(() => {});
+}
+function updateTake(id, patch) {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_TAKES, 'readwrite');
+    const store = tx.objectStore(IDB_TAKES);
+    const g = store.get(id);
+    g.onsuccess = () => { const rec = g.result; if (rec) { Object.assign(rec, patch); store.put(rec); } };
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  })).catch(() => {});
+}

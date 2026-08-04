@@ -443,6 +443,9 @@ function applyPanelCollapsedState(collapsed) {
 }
 
 function toggleProgressPanel() {
+  // Takes are loaded lazily — reading blobs out of IndexedDB on every page
+  // load would be wasteful when the panel is usually collapsed.
+  setTimeout(() => { if (typeof renderTakesList === 'function') renderTakesList(); }, 0);
   const data = loadProgress();
   data.ui.panelCollapsed = !data.ui.panelCollapsed;
   saveProgress(data);
@@ -608,3 +611,60 @@ document.addEventListener('click', (e) => {
   const menu = document.getElementById('profile-menu');
   if (menu && menu.style.display !== 'none' && !e.target.closest('.profile-chip-wrap')) menu.style.display = 'none';
 });
+
+// ── Recorded takes UI ──────────────────────────────────────────────────────
+// Lives in the progress panel because the point of keeping takes is comparing
+// them over time, which is a progress question, not a Listen & Repeat one.
+let takesObjectUrls = [];
+
+function releaseTakeUrls() {
+  takesObjectUrls.forEach(u => URL.revokeObjectURL(u));
+  takesObjectUrls = [];
+}
+
+async function renderTakesList() {
+  const el = document.getElementById('takes-list');
+  if (!el || typeof listTakes !== 'function') return;
+  releaseTakeUrls();
+  const all = await listTakes();
+  const mine = all.filter(t => !t.profile || t.profile === getActiveProfileId());
+  if (!mine.length) {
+    el.innerHTML = '<div class="takes-empty">No takes kept yet. Record one in Study &rsaquo; Listen &amp; Repeat and press "Keep this take".</div>';
+    return;
+  }
+  el.innerHTML = mine.map(t => {
+    const url = URL.createObjectURL(t.blob);
+    takesObjectUrls.push(url);
+    const when = new Date(t.createdAt);
+    const label = t.name || t.sequence || 'Take';
+    const meta = [
+      when.toLocaleDateString() + ' ' + when.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      t.accuracy != null ? t.accuracy + '%' : null,
+      t.bytes ? Math.round(t.bytes / 1024) + 'kB' : null,
+    ].filter(Boolean).join(' · ');
+    return `<div class="take-row">
+      <div class="take-main">
+        <div class="take-name">${label}</div>
+        <div class="take-meta">${meta}</div>
+        <audio controls preload="none" src="${url}"></audio>
+      </div>
+      <div class="take-actions">
+        <button onclick="renameTake(${t.id})" title="Rename">Rename</button>
+        <button onclick="removeTake(${t.id})" title="Delete">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function renameTake(id) {
+  const name = prompt('Name this take');
+  if (name == null) return;
+  await updateTake(id, { name: name.trim().slice(0, 60) });
+  renderTakesList();
+}
+
+async function removeTake(id) {
+  if (!confirm('Delete this recording? This cannot be undone.')) return;
+  await deleteTake(id);
+  renderTakesList();
+}

@@ -55,6 +55,10 @@
     </span>
   </div>
   <div class="progress-panel-body" id="progress-panel-body">
+    <div class="takes-section">
+      <div class="takes-header"><span class="progress-stat-label">Recordings</span><button class="progress-export-btn" onclick="renderTakesList()" title="Refresh the list">Refresh</button></div>
+      <div class="takes-list" id="takes-list"></div>
+    </div>
     <div class="obsidian-settings-row">
       <span class="obsidian-label"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-upload"/></svg>Obsidian vault:</span>
       <span class="obsidian-vault-status" id="obsidian-vault-status">Checking…</span>
@@ -1057,6 +1061,7 @@
       <h3>Record &amp; Play Back</h3>
       <div class="lr-record-row">
         <button class="game-btn game-btn-start" id="lr-record-btn" onclick="lrToggleRecording()">⏺ Record</button>
+        <button class="game-btn game-btn-start" id="lr-keep-take-btn" onclick="lrKeepTake()" style="display:none">Keep this take</button>
         <div class="lr-record-status" id="lr-record-status">Not recording</div>
       </div>
       <audio class="lr-record-audio" id="lr-recording-audio" controls style="display:none"></audio>

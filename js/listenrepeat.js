@@ -242,6 +242,7 @@ async function lrToggleMicMonitor() {
 let micRecorder = null;
 let micRecordedChunks = [];
 let micRecordingUrl = null;
+let lrLastTakeBlob = null;
 
 async function lrToggleRecording() {
   const btn = document.getElementById('lr-record-btn');
@@ -271,6 +272,11 @@ async function lrToggleRecording() {
     const audioEl = document.getElementById('lr-recording-audio');
     audioEl.src = micRecordingUrl;
     audioEl.style.display = '';
+    // Hold the blob so it can be kept. Previously it existed only as an object
+    // URL that the next recording overwrote, so every take was ephemeral.
+    lrLastTakeBlob = blob;
+    const keepBtn = document.getElementById('lr-keep-take-btn');
+    if (keepBtn) { keepBtn.style.display = ''; keepBtn.disabled = false; keepBtn.textContent = 'Keep this take'; }
     status.textContent = 'Recording ready — press play to hear it back.';
     btn.textContent = '⏺ Record';
     btn.classList.remove('recording');
@@ -964,3 +970,45 @@ lrPopulateSelects();
 lrRenderBlankFretboard();
 lrUpdateStatsDisplay();
 lrRenderMissedNotesHeatmap();
+
+
+// ── Keeping takes ──────────────────────────────────────────────────────────
+// The value here is comparison over time: hearing a take from a month ago
+// against one from today on the same sequence is one of the highest-return
+// things you can do at this stage. Blobs go to IndexedDB (see storage.js) —
+// never localStorage, which would be blown by a few MB of audio.
+async function lrKeepTake() {
+  if (!lrLastTakeBlob) return;
+  const btn = document.getElementById('lr-keep-take-btn');
+  const sc = (typeof currentScale === 'function') ? currentScale() : null;
+  const acc = (typeof lrLastRoundAccuracy !== 'undefined' && lrLastRoundAccuracy != null)
+    ? lrLastRoundAccuracy : null;
+  const record = {
+    blob: lrLastTakeBlob,
+    createdAt: Date.now(),
+    name: '',
+    sequence: (typeof lrCurrentSequenceLabel === 'function' ? lrCurrentSequenceLabel() : 'Listen & Repeat take'),
+    scale: sc ? sc.name : null,
+    key: (typeof state !== 'undefined' ? state.key : null),
+    accuracy: acc,
+    profile: (typeof getActiveProfileId === 'function' ? getActiveProfileId() : null),
+    mimeType: lrLastTakeBlob.type || 'audio/webm',
+    bytes: lrLastTakeBlob.size,
+  };
+  try {
+    await saveTake(record);
+    if (btn) { btn.textContent = '✓ Kept'; btn.disabled = true; }
+    if (typeof renderTakesList === 'function') renderTakesList();
+  } catch (e) {
+    const status = document.getElementById('lr-record-status');
+    if (status) status.textContent = 'Could not save take: ' + (e && e.message ? e.message : e);
+  }
+}
+
+// Best-effort label for what was being practised when the take was recorded.
+function lrCurrentSequenceLabel() {
+  const sc = (typeof currentScale === 'function') ? currentScale() : null;
+  const k = (typeof state !== 'undefined') ? state.key : null;
+  if (sc && k) return `${k} ${sc.name}`;
+  return 'Listen & Repeat take';
+}

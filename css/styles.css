@@ -2278,3 +2278,18 @@
   .rhythm-stats .drift-dragging { color: var(--blue); }
   .rhythm-stats .drift-centred { color: var(--success); }
   .rhy-stat-empty { color: var(--text-mute); }
+
+  /* ── Recorded takes ───────────────────────────────────────────────────── */
+  .takes-section { margin-top: var(--sp-3); border-top: 1px solid var(--border); padding-top: var(--sp-3); }
+  .takes-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--sp-2); }
+  .takes-empty { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-mute); line-height: 1.6; }
+  .take-row {
+    display: flex; align-items: flex-start; gap: var(--sp-3);
+    padding: var(--sp-2) 0; border-bottom: 1px solid var(--border);
+  }
+  .take-main { flex: 1; min-width: 0; }
+  .take-name { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text); font-weight: 600; }
+  .take-meta { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-mute); margin-bottom: var(--sp-1); }
+  .take-row audio { width: 100%; max-width: 260px; height: 30px; }
+  .take-actions { display: flex; gap: var(--sp-1); flex-shrink: 0; }
+  .take-actions button { font-size: var(--fs-micro); padding: 3px 7px; }
