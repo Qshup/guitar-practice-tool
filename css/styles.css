@@ -2293,3 +2293,43 @@
   .take-row audio { width: 100%; max-width: 260px; height: 30px; }
   .take-actions { display: flex; gap: var(--sp-1); flex-shrink: 0; }
   .take-actions button { font-size: var(--fs-micro); padding: 3px 7px; }
+
+  /* ── Fretboard vision (camera note readout) ───────────────────────────── */
+  .fv-cal-status {
+    font-family: var(--font-body); font-size: var(--fs-micro); line-height: 1.5;
+    display: flex; flex-direction: column; gap: 2px;
+    padding: var(--sp-2); background: var(--surface-2);
+    border: 1px solid var(--border); border-left: 2px solid var(--text-mute);
+  }
+  .fv-cal-status strong { color: var(--text-dim); font-weight: 600; }
+  .fv-cal-status span { color: var(--text-mute); }
+  .fv-cal-status.calibrating { border-left-color: var(--blue); }
+  .fv-cal-status.calibrating strong { color: var(--blue); }
+  .fv-cal-status.calibrating span { color: var(--text); }
+  .fv-cal-status.done { border-left-color: var(--success); }
+  .fv-cal-status.done strong { color: var(--success); }
+  .fv-cal-actions { display: flex; gap: var(--sp-1); }
+  #camera-overlay-canvas.fv-calibrating { cursor: crosshair; outline: 2px solid var(--blue); }
+
+  .camera-note-readout {
+    min-height: 52px; display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+    padding: var(--sp-2) var(--sp-3); background: var(--surface-2);
+    border: 1px solid var(--border); border-left: 2px solid var(--border);
+  }
+  .camera-note-readout.live { border-left-color: var(--amber); }
+  .fv-hint { font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute); }
+  .fv-chord {
+    font-family: var(--font-heading); font-size: 24px; font-weight: 700;
+    color: var(--amber); letter-spacing: .02em; flex-shrink: 0;
+  }
+  .fv-notes { display: flex; gap: var(--sp-2); flex-wrap: wrap; }
+  .fv-note {
+    display: flex; flex-direction: column; align-items: center; gap: 1px;
+    padding: 3px 8px; background: var(--surface); border: 1px solid var(--border-hover);
+  }
+  .fv-note em {
+    font-style: normal; font-family: var(--font-heading); font-weight: 700;
+    font-size: var(--fs-md); color: var(--text);
+  }
+  .fv-pos { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-mute); }
+  .fv-note.low-conf { opacity: .6; border-style: dashed; }

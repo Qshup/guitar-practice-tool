@@ -125,6 +125,10 @@ async function enableCamera() {
   }
   videoEl = document.getElementById('camera-video');
   canvasEl = document.getElementById('camera-overlay-canvas');
+  if (canvasEl && !canvasEl.dataset.fvBound) {
+    canvasEl.addEventListener('click', e => { if (typeof fvHandleCanvasClick === 'function') fvHandleCanvasClick(e); });
+    canvasEl.dataset.fvBound = '1';
+  }
   videoEl.srcObject = cameraStream;
 
   // Everything past this point (video playback, MediaPipe model load) was
@@ -190,7 +194,9 @@ function startCameraLoop() {
     const result = handLandmarker.detectForVideo(videoEl, performance.now());
     const hand = processHandResult(result);
     drawHandOverlay(hand);
+    drawNeckOverlayIfAny();
     updateConfidenceDisplay(hand);
+    if (typeof fvHandleHandUpdate === 'function') fvHandleHandUpdate(hand);
     if (calibrating) collectCalibrationSample(hand);
     handUpdateListeners.forEach(fn => fn(hand, calibration));
     cameraRAF = requestAnimationFrame(tick);
@@ -229,6 +235,13 @@ function drawHandOverlay(hand) {
     ctx.fillStyle = FINGERTIP_INDICES.includes(i) ? '#ccb84a' : '#5c8fff';
     ctx.fill();
   });
+}
+
+// Neck outline + true fret positions, drawn over the video every frame so you
+// can see whether the calibration actually lines up with your guitar.
+function drawNeckOverlayIfAny() {
+  if (!canvasEl || typeof fvDrawNeckOverlay !== 'function') return;
+  fvDrawNeckOverlay(canvasEl.getContext('2d'), canvasEl.width, canvasEl.height);
 }
 
 function updateConfidenceDisplay(hand) {

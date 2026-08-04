@@ -244,6 +244,12 @@
       <div class="camera-calibration-status" id="camera-calibration-status" style="display:none"></div>
     </div>
     <div class="camera-side-panel">
+      <div class="fv-cal-status" id="fv-calibration-status"></div>
+      <div class="fv-cal-actions">
+        <button class="quiz-mode-btn" onclick="fvStartNeckCalibration()" title="Mark four corners of your neck in the preview">Calibrate neck</button>
+        <button class="quiz-mode-btn" onclick="fvClearNeckCalibration()" title="Forget the current neck calibration">Clear</button>
+      </div>
+      <div class="camera-note-readout uncalibrated" id="camera-note-readout"></div>
       <div class="camera-confidence" id="camera-confidence">No hand detected</div>
       <div class="camera-status" id="camera-status"></div>
       <button class="quiz-mode-btn" onclick="recalibrateCamera()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-refresh"/></svg>Recalibrate</button>
@@ -1327,6 +1333,7 @@
 <script src="js/rhythm.js"></script>
 <script src="js/shortcuts.js"></script>
 <script src="js/session.js"></script>
+<script src="js/fretboard-vision.js"></script>
 <script type="module" src="js/camera.js"></script>
 </body>
 </html>
