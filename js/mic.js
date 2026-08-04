@@ -22,6 +22,44 @@ let micNoiseGate = 0.02;        // RMS floor (post-sensitivity) below which inpu
 let micLastOnsetTime = -1;
 const MIC_MIN_ONSET_GAP = 0.12; // seconds — debounces one strum into a single onset
 
+// ── Calibratable detection thresholds ──────────────────────────────────────
+// These were hardcoded guesses tuned by ear against no particular guitar or
+// room. They are now state so runMicCalibration() can derive them from your
+// actual instrument and noise floor, and so they can persist per profile.
+const MIC_TECH_DEFAULTS = {
+  vibratoMinRange: 15,     // cents of excursion before wobble counts as vibrato
+  vibratoMaxRange: 250,    // above this it's a bend/slide, not vibrato
+  vibratoMinSignChanges: 3,
+  slideMinCents: 80,       // sustained pitch move that stays put
+  bendMinCents: 25,        // sustained rise that stays up
+};
+let micTech = { ...MIC_TECH_DEFAULTS };
+
+function loadMicCalibration() {
+  try {
+    if (typeof loadProgress !== 'function') return;
+    const c = loadProgress().micCalibration;
+    if (!c) return;
+    if (typeof c.noiseGate === 'number') micNoiseGate = c.noiseGate;
+    if (typeof c.sensitivity === 'number') micSensitivity = c.sensitivity;
+    if (c.tech) micTech = { ...MIC_TECH_DEFAULTS, ...c.tech };
+  } catch (e) {}
+}
+function saveMicCalibration(extra) {
+  if (typeof loadProgress !== 'function') return;
+  const d = loadProgress();
+  d.micCalibration = Object.assign({}, d.micCalibration, {
+    noiseGate: micNoiseGate, sensitivity: micSensitivity, tech: micTech,
+    calibratedAt: new Date().toISOString(),
+  }, extra || {});
+  saveProgress(d);
+}
+function resetMicCalibration() {
+  micTech = { ...MIC_TECH_DEFAULTS };
+  micNoiseGate = 0.02; micSensitivity = 1.0;
+  saveMicCalibration({ calibratedAt: null });
+}
+
 function micRunningInIframe() {
   try { return window.self !== window.top; } catch (e) { return true; }
 }
@@ -217,14 +255,14 @@ function classifyTechnique(samples, attackFreq) {
     const d1 = cents[i - 1] - cents[i - 2], d2 = cents[i] - cents[i - 1];
     if (Math.sign(d1) !== 0 && Math.sign(d2) !== 0 && Math.sign(d1) !== Math.sign(d2)) signChanges++;
   }
-  if (signChanges >= 3 && centsRange > 15 && centsRange < 250) return 'vibrato';
+  if (signChanges >= micTech.vibratoMinSignChanges && centsRange > micTech.vibratoMinRange && centsRange < micTech.vibratoMaxRange) return 'vibrato';
 
   // Slide: pitch moves a clear distance and holds there — two stable regions,
   // not a snap-back (bend release) or a blur (vibrato).
-  if (Math.abs(lateAvg - earlyAvg) > 80 && signChanges <= 1) return 'slide';
+  if (Math.abs(lateAvg - earlyAvg) > micTech.slideMinCents && signChanges <= 1) return 'slide';
 
   // Bend: pitch rises steadily after the attack and stays up.
-  if (lateAvg - earlyAvg > 25 && signChanges <= 1) return 'bend';
+  if (lateAvg - earlyAvg > micTech.bendMinCents && signChanges <= 1) return 'bend';
 
   return null; // plain note — no technique to report
 }
@@ -302,3 +340,213 @@ async function toggleMicEnabled() {
   if (compactBtn) compactBtn.classList.add('active');
   if (status) status.textContent = '🎙️ Listening — play a note to see note matching, tuning, and technique detection live.';
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GUIDED CALIBRATION
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Replaces guessing at the sensitivity/noise-gate sliders. Four measured
+// steps, each derived from your actual guitar in your actual room:
+//   1. silence      -> noise floor, sets the gate 20% above it
+//   2. soft playing -> the quietest signal that must still register
+//   3. hard playing -> sets sensitivity so a normal hard hit lands near 1.0
+//   4. techniques   -> measures the real cents excursion of your bend,
+//                      vibrato and slide, so classifyTechnique matches your
+//                      hand rather than a number picked in the abstract
+//
+// The sliders stay afterwards for manual fine-tuning — calibration sets good
+// starting values, it doesn't take the controls away.
+
+const MIC_CAL_STEPS = [
+  { id: 'silence', seconds: 5,  title: 'Stay quiet',
+    instruction: "Don't play or touch the guitar. Measuring the noise floor of your room." },
+  { id: 'soft', seconds: 10, title: 'Play softly',
+    instruction: 'Play your open low E string softly and repeatedly.' },
+  { id: 'hard', seconds: 10, title: 'Play hard',
+    instruction: 'Play your open low E string as hard as you normally would.' },
+  { id: 'bend', seconds: 10, title: 'Bend',
+    instruction: 'Play a slow, full bend on the G string. Repeat a few times.' },
+  { id: 'vibrato', seconds: 10, title: 'Vibrato',
+    instruction: 'Hold a note on the G string and add your normal vibrato.' },
+  { id: 'slide', seconds: 10, title: 'Slide',
+    instruction: 'Slide between two notes a few frets apart. Repeat a few times.' },
+];
+
+let micCalRunning = false;
+let micCalResults = {};
+
+function micCalMeasure(step) {
+  return new Promise(resolve => {
+    const rmsSamples = [], pitchTrace = [];
+    const listener = ({ rms, reading }) => {
+      rmsSamples.push(rms);
+      if (reading && reading.freq) pitchTrace.push(reading.freq);
+    };
+    onMicLevel(listener);
+    const started = Date.now();
+    const tick = setInterval(() => {
+      const left = Math.max(0, step.seconds - (Date.now() - started) / 1000);
+      const bar = document.getElementById('mic-cal-progress');
+      if (bar) bar.style.width = `${100 - (left / step.seconds) * 100}%`;
+      const cd = document.getElementById('mic-cal-countdown');
+      if (cd) cd.textContent = `${Math.ceil(left)}s`;
+    }, 100);
+    setTimeout(() => {
+      clearInterval(tick);
+      offMicLevel(listener);
+      resolve({ rmsSamples, pitchTrace });
+    }, step.seconds * 1000);
+  });
+}
+
+// Largest cents excursion within the captured pitch trace — this is what the
+// technique thresholds actually compare against.
+function micCalCentsExcursion(pitchTrace) {
+  const clean = pitchTrace.filter(f => f > 60 && f < 1400);
+  if (clean.length < 6) return null;
+  const ref = clean[0];
+  const cents = clean.map(f => 1200 * Math.log2(f / ref));
+  return Math.max(...cents) - Math.min(...cents);
+}
+
+async function runMicCalibration() {
+  if (micCalRunning) return;
+  if (!micEnabled) {
+    const ok = await micSetEnabled(true);
+    if (ok === false) { alert('Calibration needs the microphone. Enable it and try again.'); return; }
+  }
+  micCalRunning = true;
+  micCalResults = {};
+  showMicCalOverlay();
+  try {
+    for (const step of MIC_CAL_STEPS) {
+      renderMicCalStep(step);
+      await new Promise(r => setTimeout(r, 900)); // beat to read the instruction
+      if (!micCalRunning) return;                  // cancelled
+      micCalResults[step.id] = await micCalMeasure(step);
+    }
+    applyMicCalibration();
+    renderMicCalSummary();
+  } finally {
+    micCalRunning = false;
+  }
+}
+
+function cancelMicCalibration() {
+  micCalRunning = false;
+  hideMicCalOverlay();
+}
+
+function applyMicCalibration() {
+  const avg = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  const pct = (a, p) => { if (!a.length) return 0; const s = [...a].sort((x, y) => x - y); return s[Math.floor(s.length * p)]; };
+
+  const silence = micCalResults.silence ? micCalResults.silence.rmsSamples : [];
+  const soft = micCalResults.soft ? micCalResults.soft.rmsSamples : [];
+  const hard = micCalResults.hard ? micCalResults.hard.rmsSamples : [];
+
+  // Gate 20% above the measured floor, using the 95th percentile of silence so
+  // one cough doesn't set the threshold for the whole session.
+  const floor = pct(silence, 0.95);
+  const softPeak = pct(soft, 0.9);
+  const hardPeak = pct(hard, 0.9);
+
+  const derived = {};
+  if (floor > 0) {
+    micNoiseGate = Math.min(0.3, Math.max(0.002, floor * 1.2));
+    derived.floor = floor;
+  }
+  // Sensitivity scales a normal hard hit toward ~0.6 RMS, leaving headroom.
+  if (hardPeak > 0) {
+    micSensitivity = Math.max(0.1, Math.min(4, 0.6 / hardPeak));
+    derived.hardPeak = hardPeak; derived.softPeak = softPeak;
+  }
+  // Gate must still sit below the softest playing, or quiet notes never register.
+  if (softPeak > 0 && micNoiseGate >= softPeak * 0.8) {
+    micNoiseGate = Math.max(0.002, softPeak * 0.5);
+    derived.gateLoweredForSoftPlaying = true;
+  }
+
+  const bendEx = micCalResults.bend ? micCalMedianExcursion(micCalResults.bend) : null;
+  const vibEx  = micCalResults.vibrato ? micCalMedianExcursion(micCalResults.vibrato) : null;
+  const slideEx = micCalResults.slide ? micCalMedianExcursion(micCalResults.slide) : null;
+
+  // Thresholds sit at ~60% of what you actually played, so your normal gesture
+  // clears them comfortably without catching every wobble.
+  if (bendEx)  micTech.bendMinCents = Math.max(10, Math.round(bendEx * 0.6));
+  if (slideEx) micTech.slideMinCents = Math.max(40, Math.round(slideEx * 0.6));
+  if (vibEx) {
+    micTech.vibratoMinRange = Math.max(8, Math.round(vibEx * 0.5));
+    micTech.vibratoMaxRange = Math.max(120, Math.round(vibEx * 2.5));
+  }
+  micCalResults.derived = { ...derived, bendEx, vibEx, slideEx };
+
+  setMicSensitivity(micSensitivity);
+  setMicNoiseGate(micNoiseGate);
+  syncMicSlidersToState();
+  saveMicCalibration();
+}
+
+function micCalMedianExcursion(capture) {
+  const ex = micCalCentsExcursion(capture.pitchTrace);
+  return ex && isFinite(ex) ? ex : null;
+}
+
+function syncMicSlidersToState() {
+  const sens = document.getElementById('mic-sensitivity-slider');
+  const gate = document.getElementById('mic-noise-gate-slider');
+  if (sens) { sens.value = String(Math.round(micSensitivity * 100)); sens.dispatchEvent(new Event('input', { bubbles: true })); }
+  if (gate) { gate.value = String(Math.round(micNoiseGate * 1000)); gate.dispatchEvent(new Event('input', { bubbles: true })); }
+}
+
+// ── Calibration UI ─────────────────────────────────────────────────────────
+function showMicCalOverlay() {
+  const el = document.getElementById('mic-cal-overlay');
+  if (el) el.classList.add('visible');
+}
+function hideMicCalOverlay() {
+  const el = document.getElementById('mic-cal-overlay');
+  if (el) el.classList.remove('visible');
+}
+function renderMicCalStep(step) {
+  const el = document.getElementById('mic-cal-overlay');
+  if (!el) return;
+  const idx = MIC_CAL_STEPS.indexOf(step) + 1;
+  el.innerHTML = `
+    <div class="mic-cal-card">
+      <div class="mic-cal-step">Step ${idx} of ${MIC_CAL_STEPS.length}</div>
+      <div class="mic-cal-title">${step.title}</div>
+      <div class="mic-cal-instruction">${step.instruction}</div>
+      <div class="mic-cal-bar"><div class="mic-cal-bar-fill" id="mic-cal-progress"></div></div>
+      <div class="mic-cal-countdown" id="mic-cal-countdown">${step.seconds}s</div>
+      <button class="session-skip" onclick="cancelMicCalibration()">Cancel calibration</button>
+    </div>`;
+}
+function renderMicCalSummary() {
+  const el = document.getElementById('mic-cal-overlay');
+  if (!el) return;
+  const d = micCalResults.derived || {};
+  const row = (label, value) => `<li><span>${label}</span><em>${value}</em></li>`;
+  el.innerHTML = `
+    <div class="mic-cal-card">
+      <div class="mic-cal-title">Calibrated</div>
+      <div class="mic-cal-instruction">Measured from your guitar in this room. The sliders still work if you want to fine-tune.</div>
+      <ul class="mic-cal-results">
+        ${row('Room noise floor', d.floor ? d.floor.toFixed(4) + ' RMS' : 'not measured')}
+        ${row('Noise gate', micNoiseGate.toFixed(4) + ' RMS')}
+        ${row('Sensitivity', micSensitivity.toFixed(2) + '×')}
+        ${row('Bend threshold', micTech.bendMinCents + '¢' + (d.bendEx ? ` (you played ~${Math.round(d.bendEx)}¢)` : ''))}
+        ${row('Vibrato range', micTech.vibratoMinRange + '–' + micTech.vibratoMaxRange + '¢')}
+        ${row('Slide threshold', micTech.slideMinCents + '¢' + (d.slideEx ? ` (you played ~${Math.round(d.slideEx)}¢)` : ''))}
+      </ul>
+      <div class="mic-cal-actions">
+        <button class="big-btn btn-go" onclick="hideMicCalOverlay()">Done</button>
+        <button class="session-skip" onclick="resetMicCalibration(); syncMicSlidersToState(); hideMicCalOverlay();">Reset to defaults</button>
+      </div>
+    </div>`;
+}
+
+// NOT called here: mic.js loads before progress.js (see index.html script
+// order), so loadProgress does not exist yet and this would silently skip —
+// the same load-order trap that made saveScalesState throw. nav.js's
+// initNav() calls loadMicCalibration() once every file is loaded.

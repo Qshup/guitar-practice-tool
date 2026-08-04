@@ -2180,3 +2180,42 @@
   /* The help button and session bar both wanted margin-left:auto; only the
      first element in the row should claim the gap. */
   .session-bar.visible ~ .nav-help-btn, .nav-help-btn + .session-bar { margin-left: var(--sp-2); }
+
+  /* ── Mic calibration ──────────────────────────────────────────────────── */
+  .mic-cal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 500;
+    background: rgba(15,14,13,.9); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: var(--sp-4);
+  }
+  .mic-cal-overlay.visible { display: flex; }
+  .mic-cal-card {
+    background: var(--surface); border: 1px solid var(--border); border-left: 2px solid var(--blue);
+    padding: var(--sp-5); max-width: 460px; width: 100%; text-align: center;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .mic-cal-step {
+    font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-dim);
+    letter-spacing: .12em; text-transform: uppercase; margin-bottom: var(--sp-2);
+  }
+  .mic-cal-title {
+    font-family: var(--font-heading); font-size: 26px; font-weight: 700;
+    color: var(--text); margin-bottom: var(--sp-2);
+  }
+  .mic-cal-instruction {
+    font-family: var(--font-body); font-size: var(--fs-sm); color: var(--text-dim);
+    line-height: 1.6; margin-bottom: var(--sp-4);
+  }
+  .mic-cal-bar { height: 6px; background: var(--surface-2); border: 1px solid var(--border); overflow: hidden; }
+  .mic-cal-bar-fill { height: 100%; width: 0%; background: var(--blue); transition: width .12s linear; }
+  .mic-cal-countdown {
+    font-family: var(--font-mono); font-size: var(--fs-lg); color: var(--blue);
+    margin: var(--sp-2) 0 var(--sp-3);
+  }
+  .mic-cal-results { list-style: none; text-align: left; margin-bottom: var(--sp-4); }
+  .mic-cal-results li {
+    display: flex; justify-content: space-between; gap: var(--sp-3);
+    padding: var(--sp-2) 0; border-bottom: 1px solid var(--border);
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+  }
+  .mic-cal-results em { font-style: normal; font-family: var(--font-mono); color: var(--text); }
+  .mic-cal-actions { display: flex; align-items: center; justify-content: center; gap: var(--sp-3); }

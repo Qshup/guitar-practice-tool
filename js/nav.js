@@ -49,6 +49,7 @@ function switchMode(mode) {
   if (typeof restoreScalesState === 'function') restoreScalesState();
   if (typeof restoreChordsState === 'function') restoreChordsState();
   if (typeof syncInstrumentSelectors === 'function') syncInstrumentSelectors();
+  if (typeof loadMicCalibration === 'function') { loadMicCalibration(); if (typeof syncMicSlidersToState === 'function') syncMicSlidersToState(); }
   const data = loadProgress();
   const mode = NAV_MODES.includes(data.ui.activeNavMode) ? data.ui.activeNavMode : 'scales';
   switchMode(mode);

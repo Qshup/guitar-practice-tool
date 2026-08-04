@@ -39,6 +39,7 @@
 
 <div class="session-start" id="session-start"></div>
 <div class="shortcuts-overlay" id="shortcuts-overlay"></div>
+<div class="mic-cal-overlay" id="mic-cal-overlay"></div>
 
 <div class="progress-panel" id="progress-panel">
   <div class="progress-panel-header" id="progress-panel-toggle" onclick="toggleProgressPanel()">
@@ -197,6 +198,7 @@
     <div class="prac-row">
       <button class="big-btn btn-go" id="mic-enable-btn" onclick="toggleMicEnabled()">▶ MIC ON</button>
       <span class="mic-status-text" id="mic-status-text">Off — enable to hear note matching, tuning, and technique detection</span>
+      <button class="quiz-mode-btn" onclick="runMicCalibration()" title="Measure your room and guitar instead of guessing at the sliders"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-refresh"/></svg>Calibrate</button>
     </div>
     <div class="prac-row">
       <span class="prac-label">Sensitivity</span>
