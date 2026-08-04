@@ -77,13 +77,26 @@
   }
   body > * { position: relative; z-index: 1; }
 
+  /* Scrollbars. The fretboard wrap, the nav bar and several panels scroll,
+     and every one of them rendered the OS default light scrollbar — on a
+     near-black page the bar under the fretboard was literally the brightest
+     element on screen. */
+  * { scrollbar-width: thin; scrollbar-color: var(--border-hover) transparent; }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,.25); }
+  ::-webkit-scrollbar-thumb { background: var(--border-hover); border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-mute); }
+  ::-webkit-scrollbar-corner { background: transparent; }
+
   h1 { font-family: var(--font-heading); font-size: var(--fs-xl); font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--text); margin-bottom: 4px; }
   h2, h3 { font-family: var(--font-heading); font-weight: 600; }
   .subtitle { font-size: var(--fs-sm); color: var(--text-dim); margin-bottom: 18px; letter-spacing: .05em; font-family: var(--font-body); }
 
   .controls { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-start; }
   .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
-  .ctrl-label { font-size: var(--fs-xs); color: var(--text-mute); letter-spacing: .12em; text-transform: uppercase; font-family: var(--font-body); }
+  /* These name the control groups you navigate by (SCALE GROUP / KEY /
+     POSITION / OVERLAY) — --text-mute was too dim to scan at a glance. */
+  .ctrl-label { font-size: var(--fs-xs); color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; font-family: var(--font-body); }
   .btn-row { display: flex; gap: 3px; flex-wrap: wrap; }
   button {
     background: var(--btn); color: var(--btn-text); border: 1px solid var(--border);
@@ -335,7 +348,7 @@
   /* Scales grid */
   .scales-table-wrap { background: var(--surface); border: 1px solid var(--border); padding: 12px; }
   .scales-table-wrap h2 { font-family: var(--font-body); font-size: var(--fs-sm); color: var(--text); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-  .group-label { font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute); letter-spacing: .12em; text-transform: uppercase; margin: 8px 0 4px; }
+  .group-label { font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-dim); letter-spacing: .12em; text-transform: uppercase; margin: 8px 0 4px; }
   .scales-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }
   .scale-entry {
     background: var(--surface); border: 1px solid var(--border); padding: var(--sp-2) var(--sp-3); cursor: pointer;
