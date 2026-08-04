@@ -97,6 +97,14 @@ function setCameraLoadingUI(loading) {
 }
 
 // ── On/off ───────────────────────────────────────────────────────────────
+// The nav button has a fixed icon span plus this text label — setting the
+// button's own textContent (rather than just the label span's) would wipe
+// out the icon span entirely, so every status update goes through here.
+function setCameraBtnLabel(text) {
+  const label = document.getElementById('camera-btn-label');
+  if (label) label.textContent = text;
+}
+
 async function toggleCamera() {
   if (cameraEnabled) { disableCamera(); return; }
   await enableCamera();
@@ -105,12 +113,14 @@ async function toggleCamera() {
 async function enableCamera() {
   const btn = document.getElementById('camera-toggle-btn');
   const statusEl = document.getElementById('camera-status');
-  if (btn) { btn.disabled = true; btn.textContent = '… connecting'; }
+  if (btn) btn.disabled = true;
+  setCameraBtnLabel('… connecting');
   try {
     cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
   } catch (e) {
     if (statusEl) statusEl.textContent = 'Camera access was denied — allow it in your browser to use hand tracking.';
-    if (btn) { btn.disabled = false; btn.textContent = '📷 Camera Off'; }
+    if (btn) btn.disabled = false;
+    setCameraBtnLabel('Camera Off');
     return;
   }
   videoEl = document.getElementById('camera-video');
@@ -128,14 +138,16 @@ async function enableCamera() {
     await ensureHandLandmarker();
   } catch (e) {
     if (statusEl) statusEl.textContent = 'Camera failed to start: ' + (e && e.message ? e.message : e);
-    if (btn) { btn.disabled = false; btn.textContent = '📷 Camera Off'; btn.classList.remove('active'); }
+    if (btn) { btn.disabled = false; btn.classList.remove('active'); }
+    setCameraBtnLabel('Camera Off');
     if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
     setCameraLoadingUI(false);
     return;
   }
 
   cameraEnabled = true;
-  if (btn) { btn.disabled = false; btn.textContent = '📷 Camera On'; btn.classList.add('active'); }
+  if (btn) { btn.disabled = false; btn.classList.add('active'); }
+  setCameraBtnLabel('Camera On');
   const panel = document.getElementById('camera-panel');
   if (panel) panel.classList.add('active');
   if (statusEl) statusEl.textContent = '';
@@ -152,7 +164,8 @@ function disableCamera() {
   if (cameraStream) { cameraStream.getTracks().forEach(t => t.stop()); cameraStream = null; }
   if (videoEl) videoEl.srcObject = null;
   const btn = document.getElementById('camera-toggle-btn');
-  if (btn) { btn.textContent = '📷 Camera Off'; btn.classList.remove('active'); }
+  if (btn) btn.classList.remove('active');
+  setCameraBtnLabel('Camera Off');
   const panel = document.getElementById('camera-panel');
   if (panel) panel.classList.remove('active');
   // Free the WASM model too — "zero resources used when off" means more than

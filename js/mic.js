@@ -281,9 +281,11 @@ function toggleMicBar() {
 async function toggleMicEnabled() {
   const btn = document.getElementById('mic-enable-btn');
   const status = document.getElementById('mic-status-text');
+  const compactBtn = document.getElementById('compact-mic-btn');
   if (micEnabled) {
     await micSetEnabled(false);
     if (btn) { btn.textContent = '▶ MIC ON'; btn.classList.remove('running'); }
+    if (compactBtn) compactBtn.classList.remove('active');
     if (status) status.textContent = 'Off — enable to hear note matching, tuning, and technique detection';
     updateMicTunerReadout(null);
     return;
@@ -297,5 +299,6 @@ async function toggleMicEnabled() {
     return;
   }
   if (btn) { btn.textContent = '■ MIC OFF'; btn.classList.add('running'); }
+  if (compactBtn) compactBtn.classList.add('active');
   if (status) status.textContent = 'Listening — play a note to see note matching, tuning, and technique detection live.';
 }

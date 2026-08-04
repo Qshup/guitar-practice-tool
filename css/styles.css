@@ -39,7 +39,7 @@
   html { scroll-behavior: smooth; }
   body {
     background: var(--bg); color: var(--text); font-family: var(--font-mono);
-    min-height: 100vh; padding: 20px; position: relative;
+    min-height: 100vh; padding: 0 20px 20px; position: relative;
   }
   /* Subtle tactile noise texture over the background — not digital-flat */
   body::before {
@@ -261,39 +261,112 @@
   .zappa-tag { font-family: 'Inter', Arial, sans-serif; font-size: 7px; color: var(--amber); letter-spacing: .08em; }
 
   /* ── Nav Bar (5-mode) ────────────────────────────────────── */
-  .nav-row {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    gap: 12px; flex-wrap: wrap; margin-bottom: 16px;
+  /* ── Fixed, frosted-glass app nav ────────────────────────────────────── */
+  .nav-spacer { height: 62px; } /* pushes page content below the now-fixed header */
+  .app-nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+    display: flex; align-items: center; gap: 18px; height: 62px; padding: 0 20px;
+    background: rgba(15,14,13,0.72);
+    backdrop-filter: blur(12px) saturate(1.2);
+    -webkit-backdrop-filter: blur(12px) saturate(1.2);
+    border-bottom: 1px solid var(--border);
   }
+  .app-logo {
+    display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+    font-family: var(--font-heading); font-size: 15px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--text);
+  }
+  .app-logo span::before { content: none; }
+
   .nav-progress-btn {
-    padding: 8px 14px; font-size: 10px; font-family: 'Inter', Arial, sans-serif; font-weight: bold;
-    border: 1px solid #333; background: var(--surface); color: #888; cursor: pointer;
-    letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+    padding: 7px 14px; font-size: 10px; font-family: var(--font-body); font-weight: bold;
+    border: 1px solid var(--border); background: var(--surface); color: var(--text-dim); cursor: pointer;
+    letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; margin-left: auto; flex-shrink: 0;
   }
-  .nav-progress-btn:hover { color: var(--text); border-color: #666; }
+  .nav-progress-btn:hover { color: var(--text); border-color: #555; }
+
   .nav-bar {
-    display: flex; align-items: center; gap: 0;
-    border: 1px solid #333; width: fit-content;
-    max-width: 100%; overflow-x: auto;
+    display: flex; align-items: stretch; gap: 2px; height: 100%;
+    overflow-x: auto; flex: 1; min-width: 0;
   }
   .nav-btn {
-    padding: 10px 24px; font-size: 11px; font-family: 'Inter', Arial, sans-serif; font-weight: bold;
-    border: none; cursor: pointer; letter-spacing: .08em; text-transform: uppercase;
-    transition: all .2s; background: var(--surface); color: #444; white-space: nowrap;
-    border-right: 1px solid #2a2a2a;
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 16px; font-size: 10px; font-family: var(--font-heading); font-weight: 600;
+    border: none; border-bottom: 2px solid transparent; cursor: pointer;
+    letter-spacing: .07em; text-transform: uppercase;
+    transition: color var(--ease-hover), border-color var(--ease-hover), background var(--ease-hover), transform var(--ease-active);
+    background: transparent; color: var(--text-dim); white-space: nowrap;
   }
-  .nav-btn:last-child { border-right: none; }
-  .nav-btn:hover { color: #ccc; }
-  .nav-btn.active { background: var(--text); color: #000; }
-  .nav-btn.active[data-mode="chords"] { background: var(--blue); color: #000; }
-  .nav-btn.active[data-mode="study"] { background: var(--amber); color: #000; }
-  .nav-btn.active[data-mode="riffs"] { background: var(--success); color: #000; }
-  .nav-btn.active[data-mode="songs"] { background: var(--error); color: var(--text); }
+  .nav-btn:active { transform: scale(0.98); }
+  .nav-icon { font-size: 13px; line-height: 1; }
+  .nav-btn:hover { color: var(--text); background: rgba(255,255,255,0.03); }
+  /* Every active tab uses the amber accent + bottom-border indicator —
+     a proper tab bar, not a different fill color per mode. */
+  .nav-btn.active {
+    color: var(--amber); border-bottom-color: var(--amber);
+    background: linear-gradient(180deg, rgba(200,168,75,0.08), transparent);
+  }
+  .camera-nav-btn.active { color: var(--error); border-bottom-color: var(--error); background: linear-gradient(180deg, rgba(200,90,74,0.08), transparent); }
 
   /* ── Mode Panels ─────────────────────────────────────────── */
   .mode-panel { display: none; }
-  .mode-panel.active { display: block; animation: modeFadeIn .2s ease; }
+  .mode-panel.active { display: block; animation: modeFadeIn var(--ease-fade); }
   @keyframes modeFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  /* Each mode gets a faint ambient tint on the page background showing
+     through the gaps between (fully opaque) cards — enough to feel like a
+     distinct space without touching card contrast/readability. */
+  #mode-panel-scales  { background: radial-gradient(ellipse 900px 500px at 50% 0%, rgba(200,168,75,0.05), transparent 70%); }
+  #mode-panel-chords  { background: radial-gradient(ellipse 900px 500px at 50% 0%, rgba(74,158,255,0.045), transparent 70%); }
+  #mode-panel-study   { background: radial-gradient(ellipse 900px 500px at 50% 0%, rgba(140,110,210,0.045), transparent 70%); }
+  #mode-panel-riffs   { background: radial-gradient(ellipse 900px 500px at 50% 0%, rgba(200,168,75,0.06), transparent 70%); }
+  #mode-panel-songs   { background: radial-gradient(ellipse 1100px 600px at 50% 0%, rgba(0,0,0,0.35), transparent 70%); }
+  #mode-panel-tuner   { background: radial-gradient(ellipse 900px 500px at 50% 0%, rgba(74,158,255,0.05), transparent 70%); }
+
+  /* Contextual per-mode header — replaces the removed global page h1 */
+  .mode-header {
+    font-family: var(--font-heading); font-size: 16px; font-weight: 700; color: var(--text);
+    letter-spacing: .06em; margin-bottom: 4px; display: flex; align-items: baseline; gap: 10px;
+  }
+  .mode-header .mode-header-sub {
+    font-family: var(--font-body); font-size: 10px; font-weight: 400; color: var(--text-dim);
+    letter-spacing: .03em; text-transform: none;
+  }
+
+  /* ── Compact toolbar (collapsed metronome+mic summary) ──────────────── */
+  .compact-toolbar { margin-bottom: 14px; }
+  .compact-row {
+    display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px;
+    background: var(--surface); border: 1px solid var(--border);
+  }
+  .compact-bpm-wrap { display: flex; align-items: baseline; gap: 4px; font-family: var(--font-mono); }
+  .compact-bpm-value {
+    font-size: 15px; font-weight: bold; color: var(--amber); min-width: 22px; text-align: right;
+    outline: none; border-bottom: 1px dashed transparent; cursor: text;
+  }
+  .compact-bpm-value:hover, .compact-bpm-value:focus { border-bottom-color: var(--amber); }
+  .compact-bpm-label { font-size: 8px; color: var(--text-dim); letter-spacing: .08em; text-transform: uppercase; }
+  .compact-icon-btn {
+    width: 28px; height: 28px; padding: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 10px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .compact-icon-btn:hover { color: var(--text); border-color: #555; }
+  .compact-play-btn.running { background: var(--amber); color: #14110a; border-color: var(--amber); }
+  .compact-mic-btn.active { background: var(--blue); color: #071018; border-color: var(--blue); }
+  .compact-expand-btn {
+    margin-left: auto; display: flex; align-items: center; gap: 5px;
+    background: transparent; border: none; color: var(--text-dim); font-size: 9px;
+    font-family: var(--font-body); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .compact-expand-btn:hover { color: var(--text); }
+  .compact-chevron { transition: transform var(--ease-hover); display: inline-block; }
+  .compact-expanded {
+    max-height: 0; overflow: hidden;
+    transition: max-height var(--ease-panel);
+  }
+  .compact-expanded.open { max-height: 700px; }
+  .compact-expanded .metronome-bar { border-top: none; margin-bottom: 0; }
+  .compact-expanded .metronome-bar:first-child { margin-top: 0; }
 
   /* ── Persistent Metronome Bar (visible in every mode) ───────── */
   .metronome-bar {
@@ -737,12 +810,12 @@
     margin-top: 28px; border-top: 2px solid #333; padding-top: 20px;
   }
   .riff-title {
-    font-family: 'Inter', Arial, sans-serif; font-size: 15px; font-weight: bold;
-    letter-spacing: .15em; text-transform: uppercase; color: var(--text); margin-bottom: 4px;
+    font-family: var(--font-heading); font-size: 16px; font-weight: 700;
+    letter-spacing: .06em; color: var(--text); margin-bottom: 4px;
   }
   .riff-subtitle {
-    font-family: 'Inter', Arial, sans-serif; font-size: 10px; color: #555;
-    margin-bottom: 18px; letter-spacing: .04em;
+    font-family: var(--font-body); font-size: 10px; color: var(--text-dim);
+    margin-bottom: 18px; letter-spacing: .03em;
   }
   .riff-controls {
     display: flex; gap: 14px; margin-bottom: 16px; flex-wrap: wrap; align-items: flex-end;
@@ -1302,8 +1375,8 @@
      PRACTICE PROGRESS TRACKER
 ═══════════════════════════════════════════════════════════════ */
   .progress-panel {
-    position: fixed; top: 56px; right: 20px; width: min(420px, 92vw); max-height: 80vh;
-    overflow-y: auto; z-index: 90; background: #0d0d0d; border: 1px solid #333;
+    position: fixed; top: 70px; right: 20px; width: min(420px, 92vw); max-height: 80vh;
+    overflow-y: auto; z-index: 190; background: var(--surface); border: 1px solid var(--border);
     box-shadow: 0 6px 24px rgba(0,0,0,0.6); display: none;
   }
   .progress-panel.open { display: block; }

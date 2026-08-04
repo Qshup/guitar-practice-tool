@@ -59,24 +59,41 @@
   </div>
 </div>
 
-<h1>Guitar Scale Reference — Fretboard & Circle of 5ths</h1>
-<div class="subtitle">Numbers = play order · White = root · Dashed line = ascending path · Gold border = Zappa scale · Circle updates live</div>
-
-<!-- ── NAV BAR ── -->
-<div class="nav-row">
+<!-- ── APP NAV — fixed, frosted-glass header. The old page h1/subtitle was
+     removed; each mode now carries its own contextual header instead
+     (see .mode-header inside each mode-panel). ── -->
+<div class="nav-spacer" id="nav-spacer"></div>
+<header class="app-nav" id="app-nav">
+  <div class="app-logo">🪶<span>FRETBOARD</span></div>
   <nav class="nav-bar" id="nav-bar">
-    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')">Scales</button>
-    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')">Chords</button>
-    <button class="nav-btn" data-mode="study" onclick="switchMode('study')">Study</button>
-    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')">Riffs</button>
-    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')">Songs</button>
-    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')">🎤 Tuner</button>
-    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on">📷 Camera Off</button>
+    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')"><span class="nav-icon">🎸</span>Scales</button>
+    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')"><span class="nav-icon">🎹</span>Chords</button>
+    <button class="nav-btn" data-mode="study" onclick="switchMode('study')"><span class="nav-icon">📚</span>Study</button>
+    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')"><span class="nav-icon">♪</span>Riffs</button>
+    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')"><span class="nav-icon">🎵</span>Songs</button>
+    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><span class="nav-icon">🎤</span>Tuner</button>
+    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><span class="nav-icon">📷</span><span id="camera-btn-label">Camera Off</span></button>
   </nav>
   <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress">Progress</button>
-</div>
+</header>
 
-<!-- ── METRONOME + BACKING TRACK (persistent across all modes) ── -->
+<!-- ── COMPACT TOOLBAR — collapsed slim summary (BPM/play/tap/mic) that
+     expands to reveal the full metronome + mic bars below, unchanged
+     internally. Persistent across all modes. ── -->
+<div class="compact-toolbar" id="compact-toolbar">
+  <div class="compact-row">
+    <span class="compact-bpm-wrap" title="Click the number to type a BPM directly">
+      <span class="compact-bpm-value" id="compact-bpm-value" contenteditable="true" spellcheck="false"
+        onblur="compactBpmEdited(this)" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">80</span>
+      <span class="compact-bpm-label">BPM</span>
+    </span>
+    <button class="compact-icon-btn compact-play-btn" id="compact-play-btn" onclick="toggleMetronome()" title="Start/stop metronome">▶</button>
+    <button class="compact-icon-btn" onclick="compactTapTempo()" title="Tap tempo">TAP</button>
+    <button class="compact-icon-btn compact-mic-btn" id="compact-mic-btn" onclick="toggleMicEnabled()" title="Microphone on/off">🎤</button>
+    <button class="compact-expand-btn" onclick="toggleComboExpanded()">Controls <span class="compact-chevron" id="compact-chevron">▾</span></button>
+  </div>
+  <div class="compact-expanded" id="compact-expanded">
+
 <div class="metronome-bar" id="metronome-bar">
   <div class="metronome-bar-header" onclick="toggleMetronomeBar()">
     <h2>▶ Metronome &amp; Backing Track</h2>
@@ -85,7 +102,7 @@
   <div class="metronome-bar-body" id="metronome-bar-body">
     <div class="prac-row">
       <span class="prac-label">BPM</span>
-      <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="document.getElementById('bpm-val').textContent=this.value">
+      <input type="range" id="bpm-slider" min="40" max="200" value="80" oninput="document.getElementById('bpm-val').textContent=this.value;syncCompactBpm(this.value)">
       <span class="prac-val" id="bpm-val">80</span>
     </div>
     <div class="prac-row">
@@ -164,6 +181,9 @@
   </div>
 </div>
 
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════════
      CAMERA PANEL — webcam hand tracking (js/camera.js). Hidden and fully
      idle (no getUserMedia, no MediaPipe model loaded) until the nav bar
@@ -192,6 +212,7 @@
      SCALES MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel active" id="mode-panel-scales">
+  <div class="mode-header">🎸 Scales <span class="mode-header-sub">Fretboard positions, circle of 5ths, and a live scale run-through</span></div>
 
   <div class="controls" id="scale-controls">
     <div class="ctrl-group">
@@ -322,6 +343,7 @@
      CHORDS MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-chords">
+  <div class="mode-header">🎹 Chords <span class="mode-header-sub">CAGED shapes, chord run-through, and mic-graded strum timing</span></div>
 
   <div class="subtab-bar">
     <button class="subtab-btn active" data-subtab="reference" onclick="switchChordSubtab('reference')">Reference</button>
@@ -496,6 +518,7 @@
      STUDY MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-study">
+  <div class="mode-header">📚 Study <span class="mode-header-sub">Flashcards, fretboard quiz, theory, ear training, and the chord game</span></div>
 
   <div class="subtab-bar">
     <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
@@ -1001,7 +1024,7 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-riffs">
   <div class="riff-section">
-    <div class="riff-title">Scale Riff Library</div>
+    <div class="riff-title">♪ Scale Riff Library</div>
     <div class="riff-subtitle">Themed riffs for each scale — press ▶ Play to hear them, follow the tab, then incorporate into your own playing</div>
 
     <div class="riff-controls">
@@ -1062,7 +1085,7 @@
      SONGS MODE (placeholder — built out in a later phase)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-songs">
-  <div class="riff-title">Song Library</div>
+  <div class="riff-title">🎵 Song Library</div>
   <div class="riff-subtitle">Full chord charts, tab, and a scrolling synced practice player for each song below —
     pick a song to open the practice view, drill a section on loop, then branch into a matching riff from the Riffs library.</div>
 
@@ -1163,6 +1186,7 @@
      TUNER MODE — standalone, reuses the shared mic engine (js/mic.js)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-tuner">
+  <div class="mode-header">🎤 Tuner <span class="mode-header-sub">Standalone tuner using the shared mic engine</span></div>
   <div class="tuner-view">
     <div class="tuner-hint">Turn on the mic in the bar above, then play a single open string or fretted note.</div>
     <div class="tuner-note" id="tuner-note">—</div>

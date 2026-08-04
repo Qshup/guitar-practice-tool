@@ -323,12 +323,14 @@ function scheduleMetro() {
 
 function toggleMetronome() {
   const btn = document.getElementById('metro-btn');
+  const compactBtn = document.getElementById('compact-play-btn');
   if (metroRunning) {
     clearInterval(metroScheduler);
     metroRunning = false;
     metroBeat = 0;
     btn.textContent = '▶ START';
     btn.classList.remove('running');
+    if (compactBtn) compactBtn.classList.remove('running');
     document.getElementById('chord-display').textContent = '';
     // Clear beat dots
     document.querySelectorAll('.beat-dot').forEach(d=>d.classList.remove('active'));
@@ -342,6 +344,7 @@ function toggleMetronome() {
     metroRunning = true;
     btn.textContent = '■ STOP';
     btn.classList.add('running');
+    if (compactBtn) compactBtn.classList.add('running');
     startScaleTimer();
     scheduleMetro();
     metroScheduler = setInterval(scheduleMetro, SCHEDULE_INTERVAL);
@@ -594,6 +597,61 @@ function toggleMetronomeBar() {
   data.ui.metronomeCollapsed = !data.ui.metronomeCollapsed;
   saveProgress(data);
   applyMetronomeBarCollapsedState(data.ui.metronomeCollapsed);
+}
+
+// ── Compact toolbar (BPM/play/mic) ─────────────────────────────────────────
+let compactTapTimes = [];
+let compactTapResetTimer = null;
+
+function syncCompactBpm(value) {
+  const el = document.getElementById('compact-bpm-value');
+  if (el && document.activeElement !== el) el.textContent = value;
+}
+
+function compactBpmEdited(el) {
+  const slider = document.getElementById('bpm-slider');
+  if (!slider) return;
+  let bpm = parseInt(el.textContent, 10);
+  if (isNaN(bpm)) bpm = parseInt(slider.value, 10);
+  bpm = Math.min(parseInt(slider.max, 10), Math.max(parseInt(slider.min, 10), bpm));
+  slider.value = bpm;
+  el.textContent = bpm;
+  const v = document.getElementById('bpm-val');
+  if (v) v.textContent = bpm;
+}
+
+function compactTapTempo() {
+  const now = Date.now();
+  compactTapTimes.push(now);
+  if (compactTapTimes.length > 5) compactTapTimes.shift();
+  clearTimeout(compactTapResetTimer);
+  compactTapResetTimer = setTimeout(() => { compactTapTimes = []; }, 2000);
+  if (compactTapTimes.length < 2) return;
+  const intervals = [];
+  for (let i = 1; i < compactTapTimes.length; i++) intervals.push(compactTapTimes[i] - compactTapTimes[i - 1]);
+  const avgMs = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+  const bpm = Math.round(60000 / avgMs);
+  const slider = document.getElementById('bpm-slider');
+  if (!slider) return;
+  const clamped = Math.min(parseInt(slider.max, 10), Math.max(parseInt(slider.min, 10), bpm));
+  slider.value = clamped;
+  const v = document.getElementById('bpm-val');
+  if (v) v.textContent = clamped;
+  syncCompactBpm(clamped);
+}
+
+function applyCompactExpandedState(expanded) {
+  const body = document.getElementById('compact-expanded');
+  const chevron = document.getElementById('compact-chevron');
+  if (body) body.classList.toggle('open', !!expanded);
+  if (chevron) chevron.textContent = expanded ? '▴' : '▾';
+}
+
+function toggleComboExpanded() {
+  const data = loadProgress();
+  data.ui.compactExpanded = !data.ui.compactExpanded;
+  saveProgress(data);
+  applyCompactExpandedState(data.ui.compactExpanded);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

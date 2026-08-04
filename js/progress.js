@@ -156,6 +156,7 @@ function loadProgress() {
   if (data.ui.activeStudySubtab === undefined) data.ui.activeStudySubtab = 'flashcards';
   if (data.ui.metronomeCollapsed === undefined) data.ui.metronomeCollapsed = false;
   if (data.ui.micBarCollapsed === undefined) data.ui.micBarCollapsed = false;
+  if (data.ui.compactExpanded === undefined) data.ui.compactExpanded = false;
   if (!data.fretboardQuiz) data.fretboardQuiz = defaultFretboardQuizProgress();
   if (!data.listenRepeat) data.listenRepeat = defaultListenRepeatProgress();
   if (!data.songs) data.songs = {};
@@ -373,6 +374,8 @@ renderProfileSwitcher();
 applyPanelCollapsedState(loadProgress().ui.panelCollapsed);
 if (typeof applyMetronomeBarCollapsedState === 'function') applyMetronomeBarCollapsedState(loadProgress().ui.metronomeCollapsed);
 if (typeof applyMicBarCollapsedState === 'function') applyMicBarCollapsedState(loadProgress().ui.micBarCollapsed);
+if (typeof applyCompactExpandedState === 'function') applyCompactExpandedState(loadProgress().ui.compactExpanded);
+if (typeof syncCompactBpm === 'function') { const s = document.getElementById('bpm-slider'); if (s) syncCompactBpm(s.value); }
 renderProgressPanel();
 setInterval(renderProgressPanel, 1000); // keeps the live scale-time ticking while a session runs
 document.addEventListener('click', (e) => {
