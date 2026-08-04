@@ -584,6 +584,29 @@
     <button class="subtab-btn" data-subtab="theory" onclick="switchStudySubtab('theory')">Theory</button>
     <button class="subtab-btn" data-subtab="listen" onclick="switchStudySubtab('listen')">Listen &amp; Repeat</button>
     <button class="subtab-btn" data-subtab="game" onclick="switchStudySubtab('game')">Chord Game</button>
+    <button class="subtab-btn" data-subtab="rhythm" onclick="switchStudySubtab('rhythm')">Rhythm</button>
+  </div>
+
+  <div class="subtab-panel" id="study-subtab-rhythm">
+    <div class="rhythm-intro">Subdivisions, polyrhythms and displacement — the rhythmic vocabulary the Zappa guide asks for. Shares the metronome's BPM and time signature.</div>
+    <div class="rhythm-controls">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Trainer</div>
+        <div class="btn-row" id="rhythm-mode-row">
+          <button class="active" data-rhymode="subdivision" onclick="rhySetMode('subdivision')">Subdivision</button>
+          <button data-rhymode="polyrhythm" onclick="rhySetMode('polyrhythm')">Polyrhythm</button>
+          <button data-rhymode="displacement" onclick="rhySetMode('displacement')">Displacement</button>
+        </div>
+      </div>
+      <div class="ctrl-group" id="rhythm-options"></div>
+    </div>
+    <div class="rhythm-hint" id="rhythm-hint"></div>
+    <div class="rhythm-grid" id="rhythm-grid"></div>
+    <div class="rhythm-actions">
+      <button class="big-btn btn-go" id="rhythm-start-btn" onclick="rhyToggle()">▶ START</button>
+      <div class="rhythm-feedback" id="rhythm-feedback"></div>
+    </div>
+    <div class="rhythm-stats" id="rhythm-stats"></div>
   </div>
 
   <div class="subtab-panel" id="study-subtab-game">
@@ -1296,6 +1319,7 @@
 <script src="js/upload.js"></script>
 <script src="js/tuner.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/rhythm.js"></script>
 <script src="js/shortcuts.js"></script>
 <script src="js/session.js"></script>
 <script type="module" src="js/camera.js"></script>

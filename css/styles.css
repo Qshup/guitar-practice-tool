@@ -2219,3 +2219,62 @@
   }
   .mic-cal-results em { font-style: normal; font-family: var(--font-mono); color: var(--text); }
   .mic-cal-actions { display: flex; align-items: center; justify-content: center; gap: var(--sp-3); }
+
+  /* ── Rhythm training ──────────────────────────────────────────────────── */
+  .rhythm-intro {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+    line-height: 1.6; margin-bottom: var(--sp-3);
+  }
+  .rhythm-controls { display: flex; gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-3); }
+  .rhythm-hint {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-mute);
+    line-height: 1.6; margin-bottom: var(--sp-3); max-width: 70ch;
+  }
+  .rhythm-grid {
+    display: flex; align-items: stretch; flex-wrap: wrap; gap: 3px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid var(--amber);
+    padding: var(--sp-3); margin-bottom: var(--sp-3); min-height: 62px;
+  }
+  .rhythm-grid.mode-polyrhythm { flex-direction: column; gap: var(--sp-2); }
+  .rhy-poly-row { display: flex; align-items: center; gap: var(--sp-3); }
+  .rhy-row { display: flex; gap: 3px; flex: 1; }
+  .rhy-row-label {
+    font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-dim);
+    width: 92px; flex-shrink: 0; text-align: right;
+  }
+  .rhy-cell {
+    flex: 1; min-width: 22px; height: 40px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--surface-2); border: 1px solid var(--border);
+    font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-mute);
+    transition: background var(--ease-active), border-color var(--ease-active), color var(--ease-active);
+  }
+  .rhy-cell.beat { background: #26231f; color: var(--text-dim); border-color: var(--border-hover); }
+  .rhy-cell.accent { border-color: var(--amber-dim); color: var(--amber); }
+  .rhy-cell.entry { border-color: var(--success); color: var(--success); background: #1e2a20; }
+  .rhy-cell.poly.on { border-color: var(--blue-dim); color: var(--blue); }
+  .rhy-cell.lit {
+    background: var(--amber); color: #14110a; border-color: var(--amber);
+    box-shadow: 0 0 12px var(--amber-glow);
+  }
+  .rhy-gap { width: var(--sp-2); flex-shrink: 0; }
+  .rhythm-actions { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: var(--sp-2); }
+  .rhythm-feedback {
+    font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 600; min-width: 140px;
+  }
+  .rhythm-feedback.good { color: var(--success); }
+  .rhythm-feedback.ok   { color: var(--warning); }
+  .rhythm-feedback.off  { color: var(--error); }
+  .rhythm-stats {
+    display: flex; gap: var(--sp-4); flex-wrap: wrap;
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+    border-top: 1px solid var(--border); padding-top: var(--sp-2);
+  }
+  .rhythm-stats em { font-style: normal; font-family: var(--font-mono); color: var(--text); font-weight: 600; }
+  .rhythm-stats .good em { color: var(--success); }
+  .rhythm-stats .ok em { color: var(--warning); }
+  .rhythm-stats .drift-rushing { color: var(--warning); }
+  .rhythm-stats .drift-dragging { color: var(--blue); }
+  .rhythm-stats .drift-centred { color: var(--success); }
+  .rhy-stat-empty { color: var(--text-mute); }

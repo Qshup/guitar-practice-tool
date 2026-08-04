@@ -11,7 +11,7 @@
 // a digit from those would be worse than having no shortcuts at all.
 
 const SHORTCUTS = [
-  { keys: 'Space',   label: 'Start / stop the metronome' },
+  { keys: 'Space',   label: 'Start / stop the metronome (taps the beat in Rhythm)' },
   { keys: 'M',       label: 'Microphone on / off' },
   { keys: 'R',       label: 'Start / stop the scale run-through' },
   { keys: 'G',       label: 'Start / stop the chord switching game' },
@@ -118,7 +118,12 @@ document.addEventListener('keydown', e => {
 
   switch (e.key) {
     case ' ':
-      if (typeof toggleMetronome === 'function') { toggleMetronome(); handled = true; }
+      // In the Rhythm trainer, Space is the tap key — taking it for the
+      // metronome there would make the trainer unusable with a guitar in hand.
+      if (typeof rhythmPanelActive === 'function' && rhythmPanelActive()) {
+        if (typeof rhyRunning !== 'undefined' && rhyRunning) { rhyTap(); handled = true; }
+        else if (typeof rhyToggle === 'function') { rhyToggle(); handled = true; }
+      } else if (typeof toggleMetronome === 'function') { toggleMetronome(); handled = true; }
       break;
     case 'm': case 'M':
       if (typeof toggleMicEnabled === 'function') { toggleMicEnabled(); handled = true; }

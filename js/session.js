@@ -161,7 +161,10 @@ function buildSessionPlan(totalMinutes, focus) {
   // 5. Ear training closes the session on longer plans
   if (totalMinutes >= 45) {
     plan.push({
-      id: 'ear', mode: 'study', subtab: 'listenrepeat', minutes: slice(0.15, 4),
+      // 'listen', not 'listenrepeat' — switchStudySubtab matches panel ids
+      // literally and does not validate, so a wrong name silently hides every
+      // panel in Study rather than erroring.
+      id: 'ear', mode: 'study', subtab: 'listen', minutes: slice(0.15, 4),
       title: 'Ear training: Listen & Repeat',
       reason: 'ties the fretboard shapes to what you actually hear',
     });
