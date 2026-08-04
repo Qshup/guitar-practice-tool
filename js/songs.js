@@ -616,10 +616,10 @@ function renderSongPracticeShell() {
         <span class="song-transport-label">Room</span>
         <input type="range" id="song-room-slider" min="0" max="100" value="25" style="width:90px" oninput="songSetRoom(this.value)">
       </div>
-      <span style="font-family:Arial,sans-serif;font-size:9px;color:#ccb84a;display:none" id="song-sample-loading"></span>
+      <span style="font-family:'Inter',Arial,sans-serif;font-size:9px;color:#ccb84a;display:none" id="song-sample-loading"></span>
     </div>
 
-    <div style="font-family:Arial,sans-serif;font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin:2px 0 4px">
+    <div style="font-family:'Inter',Arial,sans-serif;font-size:9px;color:#888;letter-spacing:.08em;text-transform:uppercase;margin:2px 0 4px">
       Tab shown below: <span style="color:#5c8fff" id="song-scroller-part-label">Lead / Solo</span>
     </div>
     <div class="song-scroller-wrap" id="song-scroller-wrap">
@@ -664,7 +664,7 @@ function renderSongPracticeShell() {
     </div>
 
     <div class="song-section" style="background:#111;border:1px solid #222;padding:16px">
-      <h3 style="font-family:Arial,sans-serif;font-size:10px;color:#fff;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid #222;padding-bottom:6px;margin-bottom:12px">Practice Riffs In This Style</h3>
+      <h3 style="font-family:'Inter',Arial,sans-serif;font-size:10px;color:#fff;letter-spacing:.1em;text-transform:uppercase;border-bottom:1px solid #222;padding-bottom:6px;margin-bottom:12px">Practice Riffs In This Style</h3>
       <div class="riff-grid" id="song-related-riffs"></div>
     </div>
   `;

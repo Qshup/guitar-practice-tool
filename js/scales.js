@@ -344,7 +344,29 @@ function buildFretGrid(container, decorate, fretsCount) {
     }
     row.appendChild(fd); container.appendChild(row);
   });
+  buildFretInlays(container, fretsCount);
   return stringOrder;
+}
+
+// Inlaid position-marker dots at frets 3/5/7/9/12 (double dot at 12) —
+// positioned as real elements on the .fretboard container (top:50% via CSS
+// centers them across whatever string count is actually rendered) rather
+// than a per-cell pseudo-element, since the fretboard's height varies by
+// context and a pseudo-element can't reliably center across all of it.
+function buildFretInlays(container, fretsCount) {
+  container.querySelectorAll('.fret-inlay').forEach(e => e.remove());
+  [3, 5, 7, 9, 12].forEach(f => {
+    if (f >= fretsCount) return;
+    const left = 52 + (f + 0.5) * FRET_W;
+    if (f === 12) {
+      const a = document.createElement('div'); a.className = 'fret-inlay double'; a.style.left = (left - 5) + 'px';
+      const b = document.createElement('div'); b.className = 'fret-inlay double'; b.style.left = (left + 5) + 'px';
+      container.appendChild(a); container.appendChild(b);
+    } else {
+      const dot = document.createElement('div'); dot.className = 'fret-inlay'; dot.style.left = left + 'px';
+      container.appendChild(dot);
+    }
+  });
 }
 
 // ── Fretboard ─────────────────────────────────────────────────────────────────
