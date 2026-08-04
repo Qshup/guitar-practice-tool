@@ -159,7 +159,7 @@
           <option value="5">5/4 ★</option>
           <option value="11">11/8 ★</option>
         </select>
-        <span style="font-family:Arial;font-size:8px;color:#444;margin-left:6px">★ = Zappa</span>
+        <span class="u-note-dim">★ = Zappa</span>
       </div>
     </div>
     <div class="prac-row">
@@ -312,11 +312,11 @@
 
   <div class="finger-legend" id="finger-legend">
     <span class="finger-legend-heading">FRETTING HAND:</span>
-    <div class="finger-legend-item"><div class="fl-dot finger-1" style="background:#e53935;border-color:#c62828">1</div> Index</div>
-    <div class="finger-legend-item"><div class="fl-dot finger-2" style="background:#43a047;border-color:#2e7d32">2</div> Middle</div>
-    <div class="finger-legend-item"><div class="fl-dot finger-3" style="background:#1e88e5;border-color:#1565c0">3</div> Ring</div>
-    <div class="finger-legend-item"><div class="fl-dot finger-4" style="background:#8e24aa;border-color:#6a1b9a">4</div> Pinky</div>
-    <span style="font-family:Arial;font-size:9px;color:#444;margin-left:8px;">Assigned by fret spacing within each position box</span>
+    <div class="finger-legend-item"><div class="fl-dot finger-1">1</div> Index</div>
+    <div class="finger-legend-item"><div class="fl-dot finger-2">2</div> Middle</div>
+    <div class="finger-legend-item"><div class="fl-dot finger-3">3</div> Ring</div>
+    <div class="finger-legend-item"><div class="fl-dot finger-4">4</div> Pinky</div>
+    <span class="u-note-dim">Assigned by fret spacing within each position box</span>
   </div>
 
   <div class="zappa-banner" id="zappa-banner"></div>
@@ -363,14 +363,14 @@
   </div>
 
   <div class="legend" id="scale-legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#fff;color:#000">1</div>Root</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#ccc;color:#000">2</div>2nd</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#999;color:#000">3</div>3rd</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#666;color:#fff">4</div>4th</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#3a3a3a;color:#ccc;border:1px solid #555">5</div>5th</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#2a1a00;color:#cb9;border:1px solid #543">6</div>6th</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#1a0a2a;color:#a8c;border:1px solid #436">7</div>7th</div>
-    <div class="legend-item" style="margin-left:6px"><div class="legend-dot" style="background:#2a2a2a;color:#666;border:1px solid #444">♩</div>Other pos</div>
+    <div class="legend-item"><div class="legend-dot order-1">1</div>Root</div>
+    <div class="legend-item"><div class="legend-dot order-2">2</div>2nd</div>
+    <div class="legend-item"><div class="legend-dot order-3">3</div>3rd</div>
+    <div class="legend-item"><div class="legend-dot order-4">4</div>4th</div>
+    <div class="legend-item"><div class="legend-dot order-5">5</div>5th</div>
+    <div class="legend-item"><div class="legend-dot order-6">6</div>6th</div>
+    <div class="legend-item"><div class="legend-dot order-7">7</div>7th</div>
+    <div class="legend-item" style="margin-left:6px"><div class="legend-dot other-pos">♩</div>Other pos</div>
   </div>
 
   <div class="mic-scale-match-status" id="mic-scale-match-status">Turn on the mic above and play a note to see it matched here</div>
@@ -385,7 +385,7 @@
     <div class="circle-panel">
       <h2>Circle of 5ths</h2>
       <svg id="circle-svg" width="220" height="220"></svg>
-      <div id="circle-legend" style="font-family:'Inter',Arial,sans-serif;font-size:9px;color:#555;margin-top:8px;line-height:1.7;"></div>
+      <div id="circle-legend" class="u-note"></div>
     </div>
 
     <div class="right-panel">
@@ -443,13 +443,13 @@
     </div>
 
     <div class="chord-legend" id="chord-legend">
-      <span style="font-family:Arial;font-size:9px;color:#888;margin-right:4px;">CHORD TONES:</span>
-      <div class="legend-item"><div class="legend-dot" style="background:#fff;color:#000;border:1px solid #fff">R</div>Root</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#5c8fff;color:#000">3</div>3rd</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#4caf50;color:#000">5</div>5th</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#fb8c00;color:#000">7</div>7th</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#555;color:#ddd;border:1px solid #666">ext</div>Extension</div>
-      <div class="legend-item"><div class="legend-dot" style="background:transparent;color:#333;border:1px solid #222">×</div>Muted</div>
+      <span class="u-note-dim">CHORD TONES:</span>
+      <div class="legend-item"><div class="legend-dot chord-root-key">R</div>Root</div>
+      <div class="legend-item"><div class="legend-dot chord-third-key">3</div>3rd</div>
+      <div class="legend-item"><div class="legend-dot chord-fifth-key">5</div>5th</div>
+      <div class="legend-item"><div class="legend-dot chord-seventh-key">7</div>7th</div>
+      <div class="legend-item"><div class="legend-dot legend-ext">ext</div>Extension</div>
+      <div class="legend-item"><div class="legend-dot" style="background:transparent;color:var(--text-mute);border:1px solid var(--border)">×</div>Muted</div>
     </div>
 
     <div class="fretboard-wrap">
@@ -489,9 +489,9 @@
         <!-- Chord diagram -->
         <div class="chord-diagram-wrap">
           <div class="chord-name-big" id="caged-chord-name">C</div>
-          <div class="chord-shape-tag" id="caged-shape-tag" style="color:#e53935">C SHAPE</div>
+          <div class="chord-shape-tag" id="caged-shape-tag" style="color:var(--error)">C SHAPE</div>
           <canvas class="chord-canvas" id="chord-canvas" width="160" height="200"></canvas>
-          <div style="font-family:Arial;font-size:9px;color:#444;margin-top:4px" id="caged-barre-note"></div>
+          <div class="u-note-dim" id="caged-barre-note"></div>
         </div>
 
         <!-- Info panel -->
@@ -510,7 +510,7 @@
         <div class="caged-fretboard-wrap">
           <h3>All 5 CAGED shapes on the neck — <span id="caged-neck-key">C</span> major</h3>
           <canvas class="caged-fb-canvas" id="caged-fb-canvas" width="700" height="160"></canvas>
-          <div style="font-family:Arial;font-size:9px;color:#444;margin-top:6px">Each coloured block = one CAGED shape position · Root notes shown as filled dots</div>
+          <div class="u-note-dim">Each coloured block = one CAGED shape position · Root notes shown as filled dots</div>
         </div>
       </div>
 
@@ -563,15 +563,15 @@
         <div class="chord-grading-status" id="chord-grading-status"></div>
         <div class="chord-selfgrade-row" id="chord-selfgrade-row" style="display:none">
           <span id="chord-selfgrade-label"></span>
-          <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="chordSelfGrade(true)">✓ Got it</button>
-          <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="chordSelfGrade(false)">✗ Missed</button>
+          <button class="quiz-mode-btn" class="u-ok" onclick="chordSelfGrade(true)">✓ Got it</button>
+          <button class="quiz-mode-btn" class="u-bad" onclick="chordSelfGrade(false)">✗ Missed</button>
         </div>
       </div>
 
       <!-- Chord Switching Game moved to Study > Chord Game -->
       <div class="practice-panel run-panel">
         <h2>▶ Chord Switching Game</h2>
-        <p style="font-family:'Inter',Arial,sans-serif;font-size:9px;color:#666;line-height:1.6;margin-bottom:10px">
+        <p class="u-note-dim">
           Chords flash on screen, switch in time with the beat, self-grade, build speed over time.
         </p>
         <button class="big-btn btn-run" onclick="switchMode('study'); switchStudySubtab('game')">▶ Open in Study &gt; Chord Game</button>
@@ -638,7 +638,7 @@
           <div class="gs-row">
             <div class="gs-label">Difficulty ramp</div>
             <div class="game-bpm-progress"><div class="game-bpm-progress-fill" id="game-bpm-progress-fill"></div></div>
-            <div class="gs-val" id="game-bpm-progress-label" style="font-size:9px">60 BPM</div>
+            <div class="gs-val gs-val-sm" id="game-bpm-progress-label">60 BPM</div>
           </div>
 
           <div class="gs-row">
@@ -685,8 +685,8 @@
           </div>
 
           <!-- KEY PRACTICE PANEL -->
-          <div id="key-practice-panel" style="background:#0d0d1a;border:1px solid #1a1a3a;padding:10px;margin-top:2px">
-            <div class="gs-label" style="margin-bottom:6px;color:#5c8fff">SELECT KEYS TO PRACTICE</div>
+          <div id="key-practice-panel" class="u-panel-sub">
+            <div class="gs-label" style="margin-bottom:var(--sp-2);color:var(--blue)">SELECT KEYS TO PRACTICE</div>
 
             <!-- Key toggles grid -->
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:3px;margin-bottom:8px" id="key-toggle-grid"></div>
@@ -694,26 +694,26 @@
             <!-- Scale quality per key -->
             <div class="gs-label" style="margin-bottom:4px">Include chord qualities</div>
             <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px" id="quality-toggles">
-              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+              <label class="u-inline-key">
                 <input type="checkbox" id="q-major" checked onchange="rebuildGameDeck()"> Major (I)
               </label>
-              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+              <label class="u-inline-key">
                 <input type="checkbox" id="q-minor" checked onchange="rebuildGameDeck()"> Minor (ii iii vi)
               </label>
-              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+              <label class="u-inline-key">
                 <input type="checkbox" id="q-dom7" onchange="rebuildGameDeck()"> Dom 7 (V7)
               </label>
-              <label style="font-family:Arial;font-size:9px;color:#666;display:flex;align-items:center;gap:3px;cursor:pointer">
+              <label class="u-inline-key">
                 <input type="checkbox" id="q-dim" onchange="rebuildGameDeck()"> Dim (vii°)
               </label>
             </div>
 
             <!-- Current deck preview -->
             <div class="gs-label" style="margin-bottom:3px">Active chord deck</div>
-            <div id="deck-preview" style="font-family:'Courier New',monospace;font-size:9px;color:#5c8fff;line-height:1.7;min-height:16px;word-break:break-all"></div>
+            <div id="deck-preview" class="u-mono-out"></div>
 
             <!-- Key info -->
-            <div id="key-info-box" style="margin-top:6px;font-family:'Inter',Arial,sans-serif;font-size:9px;color:#444;line-height:1.7;border-top:1px solid #1a1a2a;padding-top:5px"></div>
+            <div id="key-info-box" class="u-note u-divider"></div>
           </div>
 
           <div class="gs-row" id="caged-key-game-row" style="display:none">
@@ -728,7 +728,7 @@
           <div class="gs-row" id="custom-chord-row" style="display:none">
             <div class="gs-label">Custom chord list</div>
             <input type="text" id="custom-chord-input" placeholder="e.g. C,Am,F,G"
-              style="background:#1a1a1a;color:#ccc;border:1px solid #333;padding:4px 6px;font-size:9px;font-family:'Courier New',monospace;width:100%"
+              class="u-textarea"
               oninput="rebuildGameDeck()">
           </div>
 
@@ -759,7 +759,7 @@
             <label for="game-autoadvance">Auto-advance chords</label>
           </div>
 
-          <div class="gs-row" style="margin-top:4px;border-top:1px solid #1a1a1a;padding-top:8px">
+          <div class="gs-row" class="u-divider">
             <div class="gs-label">Fretboard mode</div>
             <select id="game-fret-mode">
               <option value="static">Static (show chord shape)</option>
@@ -821,8 +821,8 @@
             <button class="game-btn game-btn-skip" onclick="skipChord()" style="display:none" id="game-skip-btn">Skip →</button>
           </div>
           <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap" id="grade-btns" style="display:none">
-            <button class="game-btn game-btn-got" onclick="gradeSwitch(true)" style="display:none;padding:6px 18px;font-size:11px" id="btn-got">✓ Got it</button>
-            <button class="game-btn game-btn-missed" onclick="gradeSwitch(false)" style="display:none;padding:6px 18px;font-size:11px" id="btn-missed">✗ Missed</button>
+            <button class="game-btn game-btn-got" onclick="gradeSwitch(true)" style="display:none" class="game-btn-grade" id="btn-got">✓ Got it</button>
+            <button class="game-btn game-btn-missed" onclick="gradeSwitch(false)" style="display:none" class="game-btn-grade" id="btn-missed">✗ Missed</button>
           </div>
 
           <div class="game-message ready" id="game-message">Choose your settings and press START</div>
@@ -855,11 +855,11 @@
           <div class="fret-position-label" id="fret-pos-label">Fret 0 (open)</div>
           <canvas id="guitar-full-canvas" width="180" height="520"></canvas>
           <div class="guitar-neck-legend">
-            <div class="gnl-item"><div class="gnl-dot" style="background:#fff"></div>Root</div>
-            <div class="gnl-item"><div class="gnl-dot" style="background:#5c8fff"></div>3rd</div>
-            <div class="gnl-item"><div class="gnl-dot" style="background:#4caf50"></div>5th</div>
-            <div class="gnl-item"><div class="gnl-dot" style="background:#fb8c00"></div>7th</div>
-            <div class="gnl-item"><div class="gnl-dot" style="background:#e53935;border-radius:3px;width:14px;height:8px"></div>Barre</div>
+            <div class="gnl-item"><div class="gnl-dot gnl-root"></div>Root</div>
+            <div class="gnl-item"><div class="gnl-dot gnl-third"></div>3rd</div>
+            <div class="gnl-item"><div class="gnl-dot gnl-fifth"></div>5th</div>
+            <div class="gnl-item"><div class="gnl-dot gnl-seventh"></div>7th</div>
+            <div class="gnl-item"><div class="gnl-dot gnl-barre"></div>Barre</div>
           </div>
         </div>
 
@@ -900,11 +900,11 @@
           <div class="quiz-result" id="quiz-result"></div>
         </div>
         <div class="quiz-controls">
-          <div class="ctrl-label" style="font-family:Arial;font-size:9px;color:#555;letter-spacing:.1em">SELF GRADE</div>
-          <button class="quiz-mode-btn" style="background:#1a2a1a;border-color:#2a4a2a;color:#4caf50" onclick="gradeCard(true)">✓ Got it</button>
-          <button class="quiz-mode-btn" style="background:#2a1a1a;border-color:#4a2a2a;color:#e53935" onclick="gradeCard(false)">✗ Missed</button>
+          <div class="ctrl-label" class="u-caps">SELF GRADE</div>
+          <button class="quiz-mode-btn" class="u-ok" onclick="gradeCard(true)">✓ Got it</button>
+          <button class="quiz-mode-btn" class="u-bad" onclick="gradeCard(false)">✗ Missed</button>
           <div class="quiz-score" id="quiz-score">Score: 0 / 0</div>
-          <div style="font-family:Arial;font-size:9px;color:#333;margin-top:8px;line-height:1.6">
+          <div class="u-note-dim">
             Cards cycle through<br>all chord types<br>in the current key.<br><br>
             Missed cards repeat<br>more often.
           </div>
@@ -963,7 +963,7 @@
       <div class="circle-panel">
         <h2>Circle of 5ths</h2>
         <svg id="theory-circle-svg" width="220" height="220"></svg>
-        <div id="theory-circle-legend" style="font-family:'Inter',Arial,sans-serif;font-size:9px;color:#555;margin-top:8px;line-height:1.7;"></div>
+        <div id="theory-circle-legend" class="u-note"></div>
       </div>
       <div class="right-panel">
         <div class="info-box" id="theory-info-box"></div>
@@ -1213,7 +1213,7 @@
       <select id="songs-filter-scale" onchange="applySongFilters()"><option value="all">All Scales</option></select>
     </div>
     <button class="riff-filter-clear" onclick="clearSongFilters()">Clear Filters</button>
-    <button class="riff-filter-clear" style="margin-left:auto;border-color:#5c8fff;color:#5c8fff" onclick="openUploadPanel()">⬆ Upload Song</button>
+    <button class="riff-filter-clear" class="u-accent-btn" onclick="openUploadPanel()">⬆ Upload Song</button>
   </div>
 
   <div class="songs-grid" id="songs-grid"></div>

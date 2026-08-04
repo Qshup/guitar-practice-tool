@@ -916,6 +916,64 @@ guitar+mic+room. Expect the first real test to surface false positives/
 negatives that need threshold adjustment — this is expected next-pass work,
 not a sign anything is broken.
 
+## Fretboard Vision — camera note/chord readout (js/fretboard-vision.js)
+
+**This removes the accuracy limitation documented below.** The camera can now
+name the fret, string, notes and chord you are playing, because it finally
+knows where the neck is.
+
+You calibrate once by clicking four corners of **your** neck in the preview
+(nut/low-E, nut/high-e, 12th/high-e, 12th/low-E). Then:
+
+1. **Homography, not a stretch.** The neck is a plane seen at an angle, so the
+   camera→neck mapping is projective. Verified on a synthetic trapezoid: all
+   four corners land exactly on the unit square, and the visual centre maps to
+   u=0.333 rather than 0.5 — the foreshortening a bilinear stretch misses.
+2. **Real fret geometry.** Fret n sits at `1 - 2^(-n/12)` of scale length, so
+   the marked nut→12th span is half the scale and spacing narrows going up.
+   Verified: fret 12 at the span end, fret 5 at u=0.5017 (the 5th fret really
+   is a quarter of scale length), round-trip exact. An even split would put
+   fret 5 about a whole fret out.
+3. Fingertips inside the quad → (string, fret) → note names → matched against
+   `GAME_CHORDS`.
+
+**Curl is not a contact gate — do not make it one again.** `fingerCurl`
+measures tip-vs-base distance from the *wrist*; it answers "which fingers are
+engaged in this shape", not "is this fingertip on the board". Used as a hard
+gate it rejected fingers demonstrably on the correct fret. Containment in the
+calibrated quad is the contact test (that is what calibration buys); curl only
+weights a confidence value, and low-confidence notes render dimmed/dashed
+rather than being hidden.
+
+The overlay draws the neck outline plus fret lines at their true non-linear
+positions, so you can *see* whether the mapping lines up rather than trusting
+it. Clicks account for the preview's CSS mirror (`x → 1-x`). Corners persist
+per profile and restore via `initNav`. Readings are held over 5 frames because
+MediaPipe jitters enough to flicker between adjacent frets.
+
+Verified: E major fingering → A2=B, D2=E, G1=G# → "E". Am → D2=E, G2=A, B1=C →
+"Am". Monocular vision still cannot distinguish a finger resting near the
+board from one pressing it — hence the visible confidence.
+
+## Design tokens: single sources of truth
+
+Two places had the same values written twice and drifted apart. Both are now
+one definition:
+
+- **Scale-degree ramp** (`--deg-1-bg` … `--deg-7-bd`). The fretboard note dots
+  and the legend explaining them were separate literals; the legend still
+  showed the pre-redesign grey/brown/purple ramp after the dots moved to the
+  warm one, so **the key described colours the fretboard no longer used**.
+- **Chord-Game neck canvas.** `dotColors` in game.js reads `--text`/`--blue`/
+  `--success`/`--warning` through a `cssVar()` helper (canvas cannot use
+  `var()`), and the HTML legend beneath it uses the same tokens. They were
+  near-miss literals (`#5c8fff` vs `--blue`, `#4caf50` vs `--success`).
+
+`index.html` now has **zero** inline styles carrying `font-family`, raw hex or
+px font-sizes — the remaining `style=` attributes are `display:none` initial
+state and a handful of layout one-offs. Utility classes (`.u-note`,
+`.u-caps`, `.u-textarea`, …) cover what the inline styles used to.
+
 ## Camera Architecture (js/camera.js)
 
 Webcam hand tracking via **MediaPipe Tasks Vision** (`HandLandmarker`),

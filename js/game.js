@@ -48,6 +48,15 @@ const GAME_CHORDS = {
   'Dsus2': { f:[-1,-1,0,2,3,0], fingers:[0,0,0,1,2,0] },
 };
 
+// Reads a design token out of the stylesheet for canvas drawing, which cannot
+// use var() directly.
+function cssVar(name, fallback) {
+  try {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+  } catch (e) { return fallback; }
+}
+
 const CHORD_SETS = {
   open:     ['C','G','D','A','E','F'],
   minor:    ['Am','Em','Dm','Bm','F#m','C#m','Gm'],
@@ -413,7 +422,7 @@ function drawGameChord(canvas, chordName, size=150) {
   const startFret = minFret<=1 ? 0 : minFret-1;
 
   // Fret numbers
-  ctx.fillStyle='#444'; ctx.font='8px Arial'; ctx.textAlign='right';
+  ctx.fillStyle='#444'; ctx.font='9px Inter, Arial, sans-serif'; ctx.textAlign='right';
   for(let f=0;f<numFrets;f++){
     const fn=startFret+f+1;
     if(fn>0) ctx.fillText(fn, padL-4, padT+f*fretH+fretH/2+3);
@@ -454,7 +463,7 @@ function drawGameChord(canvas, chordName, size=150) {
   chord.f.forEach((f,si) => {
     const x=padL+si*strW;
     if(f<0){
-      ctx.fillStyle='#333'; ctx.font='bold 10px Arial'; ctx.textAlign='center';
+      ctx.fillStyle='#333'; ctx.font='600 11px Inter, Arial, sans-serif'; ctx.textAlign='center';
       ctx.fillText('×',x,padT-7); return;
     }
     if(f===0&&startFret===0){
@@ -468,7 +477,7 @@ function drawGameChord(canvas, chordName, size=150) {
     ctx.beginPath(); ctx.arc(x,y,fretH*0.36,0,Math.PI*2);
     ctx.fillStyle=fingerColors[Math.min(finger,4)]; ctx.fill();
     if(finger>0){
-      ctx.fillStyle='#000'; ctx.font=`bold ${Math.round(fretH*0.35)}px Arial`; ctx.textAlign='center';
+      ctx.fillStyle='#000'; ctx.font=`600 ${Math.round(fretH*0.38)}px Inter, Arial, sans-serif`; ctx.textAlign='center';
       ctx.fillText(finger,x,y+fretH*0.12);
     }
   });
@@ -1050,7 +1059,17 @@ function drawGuitarNeck(canvasId, chordNameOverride, modeOverride) {
                         : /m$/.test(chordName) ? CHORD_INTERVALS_MAP['min']
                         : CHORD_INTERVALS_MAP['maj'];
 
-  const dotColors = { root:'#fff', third:'#5c8fff', fifth:'#4caf50', seventh:'#fb8c00', other:'#aaa' };
+  // Read from the stylesheet so the canvas and the HTML legend below it can
+  // never drift apart — they were separate literals (#5c8fff vs --blue,
+  // #4caf50 vs --success), so the neck was painted in near-miss colours that
+  // matched nothing else in the app.
+  const dotColors = {
+    root: cssVar('--text', '#f0ece6'),
+    third: cssVar('--blue', '#4a9eff'),
+    fifth: cssVar('--success', '#4a9e6a'),
+    seventh: cssVar('--warning', '#d08a3c'),
+    other: cssVar('--text-dim', '#8a8078'),
+  };
 
   function getIntervalColor(noteName) {
     const nMidi = CHROMATIC.indexOf(norm(noteName));

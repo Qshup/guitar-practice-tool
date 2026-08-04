@@ -34,6 +34,20 @@
     /* ── Spacing scale ───────────────────────────────────────────────────
        Card/panel padding used to be 8px 10px / 9px 11px / 10px 14px /
        12px / 12px 14px / 16px depending on which file it was written in. */
+    /* ── Scale-degree ramp ───────────────────────────────────────────────
+       Single source of truth for the fretboard note dots AND the legend that
+       explains them. They were separate values and drifted: the legend still
+       showed the pre-redesign grey/brown/purple ramp while the dots had moved
+       to this warm one, so the legend was describing colours the fretboard no
+       longer used. */
+    --deg-1-bg: #f0ece6; --deg-1-fg: #14110a;
+    --deg-2-bg: #d8d2c8; --deg-2-fg: #14110a; --deg-2-bd: #e4dfd6;
+    --deg-3-bg: #b0a89c; --deg-3-fg: #14110a; --deg-3-bd: #c2bbb0;
+    --deg-4-bg: #837a70; --deg-4-fg: #f0ece6; --deg-4-bd: #968d82;
+    --deg-5-bg: #5c554e; --deg-5-fg: #f0ece6; --deg-5-bd: #6f675f;
+    --deg-6-bg: #423c36; --deg-6-fg: #8a8078; --deg-6-bd: #524b44;
+    --deg-7-bg: #302b26; --deg-7-fg: #6b635b; --deg-7-bd: #3f3933;
+
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px;
     --sp-4: 16px; --sp-5: 24px; --sp-6: 36px;
 
@@ -270,12 +284,12 @@
      (#1a0a2a) for degrees 6 and 7, which read as two unrelated colour
      systems on the same fretboard. Brightness alone now carries the
      ordering, and every step sits in the palette's warm family. */
-  .note-dot.order-2 { background: #d8d2c8; color: #14110a; border-color: #e4dfd6; }
-  .note-dot.order-3 { background: #b0a89c; color: #14110a; border-color: #c2bbb0; }
-  .note-dot.order-4 { background: #837a70; color: var(--text); border-color: #968d82; }
-  .note-dot.order-5 { background: #5c554e; color: var(--text); border-color: #6f675f; }
-  .note-dot.order-6 { background: #423c36; color: var(--text-dim); border-color: #524b44; }
-  .note-dot.order-7 { background: #302b26; color: var(--text-mute); border-color: #3f3933; }
+  .note-dot.order-2 { background: var(--deg-2-bg); color: var(--deg-2-fg); border-color: var(--deg-2-bd); }
+  .note-dot.order-3 { background: var(--deg-3-bg); color: var(--deg-3-fg); border-color: var(--deg-3-bd); }
+  .note-dot.order-4 { background: var(--deg-4-bg); color: var(--deg-4-fg); border-color: var(--deg-4-bd); }
+  .note-dot.order-5 { background: var(--deg-5-bg); color: var(--deg-5-fg); border-color: var(--deg-5-bd); }
+  .note-dot.order-6 { background: var(--deg-6-bg); color: var(--deg-6-fg); border-color: var(--deg-6-bd); }
+  .note-dot.order-7 { background: var(--deg-7-bg); color: var(--deg-7-fg); border-color: var(--deg-7-bd); }
   .note-dot.zappa-note { box-shadow: inset 0 1px 1px rgba(255,255,255,0.15), 0 0 6px 2px rgba(204,184,74,0.5); }
   .arrow-canvas { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 10; }
 
@@ -2333,3 +2347,46 @@
   }
   .fv-pos { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-mute); }
   .fv-note.low-conf { opacity: .6; border-style: dashed; }
+
+  /* Legend swatches reuse the degree ramp tokens, so the key can never drift
+     from the fretboard again (it had). */
+  .legend-dot.order-1 { background: var(--deg-1-bg); color: var(--deg-1-fg); border: 1px solid var(--amber); }
+  .legend-dot.order-2 { background: var(--deg-2-bg); color: var(--deg-2-fg); border: 1px solid var(--deg-2-bd); }
+  .legend-dot.order-3 { background: var(--deg-3-bg); color: var(--deg-3-fg); border: 1px solid var(--deg-3-bd); }
+  .legend-dot.order-4 { background: var(--deg-4-bg); color: var(--deg-4-fg); border: 1px solid var(--deg-4-bd); }
+  .legend-dot.order-5 { background: var(--deg-5-bg); color: var(--deg-5-fg); border: 1px solid var(--deg-5-bd); }
+  .legend-dot.order-6 { background: var(--deg-6-bg); color: var(--deg-6-fg); border: 1px solid var(--deg-6-bd); }
+  .legend-dot.order-7 { background: var(--deg-7-bg); color: var(--deg-7-fg); border: 1px solid var(--deg-7-bd); }
+  .legend-dot.other-pos { background: var(--surface-2); color: var(--text-mute); border: 1px solid var(--border-hover); }
+  .legend-dot.chord-root-key { background: var(--text); color: #14110a; border: 1px solid var(--text); }
+  .legend-dot.chord-third-key { background: var(--blue); color: #14110a; }
+  .legend-dot.chord-fifth-key { background: var(--success); color: #14110a; }
+  .legend-dot.chord-seventh-key { background: var(--warning); color: #14110a; }
+
+  /* ── Utility classes replacing inline styles ──────────────────────────────
+     index.html carried ~55 inline style attributes with font-family:Arial,
+     raw hex colours and px sizes — the last pocket of pre-token drift, and
+     the reason a few elements ignored the type scale entirely. */
+  .u-note      { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-mute); line-height: 1.7; }
+  .u-note-dim  { font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute); line-height: 1.6; }
+  .u-inline-key{ font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+                 display: flex; align-items: center; gap: 3px; cursor: pointer; }
+  .u-caps      { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim); letter-spacing: .1em; }
+  .u-mono-out  { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--blue);
+                 line-height: 1.7; min-height: 16px; word-break: break-all; }
+  .u-divider   { border-top: 1px solid var(--border); padding-top: var(--sp-2); margin-top: var(--sp-1); }
+  .u-textarea  { background: var(--bg); color: var(--text); border: 1px solid var(--border);
+                 padding: 4px 6px; font-size: var(--fs-xs); font-family: var(--font-mono); width: 100%; }
+  .u-panel-sub { background: var(--surface); border: 1px solid var(--border); padding: var(--sp-3); margin-top: 2px; }
+  .u-ok   { background: #1c2a1e; border-color: var(--success); color: var(--success); }
+  .u-bad  { background: #2c1d1a; border-color: var(--error); color: var(--error); }
+  .u-accent-btn { margin-left: auto; border-color: var(--blue); color: var(--blue); }
+  /* Guitar-neck legend — same tokens the canvas reads via cssVar() */
+  .gnl-dot.gnl-root    { background: var(--text); }
+  .gnl-dot.gnl-third   { background: var(--blue); }
+  .gnl-dot.gnl-fifth   { background: var(--success); }
+  .gnl-dot.gnl-seventh { background: var(--warning); }
+  .gnl-dot.gnl-barre   { background: var(--error); border-radius: 3px; width: 14px; height: 8px; }
+  .legend-dot.legend-ext { background: var(--text-mute); color: var(--text); border: 1px solid var(--border-hover); }
+  .gs-val.gs-val-sm { font-size: var(--fs-xs); }
+  .game-btn-grade { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-md); }
