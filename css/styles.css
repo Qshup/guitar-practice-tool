@@ -633,7 +633,7 @@
     content: ''; position: absolute; left: 42%; right: 42%; top: 0; bottom: 0; background: rgba(76,175,80,0.15);
   }
   .tuner-needle {
-    position: absolute; top: 0; bottom: 0; width: 4px; background: var(--error);
+    position: absolute; top: 0; bottom: 0; left: 50%; width: 4px; background: var(--error);
     transform: translateX(-2px); transition: left .08s linear, background var(--ease-hover);
   }
   .tuner-needle.in-tune { background: var(--success); }
@@ -2486,3 +2486,59 @@
     font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute);
     line-height: 1.6; max-width: 52ch; margin-left: auto; margin-right: auto;
   }
+
+  /* ── Chord Game density ───────────────────────────────────────────────────
+     The settings sidebar was built for a mouse: 11px labels and default-size
+     checkboxes. This is a tablet propped next to a guitar, so every control
+     gets a 36px touch target. */
+  .gs-checkrow {
+    min-height: 36px; gap: var(--sp-2); font-size: var(--fs-sm); color: var(--text-dim);
+  }
+  .gs-checkrow input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; cursor: pointer; }
+  .gs-checkrow label { flex: 1; line-height: 1.4; padding: var(--sp-2) 0; }
+  .gs-row select, .gs-row input[type=range] { min-height: 34px; }
+  .gs-row select { font-size: var(--fs-sm); }
+  .gs-label { font-size: var(--fs-xs); color: var(--text-dim); }
+  .chord-set-pill { padding: var(--sp-2) var(--sp-3); font-size: var(--fs-xs); min-height: 32px; display: inline-flex; align-items: center; }
+
+  /* Active chord deck — was one 11px monospace line with break-all, which
+     split chord names mid-word. Now readable pills that wrap cleanly. */
+  .deck-preview {
+    display: flex; flex-wrap: wrap; gap: var(--sp-1);
+    max-height: 132px; overflow-y: auto; padding: var(--sp-2) 0;
+  }
+  .deck-chip {
+    font-family: var(--font-mono); font-size: var(--fs-md); font-weight: 600;
+    color: var(--text); background: var(--surface-2); border: 1px solid var(--border);
+    padding: 3px var(--sp-2); line-height: 1.5; white-space: nowrap;
+  }
+  .deck-empty { font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-mute); }
+
+  /* Key practice panel — matches the card style used everywhere else. */
+  .key-practice-panel {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid var(--blue); padding: var(--sp-3); margin-top: var(--sp-2);
+  }
+  .gs-section-heading {
+    font-family: var(--font-body); font-size: var(--fs-xs); font-weight: 600;
+    color: var(--blue); letter-spacing: .1em; text-transform: uppercase;
+    margin-bottom: var(--sp-2); padding-bottom: var(--sp-1);
+    border-bottom: 1px solid var(--border);
+  }
+  .key-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--sp-1); margin-bottom: var(--sp-2); }
+  .key-grid button { min-height: 34px; font-size: var(--fs-xs); }
+
+  /* ── Layout utilities (replacing inline styles) ─────────────────────────── */
+  .icon-sprite { position: absolute; }
+  .u-row        { display: flex; gap: var(--sp-2); }
+  .u-row-wrap   { display: flex; gap: var(--sp-1); flex-wrap: wrap; margin-bottom: var(--sp-2); }
+  .u-row-center { display: flex; gap: var(--sp-2); justify-content: center; flex-wrap: wrap; }
+  .u-col-center { display: flex; flex-direction: column; align-items: center; gap: var(--sp-3); }
+  .u-items-center { align-items: center; }
+  .u-flex-1 { flex: 1; }
+  .u-fs-sm  { font-size: var(--fs-sm); }
+  .u-mt-0 { margin-top: 0; } .u-mt-2 { margin-top: var(--sp-2); } .u-mt-4 { margin-top: var(--sp-4); }
+  .u-mb-1 { margin-bottom: var(--sp-1); } .u-mb-4 { margin-bottom: var(--sp-4); }
+  .u-ml-2 { margin-left: var(--sp-2); }
+  .u-ghost-btn { background: transparent; color: var(--text-mute); border: 1px solid var(--border); }
+  .u-error-text { color: var(--error); }

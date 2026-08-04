@@ -261,9 +261,12 @@ function buildKeyPracticeDeck() {
   // Update deck preview
   const preview = document.getElementById('deck-preview');
   if (preview) {
-    preview.textContent = allChords.length
-      ? allChords.join('  ·  ')
-      : 'No chords match — check quality toggles';
+    // Real pills rather than a run-on monospace string. The old version was
+    // one 11px line of "C · Am · F · G …" with word-break:break-all, which
+    // split chord names across lines and was effectively unreadable.
+    preview.innerHTML = allChords.length
+      ? allChords.map(c => `<span class="deck-chip">${c}</span>`).join('')
+      : '<span class="deck-empty">No chords match — check the quality toggles above</span>';
   }
 
   updateKeyInfoBox();
