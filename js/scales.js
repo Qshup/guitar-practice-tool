@@ -186,10 +186,14 @@ function buildScaleSelector() {
     ALL_SCALES.filter(s=>s.group===state.group);
   filtered.forEach(s => {
     const b = document.createElement('button');
-    b.textContent = (s.zappa ? '★ ' : '') + s.name;
+    // No '★ ' prefix any more: 11 of the 15 scales are Zappa scales, so the
+    // star marked almost everything and carried no information. The .zappa-btn
+    // class (amber border/fill, already in styles.css) says the same thing
+    // without adding a glyph to every label.
+    b.textContent = s.name;
     b.dataset.sid = s.id;
-    if(s.zappa) b.style.borderColor = '#553';
-    if(s.id === state.scaleId) { b.classList.add('active'); if(s.zappa) { b.style.background='#ccb84a'; b.style.color='#000'; b.style.borderColor='#ccb84a'; } }
+    if (s.zappa) b.classList.add('zappa-btn');
+    if (s.id === state.scaleId) b.classList.add('active');
     b.onclick = () => {
       state.scaleId = s.id;
       buildScaleSelector();
@@ -202,10 +206,12 @@ function buildScaleSelector() {
 
 function filterGroup(g, btn) {
   state.group = g;
-  document.querySelectorAll('.controls .btn-row button').forEach(b => {
-    if(['all','Pentatonic','Modal','Blues','Zappa'].includes(b.textContent.replace('★ ','').trim()) ||
-       ['All','Pentatonic','Modal','Blues'].includes(b.textContent)) b.classList.remove('active');
-  });
+  // Scoped to the picker's own button row. This used to query
+  // '.controls .btn-row button' and match on button text, which broke twice
+  // over: the Scale Group buttons moved into .scale-picker-body, and the text
+  // match depended on a '★ ' prefix that no longer exists.
+  document.querySelectorAll('#scale-picker-body .ctrl-group .btn-row button')
+    .forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   buildScaleSelector();
 }
@@ -312,7 +318,7 @@ function renderCircle(scaleNotes, svgId, legendId) {
   out+=`<text x="${cx}" y="${cy+7}" text-anchor="middle" font-size="9" fill="#333" font-family="Arial">of 5ths</text>`;
   svg.innerHTML=out;
   document.getElementById(legendId).innerHTML=
-    `<span style="color:${sc&&sc.zappa?'#ccb84a':'#fff'}">●</span> Root &nbsp;<span style="color:#999">●</span> Scale notes in order<br>${sc&&sc.zappa?'<span style="color:#ccb84a">★ Zappa scale active</span>':'Lines connect active notes'}`;
+    `<span style="color:${sc&&sc.zappa?'var(--amber)':'var(--text)'}">●</span> Root &nbsp;<span style="color:var(--text-dim)">●</span> Scale notes in order<br>${sc&&sc.zappa?'<span style="color:var(--amber)">Zappa scale active</span>':'Lines connect active notes'}`;
 }
 
 // ── Fret grid builder (shared DOM-building boilerplate) ────────────────────
@@ -379,7 +385,8 @@ function buildFretInlays(container, fretsCount) {
 
 // ── Fretboard ─────────────────────────────────────────────────────────────────
 function render() {
-  saveScalesState(); // function declaration below is hoisted — available here regardless of textual order
+  saveScalesState();
+  syncScalePickerSummary(); // function declaration below is hoisted — available here regardless of textual order
   const sc=currentScale();
   const fb=document.getElementById('fretboard');
   const allNotes=allScaleFrets(state.key,sc.intervals);
@@ -536,9 +543,39 @@ Counter = +4ths dark/jazz</div>
 function toggleFingers(btn) {
   state.showFingers = !state.showFingers;
   btn.classList.toggle('active', state.showFingers);
-  btn.textContent = state.showFingers ? '👆 Fingers ON' : '👆 Fingers';
+  // Only the label span — the button also holds an <svg> icon, so writing
+  // textContent on the button itself would delete it.
+  const lbl = btn.querySelector('.finger-btn-label');
+  if (lbl) lbl.textContent = state.showFingers ? 'Fingers ON' : 'Fingers';
   document.getElementById('finger-legend').classList.toggle('visible', state.showFingers);
   render();
+}
+
+// ── Scale picker (collapsible) ───────────────────────────────────────────────
+// The 15-button scale list lives behind a summary bar so the fretboard, not the
+// filter UI, is the first thing on the page. Expanded/collapsed state persists
+// per profile, same pattern as the metronome toolbar's compactExpanded.
+function setScalePickerExpanded(open) {
+  const body = document.getElementById('scale-picker-body');
+  const chev = document.getElementById('scale-picker-chevron');
+  const btn = document.getElementById('scale-picker-btn');
+  if (!body) return;
+  body.classList.toggle('open', open);
+  if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function toggleScalePicker() {
+  const body = document.getElementById('scale-picker-body');
+  const open = !body.classList.contains('open');
+  setScalePickerExpanded(open);
+  if (typeof loadProgress === 'function') {
+    const data = loadProgress(); data.ui.scalePickerExpanded = open; saveProgress(data);
+  }
+}
+// Keeps the collapsed summary honest about what is actually selected.
+function syncScalePickerSummary() {
+  const el = document.getElementById('scale-picker-current');
+  if (el) el.textContent = currentScale().name;
 }
 
 // ── State persistence — survives page reload, not just SPA tab switches ──────
@@ -573,9 +610,11 @@ function restoreScalesState() {
   const fingerBtn = document.getElementById('finger-toggle-btn');
   if (fingerBtn) {
     fingerBtn.classList.toggle('active', state.showFingers);
-    fingerBtn.textContent = state.showFingers ? '👆 Fingers ON' : '👆 Fingers';
+    const fLbl = fingerBtn.querySelector('.finger-btn-label');
+    if (fLbl) fLbl.textContent = state.showFingers ? 'Fingers ON' : 'Fingers';
   }
   document.getElementById('finger-legend').classList.toggle('visible', state.showFingers);
+  setScalePickerExpanded(!!data.ui.scalePickerExpanded);
   buildScaleSelector();
   render();
 }

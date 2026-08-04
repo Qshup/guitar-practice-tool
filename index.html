@@ -10,6 +10,33 @@
 </head>
 <body>
 
+<!-- ── Icon sprite ──────────────────────────────────────────────────────────
+     One inline SVG sprite for the app's structural chrome (nav, mode headers,
+     section titles, empty states). These replaced platform emoji (🎸🎹📚♪🎵🎤📷),
+     which rendered differently on every OS and shared no visual style — the
+     single biggest thing making the nav read as a web page rather than an app.
+     All 24x24, stroke-based, currentColor, so they inherit text colour and the
+     amber active state for free. Typographic glyphs elsewhere (▶ ✓ ✗ → ★) are
+     deliberately left as text; they are consistent across platforms already. ── -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+  <g id="ico-scales"><path d="M2.5 7.5h19M2.5 12h19M2.5 16.5h19"/><path d="M8 4.5v15"/><circle cx="14.5" cy="12" r="2" fill="currentColor" stroke="none"/></g>
+  <g id="ico-chords"><path d="M4.5 6.5h15" stroke-width="2.4"/><path d="M8 6.5v13M12 6.5v13M16 6.5v13"/><circle cx="8" cy="11.5" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="15.5" r="2" fill="currentColor" stroke="none"/></g>
+  <g id="ico-study"><path d="M12 6.6C10.4 5.1 7.9 4.5 4 4.5v13c3.9 0 6.4.6 8 2.1 1.6-1.5 4.1-2.1 8-2.1v-13c-3.9 0-6.4.6-8 2.1z"/><path d="M12 6.6v13"/></g>
+  <g id="ico-riffs"><path d="M2.5 12H6l2.2-6.5L11.4 19l2.9-9.5 1.9 4.2h5.3"/></g>
+  <g id="ico-songs"><path d="M9 17.5V5.2l11-2v12"/><circle cx="6.4" cy="17.6" r="2.6"/><circle cx="17.4" cy="15.6" r="2.6"/></g>
+  <g id="ico-tuner"><path d="M8.8 3v6.8a3.2 3.2 0 006.4 0V3"/><path d="M12 13v8"/><path d="M9.4 21h5.2"/></g>
+  <g id="ico-camera"><path d="M3 8.8A1.8 1.8 0 014.8 7h2.9L9.2 5h5.6l1.5 2h2.9A1.8 1.8 0 0121 8.8v8.4a1.8 1.8 0 01-1.8 1.8H4.8A1.8 1.8 0 013 17.2z"/><circle cx="12" cy="12.6" r="3.2"/></g>
+  <g id="ico-progress"><path d="M3.5 20h17"/><path d="M7 20v-5.5M12 20V5.5M17 20v-9"/></g>
+  <g id="ico-hand"><path d="M8.2 12.5V6.6a1.6 1.6 0 013.2 0v4.2m0-.6V5.2a1.6 1.6 0 013.2 0v5.6m0-.4V7.4a1.6 1.6 0 013.2 0v6.4c0 3.7-2.6 6.7-6.4 6.7s-6.4-2.6-6.4-6.2v-2.6a1.6 1.6 0 013.2 0z"/></g>
+  <g id="ico-download"><path d="M12 3.5v10.5"/><path d="M8 10.5l4 4 4-4"/><path d="M4.5 19.5h15"/></g>
+  <g id="ico-upload"><path d="M12 20.5V10"/><path d="M8 13.5l4-4 4 4"/><path d="M4.5 5h15"/></g>
+  <g id="ico-mic"><rect x="9.2" y="2.8" width="5.6" height="10" rx="2.8"/><path d="M5.8 11.4a6.2 6.2 0 0012.4 0"/><path d="M12 17.6V21"/><path d="M9.4 21h5.2"/></g>
+  <g id="ico-refresh"><path d="M20 11.5a8 8 0 10-2.3 5.4"/><path d="M20.5 4.5v5h-5"/></g>
+  <g id="ico-volume"><path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/><path d="M15.5 9.2a4 4 0 010 5.6"/><path d="M18 6.8a7.4 7.4 0 010 10.4"/></g>
+  <g id="ico-search"><circle cx="10.8" cy="10.8" r="6.3"/><path d="M15.4 15.4L20 20"/></g>
+  <g id="ico-save"><path d="M5 4.5h11L19.5 8v11a.5.5 0 01-.5.5H5a.5.5 0 01-.5-.5V5a.5.5 0 01.5-.5z"/><path d="M8 4.5v5h7"/><path d="M8 19.5v-5h8v5"/></g>
+</defs></svg>
+
 <div class="progress-panel" id="progress-panel">
   <div class="progress-panel-header" id="progress-panel-toggle" onclick="toggleProgressPanel()">
     <span class="progress-panel-title">Practice Progress</span>
@@ -18,13 +45,13 @@
         <button class="profile-chip" id="profile-chip" onclick="event.stopPropagation(); toggleProfileMenu()">🎸 Player 1 ▾</button>
         <div class="profile-menu" id="profile-menu" style="display:none" onclick="event.stopPropagation()"></div>
       </span>
-      <button class="progress-export-btn" onclick="event.stopPropagation(); exportProgressJSON()" title="Download all progress data as a JSON file">⬇ Export</button>
+      <button class="progress-export-btn" onclick="event.stopPropagation(); exportProgressJSON()" title="Download all progress data as a JSON file"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-download"/></svg>Export</button>
       <span class="progress-panel-chevron" id="progress-panel-chevron">▾</span>
     </span>
   </div>
   <div class="progress-panel-body" id="progress-panel-body">
     <div class="obsidian-settings-row">
-      <span class="obsidian-label">📤 Obsidian vault:</span>
+      <span class="obsidian-label"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-upload"/></svg>Obsidian vault:</span>
       <span class="obsidian-vault-status" id="obsidian-vault-status">Checking…</span>
       <button class="progress-export-btn" onclick="chooseObsidianVault()">Choose Folder</button>
     </div>
@@ -64,17 +91,17 @@
      (see .mode-header inside each mode-panel). ── -->
 <div class="nav-spacer" id="nav-spacer"></div>
 <header class="app-nav" id="app-nav">
-  <div class="app-logo">🪶<span>FRETBOARD</span></div>
+  <div class="app-logo"><svg class="logo-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-scales"/></svg><span>FRETBOARD</span></div>
   <nav class="nav-bar" id="nav-bar">
-    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')"><span class="nav-icon">🎸</span><span class="nav-label">Scales</span></button>
-    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')"><span class="nav-icon">🎹</span><span class="nav-label">Chords</span></button>
-    <button class="nav-btn" data-mode="study" onclick="switchMode('study')"><span class="nav-icon">📚</span><span class="nav-label">Study</span></button>
-    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')"><span class="nav-icon">♪</span><span class="nav-label">Riffs</span></button>
-    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')"><span class="nav-icon">🎵</span><span class="nav-label">Songs</span></button>
-    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><span class="nav-icon">🎤</span><span class="nav-label">Tuner</span></button>
-    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><span class="nav-icon">📷</span><span class="nav-label" id="camera-btn-label">Camera Off</span></button>
+    <button class="nav-btn active" data-mode="scales" onclick="switchMode('scales')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-scales"/></svg><span class="nav-label">Scales</span></button>
+    <button class="nav-btn" data-mode="chords" onclick="switchMode('chords')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-chords"/></svg><span class="nav-label">Chords</span></button>
+    <button class="nav-btn" data-mode="study" onclick="switchMode('study')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-study"/></svg><span class="nav-label">Study</span></button>
+    <button class="nav-btn" data-mode="riffs" onclick="switchMode('riffs')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-riffs"/></svg><span class="nav-label">Riffs</span></button>
+    <button class="nav-btn" data-mode="songs" onclick="switchMode('songs')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-songs"/></svg><span class="nav-label">Songs</span></button>
+    <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tuner"/></svg><span class="nav-label">Tuner</span></button>
+    <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-camera"/></svg><span class="nav-label" id="camera-btn-label">Camera Off</span></button>
   </nav>
-  <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress">Progress</button>
+  <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-progress"/></svg>Progress</button>
 </header>
 
 <!-- ── COMPACT TOOLBAR — collapsed slim summary (BPM/play/tap/mic) that
@@ -89,7 +116,12 @@
     </span>
     <button class="compact-icon-btn compact-play-btn" id="compact-play-btn" onclick="toggleMetronome()" title="Start/stop metronome">▶</button>
     <button class="compact-icon-btn" onclick="compactTapTempo()" title="Tap tempo">TAP</button>
-    <button class="compact-icon-btn compact-mic-btn" id="compact-mic-btn" onclick="toggleMicEnabled()" title="Microphone on/off">🎤</button>
+    <button class="compact-icon-btn compact-mic-btn" id="compact-mic-btn" onclick="toggleMicEnabled()" title="Microphone on/off"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-mic"/></svg></button>
+    <!-- Fills what was ~1000px of dead space between the left controls and the
+         Controls toggle, with something actually useful: the live beat pulse,
+         visible without expanding the panel. audio.js renders into every
+         .beat-display, so this stays in sync with the one in the panel. -->
+    <div class="compact-beats"><div class="beat-display" id="compact-beat-display"></div></div>
     <button class="compact-expand-btn" onclick="toggleComboExpanded()">Controls <span class="compact-chevron" id="compact-chevron">▾</span></button>
   </div>
   <div class="compact-expanded" id="compact-expanded">
@@ -152,7 +184,7 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="metronome-bar" id="mic-bar">
   <div class="metronome-bar-header" onclick="toggleMicBar()">
-    <h2>🎤 Microphone</h2>
+    <h2><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-mic"/></svg>Microphone</h2>
     <span class="metronome-bar-chevron" id="mic-bar-chevron">▾</span>
   </div>
   <div class="metronome-bar-body" id="mic-bar-body">
@@ -196,13 +228,13 @@
     <div class="camera-video-wrap">
       <video id="camera-video" playsinline muted style="display:none"></video>
       <canvas id="camera-overlay-canvas" width="640" height="480"></canvas>
-      <div class="camera-loading" id="camera-loading" style="display:none">🎥 Loading hand-tracking model… this can take several seconds the first time.</div>
+      <div class="camera-loading" id="camera-loading" style="display:none"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-camera"/></svg>Loading hand-tracking model… this can take several seconds the first time.</div>
       <div class="camera-calibration-status" id="camera-calibration-status" style="display:none"></div>
     </div>
     <div class="camera-side-panel">
       <div class="camera-confidence" id="camera-confidence">No hand detected</div>
       <div class="camera-status" id="camera-status"></div>
-      <button class="quiz-mode-btn" onclick="recalibrateCamera()">🔄 Recalibrate</button>
+      <button class="quiz-mode-btn" onclick="recalibrateCamera()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-refresh"/></svg>Recalibrate</button>
       <div class="camera-chord-feedback" id="camera-chord-feedback"></div>
       <div class="camera-scale-feedback" id="camera-scale-feedback"></div>
       <div class="camera-lr-feedback" id="camera-lr-feedback"></div>
@@ -214,19 +246,35 @@
      SCALES MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel active" id="mode-panel-scales">
-  <div class="mode-header">🎸 Scales <span class="mode-header-sub">Fretboard positions, circle of 5ths, and a live scale run-through</span></div>
+  <div class="mode-header"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-scales"/></svg><span class="mode-header-title">Scales</span> <span class="mode-header-sub">Fretboard positions, circle of 5ths, and a live scale run-through</span></div>
+
+  <!-- The 15-scale button wall used to sit open above the fretboard, taking two
+       full rows and giving the neck (the actual point of the tool) no more
+       visual weight than a filter strip. It now collapses behind a summary that
+       names the current scale, using the same expand pattern as the metronome
+       toolbar. Key/Position/Overlay stay visible because they change often. -->
+  <div class="scale-picker">
+    <button class="scale-picker-summary" onclick="toggleScalePicker()" aria-expanded="false" id="scale-picker-btn">
+      <span class="scale-picker-label">Scale</span>
+      <span class="scale-picker-current" id="scale-picker-current">Minor Pentatonic</span>
+      <span class="scale-picker-action">Change <span class="compact-chevron" id="scale-picker-chevron">▾</span></span>
+    </button>
+    <div class="scale-picker-body" id="scale-picker-body">
+      <div class="ctrl-group">
+        <div class="ctrl-label">Scale Group</div>
+        <div class="btn-row">
+          <button class="active" onclick="filterGroup('all',this)">All</button>
+          <button onclick="filterGroup('Pentatonic',this)">Pentatonic</button>
+          <button onclick="filterGroup('Modal',this)">Modal</button>
+          <button onclick="filterGroup('Blues',this)">Blues</button>
+          <button class="zappa-btn" onclick="filterGroup('Zappa',this)">Zappa</button>
+        </div>
+      </div>
+      <div id="scale-selector"></div>
+    </div>
+  </div>
 
   <div class="controls" id="scale-controls">
-    <div class="ctrl-group">
-      <div class="ctrl-label">Scale Group</div>
-      <div class="btn-row">
-        <button class="active" onclick="filterGroup('all',this)">All</button>
-        <button onclick="filterGroup('Pentatonic',this)">Pentatonic</button>
-        <button onclick="filterGroup('Modal',this)">Modal</button>
-        <button onclick="filterGroup('Blues',this)">Blues</button>
-        <button class="zappa-btn" onclick="filterGroup('Zappa',this)">★ Zappa</button>
-      </div>
-    </div>
     <div class="ctrl-group">
       <div class="ctrl-label">Key</div>
       <div class="btn-row" id="key-btns"></div>
@@ -238,15 +286,14 @@
     <div class="ctrl-group">
       <div class="ctrl-label">Overlay</div>
       <div class="btn-row">
-        <button class="finger-btn" id="finger-toggle-btn" onclick="toggleFingers(this)">👆 Fingers</button>
+        <button class="finger-btn" id="finger-toggle-btn" onclick="toggleFingers(this)"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-hand"/></svg><span class="finger-btn-label">Fingers</span></button>
       </div>
     </div>
   </div>
 
-  <div id="scale-selector" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:14px;"></div>
 
   <div class="finger-legend" id="finger-legend">
-    <span style="font-family:Arial;font-size:9px;color:#666;margin-right:4px;">FRETTING HAND:</span>
+    <span class="finger-legend-heading">FRETTING HAND:</span>
     <div class="finger-legend-item"><div class="fl-dot finger-1" style="background:#e53935;border-color:#c62828">1</div> Index</div>
     <div class="finger-legend-item"><div class="fl-dot finger-2" style="background:#43a047;border-color:#2e7d32">2</div> Middle</div>
     <div class="finger-legend-item"><div class="fl-dot finger-3" style="background:#1e88e5;border-color:#1565c0">3</div> Ring</div>
@@ -345,7 +392,7 @@
      CHORDS MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-chords">
-  <div class="mode-header">🎹 Chords <span class="mode-header-sub">CAGED shapes, chord run-through, and mic-graded strum timing</span></div>
+  <div class="mode-header"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-chords"/></svg><span class="mode-header-title">Chords</span> <span class="mode-header-sub">CAGED shapes, chord run-through, and mic-graded strum timing</span></div>
 
   <div class="subtab-bar">
     <button class="subtab-btn active" data-subtab="reference" onclick="switchChordSubtab('reference')">Reference</button>
@@ -490,7 +537,7 @@
         </div>
         <div class="prac-row">
           <button class="big-btn btn-run" id="chord-run-btn" onclick="toggleChordRun()">▶ RUN CHORDS</button>
-          <button class="quiz-mode-btn" onclick="toggleChordGrading(this)">🎤 Grade My Strums</button>
+          <button class="quiz-mode-btn" onclick="toggleChordGrading(this)"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-mic"/></svg>Grade My Strums</button>
         </div>
         <div class="chord-run-display" id="chord-run-display">Select a key/shape/type in Reference, then press Run Chords</div>
         <div class="chord-seq-display" id="chord-seq-display"></div>
@@ -520,7 +567,7 @@
      STUDY MODE
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-study">
-  <div class="mode-header">📚 Study <span class="mode-header-sub">Flashcards, fretboard quiz, theory, ear training, and the chord game</span></div>
+  <div class="mode-header"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-study"/></svg><span class="mode-header-title">Study</span> <span class="mode-header-sub">Flashcards, fretboard quiz, theory, ear training, and the chord game</span></div>
 
   <div class="subtab-bar">
     <button class="subtab-btn active" data-subtab="flashcards" onclick="switchStudySubtab('flashcards')">Flashcards</button>
@@ -966,8 +1013,8 @@
     <div class="lr-btn-row">
       <button class="big-btn btn-go" id="lr-start-btn" onclick="lrToggleListenRepeat()">▶ START</button>
       <button class="big-btn btn-run" onclick="lrReplaySequence()">↻ Hear it again</button>
-      <button class="big-btn btn-mic" id="lr-check-mic-btn" onclick="lrCheckMic()">🎤 Check Mic</button>
-      <button class="big-btn btn-mic" id="lr-monitor-btn" onclick="lrToggleMicMonitor()">🔊 Monitor Mic</button>
+      <button class="big-btn btn-mic" id="lr-check-mic-btn" onclick="lrCheckMic()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-mic"/></svg>Check Mic</button>
+      <button class="big-btn btn-mic" id="lr-monitor-btn" onclick="lrToggleMicMonitor()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-volume"/></svg>Monitor Mic</button>
     </div>
     <div class="lr-monitor-hint" id="lr-monitor-hint" style="display:none">Use headphones while monitoring — playing through speakers will feed back into the mic.</div>
 
@@ -1026,7 +1073,7 @@
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-riffs">
   <div class="riff-section">
-    <div class="riff-title">♪ Scale Riff Library</div>
+    <div class="riff-title"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-riffs"/></svg><span>Scale Riff Library</span></div>
     <div class="riff-subtitle">Themed riffs for each scale — press ▶ Play to hear them, follow the tab, then incorporate into your own playing</div>
 
     <div class="riff-controls">
@@ -1079,7 +1126,7 @@
     <div class="riff-panel" id="riff-filtered-panel" style="display:none">
       <div class="riff-grid" id="riff-filtered-grid"></div>
       <div class="empty-state" id="riff-filtered-empty" style="display:none">
-        <div class="empty-state-icon">♪</div>
+        <div class="empty-state-icon"><svg class="empty-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-riffs"/></svg></div>
         <div class="empty-state-title">No riffs match these filters</div>
         <div class="empty-state-sub">Try a different player, technique, or scale.</div>
       </div>
@@ -1091,7 +1138,7 @@
      SONGS MODE (placeholder — built out in a later phase)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-songs">
-  <div class="riff-title">🎵 Song Library</div>
+  <div class="riff-title"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-songs"/></svg><span>Song Library</span></div>
   <div class="riff-subtitle">Full chord charts, tab, and a scrolling synced practice player for each song below —
     pick a song to open the practice view, drill a section on loop, then branch into a matching riff from the Riffs library.</div>
 
@@ -1125,7 +1172,7 @@
 
   <div class="songs-grid" id="songs-grid"></div>
   <div class="empty-state" id="songs-filtered-empty" style="display:none">
-    <div class="empty-state-icon">🎵</div>
+    <div class="empty-state-icon"><svg class="empty-icon-svg" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-songs"/></svg></div>
     <div class="empty-state-title">No songs match these filters</div>
     <div class="empty-state-sub">Try clearing a filter, or upload your own tab to add it to the library.</div>
   </div>
@@ -1157,7 +1204,7 @@
       <textarea id="upload-text-input" class="upload-text-input" placeholder="Paste content here, or drag a file into the drop zone above"></textarea>
     </div>
 
-    <button class="game-btn game-btn-start" onclick="uploadParseAndPreview()">🔍 Parse &amp; Preview</button>
+    <button class="game-btn game-btn-start" onclick="uploadParseAndPreview()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-search"/></svg>Parse &amp; Preview</button>
     <div class="upload-error" id="upload-error"></div>
     <div class="upload-preview" id="upload-preview" style="display:none"></div>
 
@@ -1185,7 +1232,7 @@
       </label>
     </div>
 
-    <button class="game-btn game-btn-start" onclick="saveUploadedSong()">💾 Save to My Library</button>
+    <button class="game-btn game-btn-start" onclick="saveUploadedSong()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-save"/></svg>Save to My Library</button>
   </div>
 
   <!-- Practice view is built entirely by js/songs.js (renderSongPracticeShell) -->
@@ -1196,7 +1243,7 @@
      TUNER MODE — standalone, reuses the shared mic engine (js/mic.js)
 ═══════════════════════════════════════════════════════════════ -->
 <div class="mode-panel" id="mode-panel-tuner">
-  <div class="mode-header">🎤 Tuner <span class="mode-header-sub">Standalone tuner using the shared mic engine</span></div>
+  <div class="mode-header"><svg class="mode-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tuner"/></svg><span class="mode-header-title">Tuner</span> <span class="mode-header-sub">Standalone tuner using the shared mic engine</span></div>
   <div class="tuner-view">
     <div class="tuner-hint">Turn on the mic in the bar above, then play a single open string or fretted note.</div>
     <div class="tuner-note" id="tuner-note">—</div>

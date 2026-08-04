@@ -426,25 +426,29 @@ function getStyleBeatEvents(style, beatInBar, beats, chordRoot) {
 }
 
 // ── Beat display ──────────────────────────────────────────────────────────
+// Renders into every .beat-display on the page — the expanded metronome panel
+// and the always-visible compact toolbar row. Beats are keyed by data-beat
+// rather than by id, because ids must be unique and there are now two copies.
 function buildBeatDisplay(beats) {
-  const bd = document.getElementById('beat-display');
-  bd.innerHTML = '';
-  for (let i = 0; i < beats; i++) {
-    const d = document.createElement('div');
-    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
-    d.id = `beat-dot-${i}`;
-    bd.appendChild(d);
-  }
+  document.querySelectorAll('.beat-display').forEach(bd => {
+    bd.innerHTML = '';
+    for (let i = 0; i < beats; i++) {
+      const d = document.createElement('div');
+      d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+      d.dataset.beat = i;
+      bd.appendChild(d);
+    }
+  });
 }
 
 let lastLitBeat = -1;
 function lightBeat(b, beats) {
   if (lastLitBeat >= 0) {
-    const old = document.getElementById(`beat-dot-${lastLitBeat}`);
-    if (old) { old.classList.remove('active'); }
+    document.querySelectorAll(`.beat-dot[data-beat="${lastLitBeat}"]`)
+      .forEach(d => d.classList.remove('active'));
   }
-  const cur = document.getElementById(`beat-dot-${b % beats}`);
-  if (cur) cur.classList.add('active');
+  document.querySelectorAll(`.beat-dot[data-beat="${b % beats}"]`)
+    .forEach(d => d.classList.add('active'));
   lastLitBeat = b % beats;
 }
 

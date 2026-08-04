@@ -92,6 +92,65 @@ Two real bugs surfaced while looking:
    them vertically. Both now share the fret centre, and `.fret-inlay` uses
    `translateX(-50%)` so `left` means centre rather than left edge.
 
+### Icon system (`<defs>` sprite at the top of index.html)
+
+All structural chrome — nav, mode headers, section titles, empty states,
+action buttons — uses one inline SVG sprite. This replaced platform emoji
+(🎸🎹📚♪🎵🎤📷🔄🔊🔍💾), which rendered differently on every OS and shared no
+visual language; they were the single biggest thing making the nav read as a
+web page rather than an app.
+
+- All symbols are 24×24, stroke-based, `stroke-width: 1.6`, `currentColor` —
+  so an icon inherits the amber active state, the dim rest state and any
+  hover colour with no per-icon rules.
+- Sizes come from the class: `.nav-icon` 17px, `.mode-icon` 19px, `.btn-icon`
+  13px, `.empty-icon-svg` 30px, `.logo-icon` 18px.
+- **Every `<svg>` needs `viewBox="0 0 24 24"`.** Without it the artwork does
+  not scale into the CSS box — it renders at full 24px coordinates and
+  overflows, which is exactly what happened first time round (the hand icon
+  sat on top of the "Fingers" label). If you add an icon usage, add the
+  viewBox.
+- Buttons carrying a `.btn-icon` must be `inline-flex`; in plain inline flow
+  the SVG sits on the text baseline and overlaps the label.
+- **Deliberately still text**: typographic glyphs (`▶ ✓ ✗ → ★ ▾`) are
+  consistent across platforms already, and profile avatars
+  (`PROFILE_AVATARS` in progress.js) are meant to be emoji.
+
+### Scales layout: the fretboard is the hero
+
+The 15-button scale list used to sit open above the neck, taking two full
+rows and giving the fretboard — the actual point of the tool — no more
+visual weight than a filter strip. It now collapses behind a
+`.scale-picker-summary` bar that names the current scale, using the same
+`max-height` expand pattern as the metronome toolbar; state persists as
+`data.ui.scalePickerExpanded`. Key / Position / Overlay stay visible because
+they change often; Scale Group moved inside the picker.
+
+Two things this restructure required, worth knowing if you move it again:
+
+- `filterGroup()` used to clear active state via `.controls .btn-row button`
+  and match on button *text*. That broke on both counts — the group buttons
+  moved into `.scale-picker-body`, and the text match depended on a `'★ '`
+  prefix that no longer exists. It now scopes to
+  `#scale-picker-body .ctrl-group .btn-row button`.
+- The `'★ '` prefix is gone from scale buttons. 11 of the 15 scales are Zappa
+  scales, so the star marked almost everything and carried no signal; the
+  `.zappa-btn` class (already in the stylesheet) says the same thing without
+  a glyph on every label.
+
+`.fretboard-wrap` is now a framed `--surface` card with `width: max-content;
+max-width: 100%`, and `.fretboard` itself is `width: max-content` — the neck
+is exactly as long as its frets, instead of stretching to the container and
+trailing bare wood past the last fret.
+
+### Beat display renders to every `.beat-display`
+
+`buildBeatDisplay`/`lightBeat` (audio.js) key dots by `data-beat` rather than
+by `id`, because there are now two containers: the expanded metronome panel
+and the always-visible compact toolbar row. Ids must be unique, so the old
+`beat-dot-${i}` lookup would only ever have lit the first copy. The compact
+one fills what was ~1000px of dead space in the toolbar with the live pulse.
+
 ### Palette (`:root` custom properties)
 
 ```
@@ -111,6 +170,19 @@ values (`#fff`, `#5c8fff`, `#4caf50`, `#e53935`, `#ccb84a`, `#1a1a1a`, `#111`)
 onto these variables; **new code should reference the variables directly**,
 never reintroduce raw hex for anything that isn't a one-off (like the
 per-artist song gradients below, which are intentionally outside the palette).
+
+### Spacing and weight scales
+
+- **Spacing** — `--sp-1` (4px) through `--sp-6` (36px). Card padding and every
+  `margin-top`/`margin-bottom` route through these; there used to be eleven
+  different ad-hoc margin values doing the same job, which is why the vertical
+  rhythm wandered.
+- **Weight** — three steps, not two. 400 body / **600** emphasis and labels /
+  **700** reserved for true headings (`h1`, `.app-logo`, `.mode-header`,
+  `.scale-picker-current`, `.song-card-title`, `.score-val`, `.tuner-note`,
+  `.compact-bpm-value`, `.riff-title`). Previously 62 rules said
+  `font-weight: bold` and nothing said anything else, so weight carried no
+  hierarchy at all — and 700 on 9-11px text just renders muddy.
 
 ### Typography
 
