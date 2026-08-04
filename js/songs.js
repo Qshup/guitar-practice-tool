@@ -417,6 +417,10 @@ function buildSongLibraryFilters() {
   if (scaleSel) scaleSel.innerHTML = '<option value="all">All Scales</option>' + scales.map(([id, sc]) => `<option value="${id}">${sc ? sc.name : id}</option>`).join('');
 }
 
+function playerSlug(tag) {
+  return (tag || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
 function buildSongLibraryGrid() {
   const grid = document.getElementById('songs-grid');
   if (!grid) return;
@@ -424,12 +428,14 @@ function buildSongLibraryGrid() {
   SONG_LIBRARY.forEach(song => {
     const scale = ALL_SCALES.find(s => s.id === song.soloScaleId);
     const card = document.createElement('div');
-    card.className = 'song-card';
+    card.className = `song-card player-${playerSlug(song.playerTag)}`;
     card.dataset.artist = song.artist;
     card.dataset.key = song.key;
     card.dataset.difficulty = song.difficulty;
     card.dataset.scale = song.soloScaleId;
+    card.dataset.player = song.playerTag;
     card.innerHTML = `
+      <div class="song-card-play-hover">▶</div>
       <div class="song-card-title">${song.title}${song.personal ? '<span class="song-card-personal-tag">PERSONAL</span>' : ''}</div>
       <div class="song-card-artist">${song.artist}</div>
       <div class="song-card-meta">
@@ -552,10 +558,12 @@ function renderSongPracticeShell() {
   const scale = ALL_SCALES.find(s => s.id === song.soloScaleId);
   const altScale = ALL_SCALES.find(s => s.id === song.altScaleId);
   const view = document.getElementById('song-practice-view');
+  view.className = `song-practice-view player-${playerSlug(song.playerTag)}`;
 
   view.innerHTML = `
     <button class="song-back-btn" onclick="closeSongPractice()">← Back to Songs</button>
     <div class="song-practice-header">
+      <div class="song-practice-nowplaying">Now Practicing</div>
       <div class="song-practice-title-row">
         <span class="song-practice-title">${song.title}</span>
         <span class="song-practice-artist">${song.artist}</span>
@@ -569,7 +577,7 @@ function renderSongPracticeShell() {
       <div class="song-practice-tip">${song.tip}</div>
     </div>
 
-    <div class="song-transport-bar">
+    <div class="song-transport-bar song-transport-bar-main">
       <button class="game-btn game-btn-start" id="song-play-btn" onclick="songTogglePlay()">▶ PLAY</button>
 
       <div class="song-speed-row">
