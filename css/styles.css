@@ -2050,3 +2050,83 @@
   }
   .srs-indicator-meta { color: var(--text-mute); font-family: var(--font-mono); }
   .srs-indicator.is-due .srs-indicator-meta { color: var(--amber); }
+
+  /* ── Practice session planner ─────────────────────────────────────────────
+     The start screen is an overlay rather than a route, because the planner is
+     an option and never a gate — dismissing it drops straight into the app. */
+  .session-start {
+    display: none; position: fixed; inset: 0; z-index: 400;
+    background: rgba(15,14,13,.86); backdrop-filter: blur(6px);
+    align-items: center; justify-content: center; padding: var(--sp-4);
+  }
+  .session-start.visible { display: flex; }
+  .session-start-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid var(--amber);
+    padding: var(--sp-5); max-width: 560px; width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,.6);
+  }
+  .session-start-title {
+    font-family: var(--font-heading); font-size: var(--fs-xl); font-weight: 700;
+    color: var(--text); margin-bottom: var(--sp-1);
+  }
+  .session-start-sub {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+    line-height: 1.6; margin-bottom: var(--sp-4);
+  }
+  .session-field { margin-bottom: var(--sp-3); }
+  .session-field-label {
+    font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-dim);
+    letter-spacing: .12em; text-transform: uppercase; margin-bottom: var(--sp-2);
+  }
+  .session-opt-row { display: flex; gap: var(--sp-1); flex-wrap: wrap; }
+  .session-opt {
+    font-family: var(--font-body); font-size: var(--fs-xs);
+    padding: var(--sp-2) var(--sp-3); border: 1px solid var(--border);
+    background: var(--surface-2); color: var(--text-dim); cursor: pointer;
+  }
+  .session-opt:hover { color: var(--text); border-color: var(--border-hover); }
+  .session-opt.active { background: var(--amber); color: #14110a; border-color: var(--amber); font-weight: 600; }
+  .session-start-actions { display: flex; align-items: center; gap: var(--sp-3); margin-top: var(--sp-4); }
+  .session-skip {
+    background: none; border: none; color: var(--text-dim);
+    font-family: var(--font-body); font-size: var(--fs-xs); cursor: pointer; text-decoration: underline;
+  }
+  .session-skip:hover { color: var(--text); background: none; }
+  .session-summary-list { list-style: none; margin: var(--sp-2) 0; }
+  .session-summary-list li {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+    padding: var(--sp-1) 0; border-bottom: 1px solid var(--border);
+  }
+  .session-summary-list li.done { color: var(--text); }
+  .session-summary-list li em { font-style: normal; color: var(--text-mute); float: right; font-family: var(--font-mono); }
+
+  /* Persistent progress bar in the nav — informational, never blocking. */
+  .session-bar {
+    display: none; position: relative; align-items: center; flex-shrink: 0;
+    height: 30px; min-width: 300px; max-width: 460px; overflow: hidden;
+    background: var(--surface); border: 1px solid var(--border); margin-left: auto;
+  }
+  .session-bar.visible { display: flex; }
+  .session-bar-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: linear-gradient(90deg, rgba(200,168,75,.28), rgba(200,168,75,.14));
+    transition: width 1s linear;
+  }
+  .session-bar-content {
+    position: relative; display: flex; align-items: center; gap: var(--sp-2);
+    width: 100%; padding: 0 var(--sp-2); font-family: var(--font-body); font-size: var(--fs-micro);
+  }
+  .session-bar-step { color: var(--amber); font-family: var(--font-mono); font-weight: 600; flex-shrink: 0; }
+  .session-bar-title {
+    color: var(--text); flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .session-bar-time { color: var(--text-dim); font-family: var(--font-mono); flex-shrink: 0; }
+  .session-bar-btn {
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: var(--fs-micro); padding: 2px 6px; flex-shrink: 0;
+  }
+  .session-bar-btn:hover { color: var(--amber); border-color: var(--amber-dim); background: transparent; }
+  @media (max-width: 1024px) { .session-bar { min-width: 200px; } .session-bar-title { display: none; } }
+  @media (max-width: 768px)  { .session-bar { display: none !important; } }

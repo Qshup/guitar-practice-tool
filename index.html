@@ -37,6 +37,8 @@
   <g id="ico-save"><path d="M5 4.5h11L19.5 8v11a.5.5 0 01-.5.5H5a.5.5 0 01-.5-.5V5a.5.5 0 01.5-.5z"/><path d="M8 4.5v5h7"/><path d="M8 19.5v-5h8v5"/></g>
 </defs></svg>
 
+<div class="session-start" id="session-start"></div>
+
 <div class="progress-panel" id="progress-panel">
   <div class="progress-panel-header" id="progress-panel-toggle" onclick="toggleProgressPanel()">
     <span class="progress-panel-title">Practice Progress</span>
@@ -102,6 +104,7 @@
     <button class="nav-btn" data-mode="tuner" onclick="switchMode('tuner')"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-tuner"/></svg><span class="nav-label">Tuner</span></button>
     <button class="nav-btn camera-nav-btn" id="camera-toggle-btn" onclick="toggleCamera()" title="Webcam hand tracking — zero resources used until turned on"><svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-camera"/></svg><span class="nav-label" id="camera-btn-label">Camera Off</span></button>
   </nav>
+  <div class="session-bar" id="session-bar"></div>
   <button class="nav-progress-btn" onclick="toggleProgressPanel()" title="Practice Progress"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-progress"/></svg>Progress</button>
 </header>
 
@@ -1287,6 +1290,7 @@
 <script src="js/upload.js"></script>
 <script src="js/tuner.js"></script>
 <script src="js/nav.js"></script>
+<script src="js/session.js"></script>
 <script type="module" src="js/camera.js"></script>
 </body>
 </html>
