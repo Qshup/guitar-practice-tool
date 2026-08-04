@@ -510,12 +510,12 @@ function playChordSound(chordObj) {
   if (typeof ensureInstrumentReady === 'function') ensureInstrumentReady(inst);
   if(soundType==='block') {
     activeFrets.forEach(({f,si})=>{
-      playSampledNote(inst, now, fretToHz(si,f), 1.6, vol*0.6, { stringIdx: si });
+      playSampledNote(inst, now, fretToHz(si,f), 1.6, mixVol('chordStrum'), { stringIdx: si });
     });
   } else {
     // Arpeggiated strum (low to high)
     activeFrets.forEach(({f,si},i)=>{
-      playSampledNote(inst, now+i*0.04, fretToHz(si,f), 1.8, vol*0.55, { stringIdx: si });
+      playSampledNote(inst, now+i*0.04, fretToHz(si,f), 1.8, mixVol('chordStrum', 0.92), { stringIdx: si });
     });
   }
 }

@@ -2390,3 +2390,22 @@
   .legend-dot.legend-ext { background: var(--text-mute); color: var(--text); border: 1px solid var(--border-hover); }
   .gs-val.gs-val-sm { font-size: var(--fs-xs); }
   .game-btn-grade { padding: var(--sp-2) var(--sp-4); font-size: var(--fs-md); }
+
+  /* ── Mixer ────────────────────────────────────────────────────────────── */
+  .mixer-toggle {
+    margin-left: var(--sp-2); display: inline-flex; align-items: center; gap: 4px;
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-family: var(--font-body); font-size: var(--fs-micro);
+    letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; flex-shrink: 0;
+  }
+  .mixer-toggle:hover { color: var(--amber); border-color: var(--amber-dim); background: transparent; }
+  .mixer-panel {
+    max-height: 0; overflow: hidden; transition: max-height var(--ease-panel);
+    border-left: 2px solid var(--amber-dim); margin: 0 0 0 2px; padding-left: var(--sp-3);
+  }
+  .mixer-panel.open { max-height: 260px; margin-top: var(--sp-2); }
+  .mixer-note {
+    font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute);
+    line-height: 1.6; margin-bottom: var(--sp-2);
+  }
+  .mixer-actions { margin-top: var(--sp-1); }

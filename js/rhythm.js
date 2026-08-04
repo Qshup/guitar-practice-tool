@@ -90,9 +90,9 @@ function rhySchedule() {
     if (rhyMode === 'subdivision') {
       const grid = rhyBuildGrid();
       const cell = grid[rhyStep % grid.length];
-      if (cell.isAccent) playClick(rhyNextTime, true, vol);
-      else if (cell.isBeat) playClick(rhyNextTime, false, vol * 0.85);
-      else playHihat(rhyNextTime, vol * 0.5);
+      if (cell.isAccent) playClick(rhyNextTime, true, mixVol('rhythmClick'));
+      else if (cell.isBeat) playClick(rhyNextTime, false, mixVol('rhythmClick', 0.85));
+      else playHihat(rhyNextTime, mixVol('drumHihat'));
       rhyExpected.push({ time: rhyNextTime, cell: rhyStep % grid.length });
       rhyHighlightAt(rhyNextTime, rhyStep % grid.length);
       rhyNextTime += rhyBeatDur() / rhySubPer();
@@ -108,9 +108,9 @@ function rhySchedule() {
       const i = rhyStep % lcmSteps;
       const onA = i % stepsB === 0;   // a-pulses land every stepsB ticks
       const onB = i % stepsA === 0;   // b-pulses land every stepsA ticks
-      if (onA && onB) playClick(rhyNextTime, true, vol);
-      else if (onB) playClick(rhyNextTime, false, vol * 0.8);
-      else if (onA) playHihat(rhyNextTime, vol * 0.7);
+      if (onA && onB) playClick(rhyNextTime, true, mixVol('rhythmClick'));
+      else if (onB) playClick(rhyNextTime, false, mixVol('rhythmClick', 0.8));
+      else if (onA) playHihat(rhyNextTime, mixVol('drumHihat', 1.3));
       if (onA) {
         rhyExpected.push({ time: rhyNextTime, cell: i });
         rhyHighlightAt(rhyNextTime, i);
@@ -129,9 +129,9 @@ function rhySchedule() {
       const i = rhyStep % grid;
       const entryStep = Math.round(d.offsetBeats * per);
       const isBeat = i % per === 0;
-      if (i === entryStep) playSnare(rhyNextTime, vol * 0.9);
-      else if (i === 0) playClick(rhyNextTime, true, vol);
-      else if (isBeat) playClick(rhyNextTime, false, vol * 0.7);
+      if (i === entryStep) playSnare(rhyNextTime, mixVol('drumSnare', 1.4));
+      else if (i === 0) playClick(rhyNextTime, true, mixVol('rhythmClick'));
+      else if (isBeat) playClick(rhyNextTime, false, mixVol('rhythmClick', 0.7));
       if (i === entryStep) {
         rhyExpected.push({ time: rhyNextTime, cell: i });
       }

@@ -176,9 +176,29 @@
       </select>
     </div>
     <div class="prac-row">
-      <span class="prac-label">Volume</span>
+      <span class="prac-label">Master</span>
       <input type="range" id="vol-slider" min="0" max="100" value="60" oninput="document.getElementById('vol-val').textContent=this.value+'%'">
       <span class="prac-val" id="vol-val">60%</span>
+      <button class="mixer-toggle" onclick="toggleMixerPanel()" title="Balance click, instrument and backing track">Mixer <span class="compact-chevron" id="mixer-chevron">&#9662;</span></button>
+    </div>
+    <div class="mixer-panel" id="mixer-panel">
+      <div class="mixer-note">Master scales all three. These set how the parts sit against each other.</div>
+      <div class="prac-row">
+        <span class="prac-label">Click</span>
+        <input type="range" id="mix-click-slider" min="0" max="150" value="100" oninput="setBusGain('click', this.value/100)">
+        <span class="prac-val" id="mix-click-val">100%</span>
+      </div>
+      <div class="prac-row">
+        <span class="prac-label">Instrument</span>
+        <input type="range" id="mix-instrument-slider" min="0" max="150" value="100" oninput="setBusGain('instrument', this.value/100)">
+        <span class="prac-val" id="mix-instrument-val">100%</span>
+      </div>
+      <div class="prac-row">
+        <span class="prac-label">Backing</span>
+        <input type="range" id="mix-backing-slider" min="0" max="150" value="100" oninput="setBusGain('backing', this.value/100)">
+        <span class="prac-val" id="mix-backing-val">100%</span>
+      </div>
+      <div class="mixer-actions"><button class="quiz-mode-btn" onclick="resetMixer()">Reset balance</button></div>
     </div>
     <div class="prac-row">
       <button class="big-btn btn-go" id="metro-btn" onclick="toggleMetronome()">▶ START</button>

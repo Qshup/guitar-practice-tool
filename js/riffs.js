@@ -773,7 +773,10 @@ async function startRiffPlay(riffId) {
     const ctx = getAudioCtx();
     const freq = fretToHz(note.si, note.f);
     const technique = note.t; // 'bend' | 'vibrato' | undefined (plain pick)
-    const noteVol = technique === 'bend' ? vol*0.9 : technique === 'vibrato' ? vol*0.85 : vol*0.75;
+    // Relative accents within the riff are preserved; absolute level comes
+    // from the mixer so riffs sit alongside every other instrument source.
+    const accent = technique === 'bend' ? 1.15 : technique === 'vibrato' ? 1.08 : 1;
+    const noteVol = mixVol('riff', accent);
 
     playSampledNote(riffInstrument, ctx.currentTime, freq, dur / 1000, noteVol, {
       technique, bendTo: note.bendTo, stringIdx: note.si,

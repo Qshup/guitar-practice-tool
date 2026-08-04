@@ -517,7 +517,7 @@ function lrCountInThenPlay(bpm, beats, onNoteTime, sequenceDurSec, onAllDone) {
   const ctx = getAudioCtx();
   const beatDur = 60 / bpm;
   const startAt = ctx.currentTime + 0.15;
-  for (let b = 0; b < beats; b++) playClick(startAt + b * beatDur, b === 0, 0.6);
+  for (let b = 0; b < beats; b++) playClick(startAt + b * beatDur, b === 0, mixVol('metronome'));
   const seqStart = startAt + beats * beatDur;
   onNoteTime(seqStart);
   setTimeout(onAllDone, (beats * beatDur + sequenceDurSec) * 1000 + 250);
@@ -538,7 +538,7 @@ function lrPlayNoteSequence(seq, onAllDone) {
       // 'chromatic' (Zappa-style passing tone) isn't a playSampledNote technique —
       // it's just a plain note a half-step off, same as before.
       const technique = n.technique === 'chromatic' ? undefined : n.technique;
-      playSampledNote(lrInstrument(), t, freq, n.dur * 0.85, vol * 0.85, { technique, bendTo: n.bendTo, stringIdx: n.string });
+      playSampledNote(lrInstrument(), t, freq, n.dur * 0.85, mixVol('listenRepeat'), { technique, bendTo: n.bendTo, stringIdx: n.string });
     });
     // Visual lighting synced to the same schedule (relative ms from now)
     const delayMs = Math.max(0, (startTime - ctx.currentTime) * 1000);
@@ -560,7 +560,7 @@ function lrPlayChordSequence(seq, onAllDone) {
       const chord = GAME_CHORDS[chordEvent.chordName];
       if (!chord) return;
       const t = startTime + chordEvent.time;
-      chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(lrInstrument(), t + si * 0.03, fretToHz(si, f), chordEvent.dur * 0.85, vol * 0.7, { stringIdx: si }); });
+      chord.f.forEach((f, si) => { if (f >= 0) playSampledNote(lrInstrument(), t + si * 0.03, fretToHz(si, f), chordEvent.dur * 0.85, mixVol('listenRepeat', 0.85), { stringIdx: si }); });
     });
   }, seqDur, onAllDone);
 }

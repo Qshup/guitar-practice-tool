@@ -567,7 +567,7 @@ function strumGameChord(chordName) {
   chord.f.forEach((f,si) => {
     if (f < 0) return;
     const delay = si * 0.03; // strum delay
-    playSampledNote(inst, ctx.currentTime + delay, fretToHz(si, f), 1.7, vol, { stringIdx: si });
+    playSampledNote(inst, ctx.currentTime + delay, fretToHz(si, f), 1.7, mixVol('chordStrum'), { stringIdx: si });
   });
 }
 
@@ -589,7 +589,7 @@ function scheduleGameBeat() {
     const t = gameNextTime;
 
     // Click sound
-    if (useClick) playClick(t, isAccent, 0.5);
+    if (useClick) playClick(t, isAccent, mixVol('metronome'));
 
     // Visual beat light + ring update
     const b = gameBeat;

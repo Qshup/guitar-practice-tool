@@ -824,10 +824,10 @@ function songPartCallback(time, ev) {
   const durSec = songBeatsToSeconds(ev.dur);
 
   if (ev.part === 'bass') {
-    playSampledNote('bass', time, fretToHz(ev.string, ev.fret) / 2, durSec, vol * 0.9, { stringIdx: 'bass' });
+    playSampledNote('bass', time, fretToHz(ev.string, ev.fret) / 2, durSec, mixVol('song', 1.1), { stringIdx: 'bass' });
   } else {
     const instrument = song.defaultInstrument || 'clean';
-    const partVol = ev.part === 'lead' ? vol * 0.85 : vol * 0.5;
+    const partVol = ev.part === 'lead' ? mixVol('song') : mixVol('song', 0.62);
     // Rhythm and lead are separate instruments in reality — choke key is
     // namespaced per part+string so a rhythm strum never chokes a ringing lead note.
     playSampledNote(instrument, time, fretToHz(ev.string, ev.fret), durSec, partVol, {

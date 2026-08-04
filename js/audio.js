@@ -131,6 +131,120 @@ function fretToHz(stringIdx, fret) {
 }
 
 // ── Synth voices ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// MIXER — master → bus → per-source level
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Every trigger site used to read #vol-slider directly and apply its own
+// ad-hoc multiplier (vol*0.6, vol*0.85, vol*0.9, bare vol…). Those numbers
+// were tuned against the OLD synthesised engine and carried over unchanged
+// when playback moved to real samples, which is why levels do not sit
+// together — a sampled note and a Karplus-Strong pluck at "vol * 0.6" are not
+// the same loudness.
+//
+// Three stages now:
+//   master  — the existing #vol-slider, scales everything
+//   bus     — click / instrument / backing, user-controllable in the mixer
+//   source  — a fixed relative level per sound, normalised below
+//
+// Anything that makes noise should go through mixVol() so there is one place
+// to reason about balance.
+
+const MIX_LEVELS = {
+  metronome:     0.70,   // click bus
+  rhythmClick:   0.70,
+  scaleRun:      0.75,   // instrument bus
+  chordStrum:    0.65,
+  listenRepeat:  0.75,
+  riff:          0.75,
+  song:          0.70,
+  cameraTest:    0.70,
+  backingBass:   0.45,   // backing bus
+  backingChord:  0.35,
+  backingPluck:  0.35,
+  // Percussion sits low on purpose: the guitar you are playing must always be
+  // the loudest thing in the room.
+  drumKick:      0.28,   // ~37% of the instrument level
+  drumSnare:     0.24,   // ~32%
+  drumHihat:     0.16,   // ~21%, subdivisions should sit underneath
+};
+
+const MIX_BUS_OF = {
+  metronome: 'click', rhythmClick: 'click',
+  scaleRun: 'instrument', chordStrum: 'instrument', listenRepeat: 'instrument',
+  riff: 'instrument', song: 'instrument', cameraTest: 'instrument',
+  backingBass: 'backing', backingChord: 'backing', backingPluck: 'backing',
+  drumKick: 'backing', drumSnare: 'backing', drumHihat: 'backing',
+};
+
+// All buses default to unity so the per-source levels above ARE the shipped
+// balance — backing is already well under the instrument at the source stage
+// (0.45/0.35 against 0.75), and discounting the bus as well would double-apply
+// it and put the backing track quieter than intended.
+const MIX_BUS_DEFAULTS = { click: 1.0, instrument: 1.0, backing: 1.0 };
+let mixBusGain = { ...MIX_BUS_DEFAULTS };
+
+function mixMaster() {
+  const el = document.getElementById('vol-slider');
+  const v = el ? parseInt(el.value, 10) : 60;
+  return (isNaN(v) ? 60 : v) / 100;
+}
+
+// The single entry point for "how loud should this be".
+function mixVol(sourceKey, scale) {
+  const lvl = MIX_LEVELS[sourceKey];
+  const bus = MIX_BUS_OF[sourceKey];
+  if (lvl === undefined || bus === undefined) return mixMaster();
+  return mixMaster() * (mixBusGain[bus] ?? 1) * lvl * (scale === undefined ? 1 : scale);
+}
+
+function loadMixerSettings() {
+  if (typeof loadProgress !== 'function') return;
+  const m = loadProgress().ui.mixer;
+  // Always rebuild from defaults. Only assigning when a saved value exists
+  // left whatever was already in memory in place, so clearing the setting did
+  // not restore the shipped balance — and "Reset balance" inherited the same
+  // bug when it re-read afterwards.
+  mixBusGain = { ...MIX_BUS_DEFAULTS, ...(m || {}) };
+  syncMixerUI();
+}
+function setBusGain(bus, value) {
+  if (!(bus in mixBusGain)) return;
+  mixBusGain[bus] = Math.max(0, Math.min(1.5, value));
+  if (typeof loadProgress === 'function') {
+    const d = loadProgress(); d.ui.mixer = { ...mixBusGain }; saveProgress(d);
+  }
+  syncMixerUI();
+}
+function resetMixer() {
+  mixBusGain = { ...MIX_BUS_DEFAULTS };
+  if (typeof loadProgress === 'function') {
+    const d = loadProgress(); delete d.ui.mixer; saveProgress(d);
+  }
+  syncMixerUI();
+}
+
+function syncMixerUI() {
+  Object.entries(mixBusGain).forEach(([bus, g]) => {
+    const sl = document.getElementById(`mix-${bus}-slider`);
+    const lb = document.getElementById(`mix-${bus}-val`);
+    if (sl && parseInt(sl.value, 10) !== Math.round(g * 100)) {
+      sl.value = String(Math.round(g * 100));
+      sl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+    if (lb) lb.textContent = Math.round(g * 100) + '%';
+  });
+}
+function toggleMixerPanel() {
+  const p = document.getElementById('mixer-panel');
+  if (!p) return;
+  const open = !p.classList.contains('open');
+  p.classList.toggle('open', open);
+  const chev = document.getElementById('mixer-chevron');
+  if (chev) chev.style.transform = open ? 'rotate(180deg)' : '';
+  if (open) syncMixerUI();
+}
+
 function playClick(time, isAccent, vol) {
   const ctx = getAudioCtx();
   const osc = ctx.createOscillator();
@@ -476,7 +590,7 @@ function scheduleMetro() {
     const t = metroNextTime;
 
     // Click
-    playClick(t, isAccent, vol);
+    playClick(t, isAccent, mixVol('metronome'));
 
     if (chords.length > 0) {
       const patLen = chords.length;
@@ -490,22 +604,22 @@ function scheduleMetro() {
         subEvents.forEach(ev => {
           const evTime = t + ev.offset * beatDur;
           const evVel = ev.velocity == null ? 1 : ev.velocity;
-          if (ev.type === 'kick') playKick(evTime, vol);
-          else if (ev.type === 'snare') playSnare(evTime, vol, false);
-          else if (ev.type === 'hihat') playHihat(evTime, vol);
+          if (ev.type === 'kick') playKick(evTime, mixVol('drumKick'));
+          else if (ev.type === 'snare') playSnare(evTime, mixVol('drumSnare'), false);
+          else if (ev.type === 'hihat') playHihat(evTime, mixVol('drumHihat'));
           else if (ev.type === 'bass') {
             const durBeats = ev.dur || (1 - ev.offset);
-            playBass(evTime, bassHz(ev.note), beatDur * durBeats * 0.9, vol * evVel);
+            playBass(evTime, bassHz(ev.note), beatDur * durBeats * 0.9, mixVol('backingBass', evVel));
           } else if (ev.type === 'pluck') {
             const durBeats = ev.dur || (1 - ev.offset);
-            playChord(evTime, [chordToneHz(ev.note)], beatDur * durBeats * 0.85, vol, evVel);
+            playChord(evTime, [chordToneHz(ev.note)], beatDur * durBeats * 0.85, mixVol('backingPluck'), evVel);
           } else if (ev.type === 'chord') {
             const durBeats = ev.dur || (1 - ev.offset);
-            playChord(evTime, ev.notes.map(chordToneHz), beatDur * durBeats * 0.85, vol, evVel);
+            playChord(evTime, ev.notes.map(chordToneHz), beatDur * durBeats * 0.85, mixVol('backingChord'), evVel);
           } else if (ev.type === 'ghost-chord') {
             // A quiet, short pre-echo of the chord stab that follows — the
             // "ghost note" feel, not a drum hit.
-            playChord(evTime, ev.notes.map(chordToneHz), beatDur * 0.18, vol, 0.18);
+            playChord(evTime, ev.notes.map(chordToneHz), beatDur * 0.18, mixVol('backingChord'), 0.18);
           }
         });
 
@@ -619,7 +733,7 @@ function playRunNote(note) {
   const freq = fretToHz(note.string, note.fret);
   const speed = parseInt(document.getElementById('run-speed').value);
   const dur = Math.max(0.08, (speed / 1000) * 0.92); // ring until just before the next note
-  playSampledNote(instrument, ctx.currentTime, freq, dur, vol, { stringIdx: note.string });
+  playSampledNote(instrument, ctx.currentTime, freq, dur, mixVol('scaleRun'), { stringIdx: note.string });
 }
 
 // Preload as soon as an instrument is picked so RUN SCALE doesn't stall on first press.
