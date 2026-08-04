@@ -28,6 +28,209 @@ detection, calibration — used by Scales/Chords/Tuner/Listen & Repeat),
 its own mode — see "Camera Architecture" below), `upload.js` (personal song
 upload, adds cards into the Songs grid — see "Personal Song Upload" below).
 
+## Visual Design System (css/styles.css)
+
+A dedicated session took the app from functional-but-plain to an intentional
+visual identity — "feel alive, polished, genuinely satisfying to use," no new
+features, pure UI/UX polish plus a real backing-track rhythm rewrite. This
+section documents the resulting system so later sessions extend it
+consistently instead of reintroducing ad-hoc colors/spacing/timings.
+
+### Palette (`:root` custom properties)
+
+```
+--bg: #0f0e0d          --surface: #1c1a18       --surface-2: #242220
+--border: #2e2b28      --amber: #c8a84b         --amber-dim: #8a713a
+--amber-glow: rgba(200,168,75,0.35)             --blue: #4a9eff
+--blue-dim: #3a7ecc    --text: #f0ece6          --text-dim: #8a8078
+--success: #4a9e6a     --error: #c85a4a         --radius: 0px
+```
+
+**Amber is the single accent color, used sparingly** — active nav tab,
+primary CTA glow, root-note fretboard dot, slider thumbs, success pulses.
+Blue is the secondary/reference accent (tuning readouts, chord-tone badges).
+Everything else is neutral. A prior broad find/replace (`perl -i -pe`, not
+`sed` — see "macOS sed gotcha" note further down) mapped old hardcoded hex
+values (`#fff`, `#5c8fff`, `#4caf50`, `#e53935`, `#ccb84a`, `#1a1a1a`, `#111`)
+onto these variables; **new code should reference the variables directly**,
+never reintroduce raw hex for anything that isn't a one-off (like the
+per-artist song gradients below, which are intentionally outside the palette).
+
+### Typography
+
+- **Headings/nav/titles**: `var(--font-heading)` = `'Rajdhani', 'Inter',
+  Arial, sans-serif` (Google Fonts CDN link in `<head>`).
+- **Body/labels/UI text**: `var(--font-body)` = `'Inter', Arial, sans-serif`
+  (replaced plain `Arial` throughout).
+- **Tabs/frets/numeric readouts**: `var(--font-mono)` = `'Courier New',
+  monospace` — kept deliberately, matches the ASCII-tab aesthetic elsewhere
+  in the app (riff tabs, song tabs, BPM/frequency readouts).
+
+### Texture
+
+- `body::before` — a subtle inline-SVG `feTurbulence` noise overlay,
+  `mix-blend-mode: overlay`, `opacity: .035`. Barely visible, keeps large
+  flat dark panels from reading as flat/digital.
+- Inset top-highlight (`inset 0 1px 0 rgba(255,255,255,.05)`-style
+  box-shadow) on card-like surfaces (`.info-card`, `.practice-panel`,
+  `.song-card`, `.upload-panel`, `.camera-panel`, `.metronome-bar`,
+  `.progress-panel`, etc. — one grouped selector) for a faint "lit from
+  above" edge.
+- Faint amber glow (`box-shadow` with `var(--amber-glow)`) on active/focused
+  interactive elements — nav active tab, running buttons, slider thumb hover,
+  success pulses.
+- Top nav is frosted glass: `backdrop-filter: blur(12px) saturate(1.2)` over
+  a translucent `rgba(15,14,13,.72)` background.
+
+### Corner radius — sharp, everywhere
+
+`--radius: 0px`, chosen deliberately over rounded corners ("more
+professional" per direct feedback). **Every** `border-radius` in the
+stylesheet either uses `var(--radius)` or is a genuine circle (`50%` — dots,
+avatars, round icon buttons). If you add a new badge/button/panel, don't
+introduce a bare pixel radius — route it through the variable so a future
+radius change is one edit, not a grep-and-replace.
+
+### Transition timings — four tokens, no ad-hoc durations
+
+```
+--ease-hover: 120ms ease                    /* button/card hover, most interactions */
+--ease-active: 60ms ease                    /* :active press-down, snappy */
+--ease-panel: 250ms cubic-bezier(.2,.8,.2,1) /* slide-open panels (compact toolbar) */
+--ease-fade: 200ms ease                     /* mode-switch panel fade (modeFadeIn) */
+```
+
+A stylesheet-wide audit (this session) converted every stray `.15s`/`.2s`/
+`.12s`/`.06s` hover/press transition it found onto these four tokens.
+**Deliberately left alone**: real-time animations tied to audio/data timing
+rather than a hover affordance — the metronome beat-dot pulse (`.05s`), the
+timer-ring countdown (`stroke-dashoffset .05s linear`), the tuner needle's
+position glide (`left .08s linear`), and progress-bar width fills (`.3s`/
+`.06s linear`). Don't route those through the hover/active tokens — they're
+tuned to their own visual timing, not an interaction-feedback purpose.
+
+### Buttons & interactive elements
+
+- Press-scale: `:active { transform: scale(0.98) }` via `--ease-active`.
+- Primary-action buttons (`.btn-go`, `.btn-run`, `.game-btn-start`) get an
+  amber glow on hover; destructive/stop buttons (anything with `.running`)
+  shift red (`#c0392b`-family) instead.
+- **Range sliders** (`input[type=range]`, global, no per-mode override):
+  fully custom via `-webkit-appearance:none`/`-moz-range-*` — a circular
+  amber thumb (grows + glows on hover) and an amber-filled track. The fill
+  percentage comes from a `--range-progress` CSS custom property kept in
+  sync by `nav.js`'s bottom section: a delegated `input` listener (covers
+  every slider) plus a `MutationObserver` on `document.body` (covers
+  sliders rendered later, e.g. Songs' room knob or the Chord Game's BPM
+  slider, which don't exist in the DOM yet when `nav.js` first runs).
+- **Success micro-feedback** (`audio.js`, "Success micro-feedback" section):
+  `pulseSuccess(el)` (amber `box-shadow` ring pulse, `.success-pulse`
+  class + `successPulse` keyframe), `bounceStreak(el)` (scale-up-then-settle
+  bounce, `.streak-bounce` + `streakBounce` keyframe), and
+  `playSuccessChime()` (a quick two-note major-third "ding," 880Hz + 1108Hz
+  sine, matching the interval Listen & Repeat's pre-existing correct-answer
+  sound already used — this session extended that same feel everywhere
+  rather than inventing a new one). Wired into: Fretboard Quiz's clean-clear
+  branch, Chord Game's correct-switch branch, Listen & Repeat's streak
+  update (chime was already there; pulse/bounce added), and Scale
+  Run-Through's genuine completion (`stopRun(true)` — a `completed` flag
+  distinguishes "the run finished" from "the user pressed stop early," so
+  the celebration only fires on the former).
+
+### Layout: top nav + compact toolbar
+
+- `.app-nav` is `position: fixed; top: 0`, frosted glass, icon+text nav
+  buttons, active tab = amber text + amber bottom border (tab-bar style,
+  replacing the old per-mode fill-color scheme). A `.nav-spacer` div (same
+  height as the nav, 62px) pushes page content below it since the nav is
+  removed from normal flow.
+- The old separate metronome bar + mic bar are now wrapped in a
+  `.compact-toolbar`: an always-visible 44px `.compact-row` (inline-editable
+  BPM via `contenteditable` + `compactBpmEdited()`, play button synced to
+  `toggleMetronome()`, a `compactTapTempo()` button, a mic toggle synced to
+  `toggleMicEnabled()`) that expands via `toggleComboExpanded()` — a
+  `max-height` transition on `.compact-expanded` using `--ease-panel` —
+  to reveal the original full controls, unchanged internally. Expanded/
+  collapsed state persists per-profile (`data.ui.compactExpanded`, same
+  pattern as `metronomeCollapsed`/`micBarCollapsed`).
+- Each mode panel (`#mode-panel-*`) gets a subtle background radial-gradient
+  tint matching its character (Scales = warm fretboard brown, Chords =
+  cooler blue-grey, Study = deeper purple-grey, Riffs = warmer amber, Songs
+  = darkest/most cinematic) and a `.mode-header` (icon + title + one-line
+  sub-label) replacing the old single global `<h1>`/subtitle.
+
+### Fretboard redesign (`scales.js` + `styles.css`)
+
+Wood-grain rosewood gradient background, metallic nut, silver fret-line
+gradients, gold/bronze gradient string coloring for the wound low strings
+(D/A/low-E) vs. silver for the plain high strings (e/B/G) — **fixed a
+pre-existing bug** in the process: the `:nth-child` selectors targeting
+string rows were off by one (`:nth-child(2..7)` when the real DOM order per
+`buildFretGrid()` is `.nut`(1), `.fret-numbers`(2), then string-rows
+starting at (3)), so this coloring had never actually applied before.
+Position markers (frets 3/5/7/9/12) are now real DOM elements
+(`buildFretInlays()` in `scales.js`, `.fret-inlay`/`.fret-inlay.double`)
+rather than a pseudo-element hack. Note dots get an inner highlight via
+`box-shadow: inset`; the root-note dot additionally gets a white
+radial-gradient fill, amber border, and amber glow.
+
+### Songs mode: per-artist visual identity
+
+Library cards (`buildSongLibraryGrid()` in `songs.js`) get a CSS class from
+`playerSlug(song.playerTag)` (`player-knopfler`, `player-ronson`,
+`player-hazel`, `player-dean-ween`, `player-zappa`) driving a low-opacity
+gradient `::before` layer — Knopfler blue-green, Ronson red-purple, Hazel
+purple-black, Dean Ween a multi-stop "psychedelic" gradient, Zappa a
+repeating angular amber stripe pattern. These five gradients are
+intentionally outside the core palette (`css/styles.css`, search
+`.song-card.player-` and `.song-practice-header::before` for the exact
+values) — they're a per-artist identity accent, not part of the app-wide
+design language, so don't try to fold them into `:root`. The practice view
+(`renderSongPracticeShell()`) carries the same gradient behind its header
+(`view.className` gets the `player-*` class) with a "Now Practicing" eyebrow
+and a much larger title, and the main transport bar (`.song-transport-bar-main`)
+docks as a `position: sticky; bottom: 12px` frosted-blur bar so playback
+controls stay reachable while scrolling the tab/chord track — a CSS-only
+"floating bottom bar" that didn't require restructuring the existing
+transport markup or any of its `onclick` wiring.
+
+### Empty states
+
+`.empty-state`/`.empty-state-icon`/`.empty-state-title`/`.empty-state-sub` —
+a dashed-border card with an icon, a title, and a one-line suggestion.
+Applied to Songs' and Riffs' "nothing matches these filters" states
+(`#songs-filtered-empty`, `#riff-filtered-empty`), replacing a bare
+inline-styled grey line. The persistent mic-status text and Tuner hint got a
+lighter touch (icon prefix, palette colors) rather than a full empty-state
+card, since they're single-line status readouts, not empty grids.
+
+### A note on how these edits were verified
+
+No browser was available during the redesign session (no Claude-in-Chrome
+browser tools enabled), so every change was verified statically: `node
+--check` per edited file, a "concat check" (every classic script
+concatenated in `index.html`'s exact load order, then `node --check`, to
+catch cross-file redeclaration issues — vendor files `Tone.js`/`pitchy.js`
+are excluded from this check, since `Tone.js` lacks a trailing newline and
+merges with the next file's first line when naively concatenated; that's a
+harmless artifact of the check itself, not a real bug), a Node div-count
+script for HTML structural balance, a `{`/`}` count for CSS brace balance,
+and a grep of every `onclick=`/`onchange=`/`oninput=` handler in `index.html`
+against `function <name>(` definitions across all JS files. **None of this
+substitutes for actually opening the app in a browser** — visually confirm
+the gradients, animations, and slider fill actually look right, and
+listen to the new backing-track rhythm patterns (see "Backing Track Rhythm
+Engine" under Audio Architecture) against a real guitar before trusting them
+tonally.
+
+### macOS `sed` gotcha (if you need bulk find/replace again)
+
+BSD `sed` (what macOS ships, not GNU `sed`) doesn't support `\b`
+word-boundary regex in its default mode — `sed -i '' 's/#fff\b/.../g'`
+silently matches almost nothing. Use `perl -i -pe 's/#fff\b/.../g'` instead;
+it supports `\b` correctly. Verify with a grep occurrence-count before/after
+either way.
+
 ## Audio Architecture
 
 ### Two engines, split by mode
@@ -137,6 +340,80 @@ MIDI notes don't carry a string/fret, so the MIDI note number itself doubles
 as the `ringingByString` choke key (as opposed to a fretboard string index
 0-5) — same mechanism, different key space, no conflict since the two never
 overlap in practice (fretboard playback always passes 0-5 or `'bass'`).
+
+### Backing Track Rhythm Engine (`scheduleMetro`/`getStyleBeatEvents` in `audio.js`)
+
+The metronome's backing track (`#vamp-style`) used to fire one bass note +
+one chord stab on beat 1 of every bar, plus a plain click on every beat — no
+swing, no syncopation, just a chord change marker. A design-polish session
+rebuilt this into a real per-beat rhythm-pattern engine without touching the
+outer scheduling loop's timing model (still Web-Audio-clock-scheduled,
+`LOOK_AHEAD`/`SCHEDULE_INTERVAL` unchanged):
+
+- `getVampChords(key, style)` still returns the per-bar chord progression
+  (unchanged shape — array of bars, each `[{label, notes: [absolute
+  semitone offsets from the KEY's root]}]`). Two new styles were added here:
+  `'knopfler'` (I-IV-I-V, Celtic/folk movement) and `'hazel'` (i-IV, a
+  2-chord Dorian vamp).
+- `getStyleBeatEvents(style, beatInBar, beats, chordRoot)` is new — for
+  **one quarter-note beat**, it returns sub-events with a fractional
+  `offset` (0 = on the beat, 0.5 = the straight 8th "and," 0.667 = the
+  swung/triplet "and"), each `{type: 'kick'|'snare'|'hihat'|'bass'|'chord'|
+  'pluck'|'ghost-chord', ...}`. `scheduleMetro()`'s per-beat loop calls this
+  once per beat and schedules every returned sub-event at
+  `t + offset*beatDur` — this is what layers swing/syncopation/ghost-notes
+  onto the existing beat-by-beat scheduler without a full step-sequencer
+  rewrite.
+- **Percussion** (`playKick`/`playSnare`/`playHihat`, raw Web Audio —
+  oscillator thump for kick, filtered noise burst for snare/hihat, a shared
+  cached noise buffer via `getNoiseBuffer()`) is a baseline applied to every
+  style except `'none'`: kick on beat 1, snare/rim on the backbeat (beat 3
+  in 4/4+, beat 2 in 3/4), closed hi-hat on straight 8ths — **except blues**,
+  which explicitly wants hi-hat only on beats 2 & 4 per the brief, so that
+  style overrides the default hi-hat placement. Percussion gain is
+  deliberately low (kick ≤`vol*.26`, snare ≤`vol*.17`, hihat ≤`vol*.08` vs.
+  bass up to `vol*.9` and chords up to `vol*.35`) — **the guitar/bass must
+  always be the loudest thing**, drums are a felt rhythmic anchor, not a
+  full mix element.
+- **Per-style feel**, all expressed as `offset`/`type` combinations in
+  `getStyleBeatEvents`:
+  - `blues` — root/5th alternating bass, comp chord stab pushed to the
+    swung `0.667` "and" (the triplet-feel shuffle push).
+  - `minor` — walking bass cycling root→b3→5th→b7 across the bar; a quiet
+    `ghost-chord` pre-echo (very short, `velocity: 0.18`) leads into the
+    real chord stab landing at `offset: 0.58` — deliberately *past* the
+    beat's exact-half point, the "behind the beat" lag.
+  - `mixo` — straight (unswung) eighths: bass on the beat and the "and,"
+    chord chuck landing with the off-beat bass note — a country/train-beat
+    feel.
+  - `knopfler` — bass on beat 1, then arpeggiated chord tones (3rd, 5th,
+    octave) climbing through beats 2-3-4 via the `chordVoice` synth (a
+    `'pluck'` event, single-note `playChord` call) — a fingerpicked-arpeggio
+    read without a dedicated new voice.
+  - `hazel` — bass only on beat 1 and the "and of 3" (`offset: 0.5` on
+    `beatInBar === 2`), chord stabs landing on every beat's off-beat — the
+    "chords on the upbeats" syncopated funk-Dorian feel.
+  - `zappa` — unchanged root+chord-on-the-beat vamp, **plus**: when the
+    time signature is 7 or 11 (the "★ = Zappa" options in `#time-sig`), the
+    beats beyond a standard 4 (`beatInBar >= 4`) play a short melodic
+    fragment (`'pluck'` events cycling a 5-note sequence built from
+    `chordRoot`) that deliberately alternates the natural-4th/#4th and
+    b7/nat-7 — hinting ambiguously at Mixolydian vs. Lydian rather than
+    committing to one, which is the actual harmonic ambiguity Zappa's own
+    writing leans on.
+  - `drone` — unchanged in spirit (single sustained root+5th+octave chord
+    per bar), just re-expressed as one `bass` event with `dur: beats`
+    (rings the full bar instead of one beat).
+- `chord.notes[0]` is always treated as "this chord's root, in semitones
+  from the key's tonic" — every pattern above derives 3rds/5ths/7ths as
+  offsets from that (`chordRoot+4`, `chordRoot+7`, etc.) rather than reading
+  fixed array indices, so the patterns work correctly regardless of whether
+  a given bar's chord is a triad or a 7th voicing.
+- **Untested against a real guitar** — like the mic detection thresholds
+  elsewhere in this doc, these rhythm feels were composed by ear/reasoning
+  during a session with no audio playback available (no browser). Listen to
+  each style against the actual song material before trusting the "swing"/
+  "behind the beat"/"syncopation" claims land the way they're described.
 
 ### Instrument selector locations
 
