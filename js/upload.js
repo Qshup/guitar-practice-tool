@@ -130,6 +130,10 @@ function loadAlphaTab() {
   return alphaTabModulePromise;
 }
 
+// Keeps the parsed score around so the track picker can re-map without
+// re-parsing the file.
+let gpLoadedScore = null;
+
 async function parseGuitarProFile(arrayBuffer) {
   const alphaTab = await loadAlphaTab();
   const container = document.createElement('div');
@@ -143,45 +147,112 @@ async function parseGuitarProFile(arrayBuffer) {
       const accepted = api.load(new Uint8Array(arrayBuffer));
       if (accepted === false) reject(new Error('Unsupported or corrupt Guitar Pro file.'));
     });
-    return scoreToSongData(score);
+    gpLoadedScore = score;
+    // Real Guitar Pro files are multi-track — rhythm guitar, lead, bass, drums,
+    // vocals. Importing tracks[0] blindly is why this needs a picker: track 0
+    // is very often not the part you want to practise.
+    return scoreToSongData(score, gpPreferredTrackIndex(score));
   } finally {
     container.remove();
   }
 }
 
-function scoreToSongData(score) {
-  const track = score.tracks && score.tracks[0];
+// Describes each track so the UI can offer a real choice.
+function gpTrackSummaries(score) {
+  if (!score || !score.tracks) return [];
+  return score.tracks.map((t, i) => {
+    const staff = t.staves && t.staves[0];
+    const strings = staff && staff.tuning ? staff.tuning.length : 0;
+    let noteCount = 0;
+    if (staff && staff.bars) {
+      staff.bars.forEach(b => (b.voices || []).forEach(v => (v.beats || []).forEach(bt => { noteCount += (bt.notes || []).length; })));
+    }
+    return { index: i, name: t.name || `Track ${i + 1}`, strings, bars: staff && staff.bars ? staff.bars.length : 0, notes: noteCount, percussion: !!(staff && staff.isPercussion) };
+  });
+}
+
+// Best default: a 6-string track with the most notes. Drums and empty tracks
+// are useless here, and a 4-string bass is a poor default for a guitar tool.
+function gpPreferredTrackIndex(score) {
+  const summaries = gpTrackSummaries(score);
+  const playable = summaries.filter(t => !t.percussion && t.notes > 0);
+  if (!playable.length) return 0;
+  const sixes = playable.filter(t => t.strings === 6);
+  const pool = sixes.length ? sixes : playable;
+  return pool.reduce((best, t) => (t.notes > best.notes ? t : best), pool[0]).index;
+}
+
+// AlphaTab's Duration is an ENUM (Whole=1, Half=2, Quarter=4, Eighth=8), not a
+// beat count — using it directly made a quarter note last 4 beats and a half
+// note 2, i.e. inverted. playbackDuration is in ticks at 960 per quarter.
+const GP_TICKS_PER_BEAT = 960;
+
+function scoreToSongData(score, trackIndex) {
+  const track = score.tracks && score.tracks[trackIndex != null ? trackIndex : 0];
   if (!track) throw new Error('No tracks found in this file.');
   const staff = track.staves[0];
+  const stringCount = staff.tuning ? staff.tuning.length : 6;
   const leadBars = {};
-  const chords = [];
   let barNum = 0;
+  let skippedNotes = 0;
+
   staff.bars.forEach(bar => {
     barNum++;
-    const voice = bar.voices && bar.voices[0];
     const notes = [];
-    (voice ? voice.beats : []).forEach(beat => {
-      const beatPos = (beat.playbackStart || 0) / 960; // AlphaTab ticks-per-quarter-note default
-      (beat.notes || []).forEach(note => {
-        const ourString = 6 - note.string; // AlphaTab: string 1 = high e .. 6 = low E; we use 0 (low E) .. 5 (high e)
-        let technique;
-        if (note.isBend) technique = 'bend';
-        else if (note.isHammerPullOrigin) technique = 'hammer';
-        else if (note.isHammerPullDestination) technique = 'pulloff';
-        else if (note.slideOutType) technique = 'slide';
-        else if (note.vibrato) technique = 'vibrato';
-        else if (note.isPalmMute) technique = 'mute';
-        else if (note.isHarmonic) technique = 'harmonic';
-        notes.push({ string: ourString, fret: note.fret, beat: beatPos, dur: beat.duration || 1, technique });
+    (bar.voices || []).forEach(voice => {
+      (voice.beats || []).forEach(beat => {
+        // playbackStart is relative to the BAR (verified against a generated
+        // score: bar 1 gives 0/960/1920/2880 and bar 2 restarts at 0).
+        const beatPos = (beat.playbackStart || 0) / GP_TICKS_PER_BEAT;
+        const durBeats = (beat.playbackDuration || GP_TICKS_PER_BEAT) / GP_TICKS_PER_BEAT;
+        (beat.notes || []).forEach(note => {
+          // AlphaTab numbers strings 1 = LOWEST pitch. Verified by pitch:
+          // string 1 reads E3 (midi 52) and string 6 reads E5 (midi 76) in
+          // standard tuning. Our own index is also low-to-high, so this is a
+          // straight -1. The previous `6 - note.string` mirrored every
+          // imported tab — a low-E riff came out on the high e string.
+          const ourString = note.string - 1;
+          if (ourString < 0 || ourString > 5) { skippedNotes++; return; }  // e.g. 7-string tracks
+          let technique;
+          if (note.isBend) technique = 'bend';
+          else if (note.isHammerPullOrigin) technique = 'hammer';
+          else if (note.isHammerPullDestination) technique = 'pulloff';
+          else if (note.slideOutType) technique = 'slide';
+          else if (note.vibrato) technique = 'vibrato';
+          else if (note.isPalmMute) technique = 'mute';
+          else if (note.isHarmonic) technique = 'harmonic';
+          notes.push({ string: ourString, fret: note.fret, beat: beatPos, dur: durBeats, technique });
+        });
       });
     });
     if (notes.length) leadBars[barNum] = notes;
-    chords.push(''); // AlphaTab doesn't reliably expose chord-name text per bar — filled below
   });
-  for (let i = 0; i < chords.length; i++) if (!chords[i]) chords[i] = i > 0 ? chords[i - 1] : 'E';
+
+  // Chords are deliberately NOT fabricated. The old version pushed '' for every
+  // bar and then filled the gaps with 'E', producing a chord chart that was
+  // pure invention sitting next to an accurate transcription — exactly the
+  // problem that got the hardcoded songs deleted. If the file carries no chord
+  // names, the song has none and the UI says so.
+  const chords = [];
+  staff.bars.forEach(bar => {
+    let name = '';
+    (bar.voices || []).forEach(v => (v.beats || []).forEach(bt => {
+      if (!name && bt.chord && bt.chord.name) name = bt.chord.name;
+    }));
+    chords.push(name);
+  });
+  const hasChords = chords.some(Boolean);
+
   return {
-    totalBars: barNum, leadBars, chords,
-    title: score.title || '', artist: score.artist || '', bpm: Math.round(score.tempo) || 120,
+    totalBars: barNum, leadBars,
+    chords: hasChords ? chords : [],
+    hasChords,
+    skippedNotes,
+    stringCount,
+    trackName: track.name || '',
+    trackIndex: trackIndex != null ? trackIndex : 0,
+    title: score.title || '', artist: score.artist || '',
+    bpm: Math.round(score.tempo) || 120,
   };
 }
 
@@ -264,14 +335,7 @@ async function uploadParseAndPreview() {
       }
     }
     uploadParsedResult = result;
-    const barCount = result.chords ? result.chords.length : result.totalBars;
-    const noteCount = result.leadBars ? Object.values(result.leadBars).reduce((n, arr) => n + arr.length, 0) : 0;
-    previewEl.style.display = '';
-    previewEl.innerHTML = `
-      <div><strong>Parsed OK</strong> — ${barCount} bar${barCount === 1 ? '' : 's'}, ${noteCount} lead note${noteCount === 1 ? '' : 's'}.</div>
-      ${!result.chords ? '<div style="color:#ccb84a">No chord chart in this format — rhythm/bass backing will use a neutral placeholder (your song key, repeated) until you add one.</div>' : ''}
-      ${result.title ? `<div>Detected title: ${result.title}${result.artist ? ' — ' + result.artist : ''}</div>` : ''}
-    `;
+    renderUploadPreview(result, format);
   } catch (e) {
     errorEl.textContent = e.message || String(e);
   }
@@ -363,3 +427,64 @@ function uploadHandleDragLeave() { document.getElementById('upload-drop-zone').c
 
 // ── Init: merge any previously-saved personal songs into the library ───────
 syncPersonalSongsIntoLibrary();
+
+
+// ── Preview + track picker ─────────────────────────────────────────────────
+function renderUploadPreview(result, format) {
+  const previewEl = document.getElementById('upload-preview');
+  if (!previewEl) return;
+  const barCount = (result.chords && result.chords.length) ? result.chords.length : result.totalBars;
+  const noteCount = result.leadBars ? Object.values(result.leadBars).reduce((n, arr) => n + arr.length, 0) : 0;
+
+  let trackPicker = '';
+  if (format === 'gp' && gpLoadedScore) {
+    const tracks = gpTrackSummaries(gpLoadedScore);
+    if (tracks.length > 1) {
+      // Real Guitar Pro files carry rhythm, lead, bass, drums and vocals. Which
+      // one you want is a judgement only you can make, so offer the choice
+      // rather than silently importing whichever happened to be first.
+      trackPicker = `<div class="upload-track-picker">
+        <div class="upload-track-label">This file has ${tracks.length} tracks — pick the part you want to practise:</div>
+        <select id="upload-track-select" onchange="uploadSwitchTrack(this.value)">
+          ${tracks.map(t => `<option value="${t.index}" ${t.index === result.trackIndex ? 'selected' : ''}>
+            ${t.name} — ${t.strings}-string, ${t.notes} note${t.notes === 1 ? '' : 's'}${t.percussion ? ' (percussion)' : ''}
+          </option>`).join('')}
+        </select>
+      </div>`;
+    }
+  }
+
+  const warnings = [];
+  if (format === 'gp' && result.stringCount && result.stringCount !== 6) {
+    warnings.push(`This track has ${result.stringCount} strings. Only notes on the standard 6 are imported${result.skippedNotes ? ` — ${result.skippedNotes} note(s) were outside that range and skipped` : ''}.`);
+  } else if (result.skippedNotes) {
+    warnings.push(`${result.skippedNotes} note(s) fell outside the standard 6 strings and were skipped.`);
+  }
+  if (!noteCount) warnings.push('No notes were found on this track. Try a different one.');
+  if (format === 'gp' && result.hasChords === false) {
+    warnings.push('This file carries no chord names, so the song has no chord chart. Nothing is invented to fill the gap — the tab is what you practise from.');
+  } else if (format !== 'gp' && !result.chords) {
+    warnings.push('No chord chart in this format — rhythm and bass backing will use a neutral placeholder until you add one.');
+  }
+
+  previewEl.style.display = '';
+  previewEl.innerHTML =
+    `<div class="upload-preview-head"><strong>Parsed OK</strong> — ${barCount} bar${barCount === 1 ? '' : 's'}, ${noteCount} note${noteCount === 1 ? '' : 's'}` +
+    `${result.trackName ? ` from “${result.trackName}”` : ''}.</div>` +
+    (result.title ? `<div>${result.title}${result.artist ? ' — ' + result.artist : ''}${result.bpm ? ` · ${result.bpm} BPM` : ''}</div>` : '') +
+    trackPicker +
+    warnings.map(w => `<div class="upload-warning">${w}</div>`).join('');
+}
+
+// Re-map an already-parsed score to a different track — no need to re-read the
+// file, and it makes trying each track cheap.
+function uploadSwitchTrack(index) {
+  if (!gpLoadedScore) return;
+  try {
+    uploadParsedResult = scoreToSongData(gpLoadedScore, parseInt(index, 10));
+    renderUploadPreview(uploadParsedResult, 'gp');
+  } catch (e) {
+    const errorEl = document.getElementById('upload-error');
+    if (errorEl) errorEl.textContent = e.message || String(e);
+  }
+}

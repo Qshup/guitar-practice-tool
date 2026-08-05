@@ -2577,3 +2577,20 @@
   }
   .coverage-chip.done { color: var(--success); border-color: var(--success); background: #1c2a1e; }
   .coverage-chip.untouched { opacity: .65; border-style: dashed; }
+
+  /* ── Upload preview / track picker ────────────────────────────────────── */
+  .upload-preview-head { color: var(--text); margin-bottom: var(--sp-1); }
+  .upload-track-picker { margin: var(--sp-3) 0 var(--sp-2); }
+  .upload-track-label {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim); margin-bottom: var(--sp-1);
+  }
+  #upload-track-select {
+    width: 100%; background: var(--surface-2); color: var(--text);
+    border: 1px solid var(--border); border-left: 2px solid var(--amber);
+    padding: var(--sp-2); font-family: var(--font-mono); font-size: var(--fs-xs); min-height: 36px;
+  }
+  .upload-warning {
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--warning);
+    line-height: 1.6; margin-top: var(--sp-2); padding-left: var(--sp-2);
+    border-left: 2px solid var(--warning);
+  }
