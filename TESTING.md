@@ -2,7 +2,7 @@
 
 Everything in this project splits into two piles: what can be proved by
 arithmetic or in a browser, and what needs ears and an instrument. The first
-pile is covered — `npm test` runs 77 unit tests, and every feature is checked
+pile is covered — `npm test` runs 87 unit tests, and every feature is checked
 in a real browser before it ships. This file is the second pile.
 
 Run `npm start`, allow the mic when Brave asks, and work down the list.
