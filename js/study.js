@@ -31,6 +31,7 @@ function switchStudySubtab(tab) {
   if (tab === 'theory') renderTheoryPanel();
   if (tab !== 'rhythm' && typeof rhyStop === 'function') rhyStop();
   if (tab === 'rhythm' && typeof rhyRenderAll === 'function') rhyRenderAll();
+  if (tab === 'triads' && typeof renderTriads === 'function') { loadTriadState(); renderTriads(); }
   const data = loadProgress();
   data.ui.activeStudySubtab = tab;
   saveProgress(data);

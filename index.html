@@ -623,6 +623,18 @@
     <button class="subtab-btn" data-subtab="listen" onclick="switchStudySubtab('listen')">Listen &amp; Repeat</button>
     <button class="subtab-btn" data-subtab="game" onclick="switchStudySubtab('game')">Chord Game</button>
     <button class="subtab-btn" data-subtab="rhythm" onclick="switchStudySubtab('rhythm')">Rhythm</button>
+    <button class="subtab-btn" data-subtab="triads" onclick="switchStudySubtab('triads')">Triads</button>
+  </div>
+
+  <div class="subtab-panel" id="study-subtab-triads">
+    <div class="rhythm-intro">Triads are the bridge between single-note lines and full chords — three notes that carry the whole harmony. Every voicing here is generated from intervals, so any root and quality works.</div>
+    <div class="triad-view-row" id="triads-view-row">
+      <button class="active" data-tview="reference" onclick="triadSetView('reference')">Reference</button>
+      <button data-tview="integration" onclick="triadSetView('integration')">In my scale position</button>
+      <button data-tview="voiceleading" onclick="triadSetView('voiceleading')">Voice leading</button>
+      <button data-tview="exercises" onclick="triadSetView('exercises')">Exercises</button>
+    </div>
+    <div id="triads-body"></div>
   </div>
 
   <div class="subtab-panel" id="study-subtab-rhythm">
@@ -1368,6 +1380,7 @@
 <script src="js/nav.js"></script>
 <script src="js/rhythm.js"></script>
 <script src="js/shortcuts.js"></script>
+<script src="js/triads.js"></script>
 <script src="js/trends.js"></script>
 <script src="js/session.js"></script>
 <script src="js/fretboard-vision.js"></script>
