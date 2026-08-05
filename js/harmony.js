@@ -93,19 +93,25 @@ function applyHarmonyColouring() {
   if (!fb) return;
   const dots = fb.querySelectorAll('.note-dot');
   const chord = harmonyState.chord;
+  const off = !harmonyState.enabled || !chord;
+
+  // Only touch a dot whose role actually changed. The naive version stripped
+  // every class from every dot and re-added them on each bar, which for ~100
+  // dots meant a full class churn several times a second during a vamp.
   dots.forEach(d => {
-    Object.values(HARMONY_ROLES).forEach(r => d.classList.remove(r.cls));
-    d.classList.remove('harmony-on');
-  });
-  if (!harmonyState.enabled || !chord) return;
-  dots.forEach(d => {
-    if (d.classList.contains('empty')) return;
-    const si = parseInt(d.dataset.string, 10), f = parseInt(d.dataset.fret, 10);
-    if (isNaN(si) || isNaN(f)) return;
-    const pc = (CHROMATIC.indexOf(norm(STRINGS[si])) + f) % 12;
-    const interval = ((pc - chord.rootPc) % 12 + 12) % 12;
-    const role = harmonicRole(interval, chord.intervals);
-    d.classList.add('harmony-on', HARMONY_ROLES[role].cls);
+    let want = null;
+    if (!off && !d.classList.contains('empty')) {
+      const si = parseInt(d.dataset.string, 10), f = parseInt(d.dataset.fret, 10);
+      if (!isNaN(si) && !isNaN(f)) {
+        const pc = (CHROMATIC.indexOf(norm(STRINGS[si])) + f) % 12;
+        const interval = ((pc - chord.rootPc) % 12 + 12) % 12;
+        want = HARMONY_ROLES[harmonicRole(interval, chord.intervals)].cls;
+      }
+    }
+    if (d.dataset.hRole === (want || '')) return;      // already correct
+    if (d.dataset.hRole) d.classList.remove(d.dataset.hRole);
+    if (want) { d.classList.add('harmony-on', want); d.dataset.hRole = want; }
+    else { d.classList.remove('harmony-on'); delete d.dataset.hRole; }
   });
 }
 

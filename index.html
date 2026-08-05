@@ -79,11 +79,11 @@
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Scales Today</div>
-        <div class="progress-stat-val" id="prog-scales-list" class="u-fs-sm">Nothing yet today</div>
+        <div id="prog-scales-list" class="progress-stat-val u-fs-sm">Nothing yet today</div>
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Riffs Today</div>
-        <div class="progress-stat-val" id="prog-riffs-list" class="u-fs-sm">No riffs yet today</div>
+        <div id="prog-riffs-list" class="progress-stat-val u-fs-sm">No riffs yet today</div>
       </div>
       <div class="progress-stat-block">
         <div class="progress-stat-label">Game Sessions Today</div>
@@ -242,9 +242,9 @@
       <input type="range" id="mic-noise-gate-slider" min="0" max="150" value="20" oninput="setMicNoiseGate(this.value/1000); document.getElementById('mic-noise-gate-val').textContent=this.value">
       <span class="prac-val" id="mic-noise-gate-val">20</span>
     </div>
-    <div class="prac-row" class="u-items-center">
+    <div class="prac-row u-items-center">
       <span class="prac-label">Level</span>
-      <div class="lr-mic-meter" id="mic-level-meter" class="u-flex-1"><div class="lr-mic-meter-fill" id="mic-level-meter-fill"></div></div>
+      <div id="mic-level-meter" class="lr-mic-meter u-flex-1"><div class="lr-mic-meter-fill" id="mic-level-meter-fill"></div></div>
     </div>
     <div class="prac-row">
       <span class="prac-label">Hearing</span>
@@ -399,7 +399,7 @@
     <div class="legend-item"><div class="legend-dot order-5">5</div>5th</div>
     <div class="legend-item"><div class="legend-dot order-6">6</div>6th</div>
     <div class="legend-item"><div class="legend-dot order-7">7</div>7th</div>
-    <div class="legend-item" class="u-ml-2"><div class="legend-dot other-pos">♩</div>Other pos</div>
+    <div class="legend-item u-ml-2"><div class="legend-dot other-pos">♩</div>Other pos</div>
   </div>
 
   <div class="mic-scale-match-status" id="mic-scale-match-status">Turn on the mic above and play a note to see it matched here</div>
@@ -483,7 +483,7 @@
       <div class="legend-item"><div class="legend-dot chord-fifth-key">5</div>5th</div>
       <div class="legend-item"><div class="legend-dot chord-seventh-key">7</div>7th</div>
       <div class="legend-item"><div class="legend-dot legend-ext">ext</div>Extension</div>
-      <div class="legend-item"><div class="legend-dot" class="u-ghost-btn">×</div>Muted</div>
+      <div class="legend-item"><div class="legend-dot legend-muted">×</div>Muted</div>
     </div>
 
     <div class="fretboard-wrap">
@@ -523,7 +523,7 @@
         <!-- Chord diagram -->
         <div class="chord-diagram-wrap">
           <div class="chord-name-big" id="caged-chord-name">C</div>
-          <div class="chord-shape-tag" id="caged-shape-tag" class="u-error-text">C SHAPE</div>
+          <div id="caged-shape-tag" class="chord-shape-tag u-error-text">C SHAPE</div>
           <canvas class="chord-canvas" id="chord-canvas" width="160" height="200"></canvas>
           <div class="u-note-dim" id="caged-barre-note"></div>
         </div>
@@ -535,9 +535,9 @@
           <div class="cinfo-row">Formula: <span id="ci-formula">—</span></div>
           <div class="cinfo-row">Root string: <span id="ci-rootstr">—</span></div>
           <div class="cinfo-row">Barre fret: <span id="ci-barre">—</span></div>
-          <div class="cinfo-row" class="u-mt-2">CAGED order for <span id="ci-key-label">C</span>:</div>
+          <div class="cinfo-row u-mt-2">CAGED order for <span id="ci-key-label">C</span>:</div>
           <div class="caged-chain" id="caged-chain"></div>
-          <div class="cinfo-row" class="u-mt-2">Tip: <span id="ci-tip">—</span></div>
+          <div class="cinfo-row u-mt-2">Tip: <span id="ci-tip">—</span></div>
         </div>
 
         <!-- Mini neck showing all 5 shapes -->
@@ -549,7 +549,7 @@
       </div>
 
       <!-- CAGED explainer -->
-      <div class="caged-explainer" class="u-mt-4">
+      <div class="caged-explainer u-mt-4">
         <h3>What is the CAGED System?</h3>
         <div class="caged-exp-grid" id="caged-exp-grid"></div>
       </div>
@@ -738,7 +738,7 @@
             <div class="key-grid" id="key-toggle-grid"></div>
 
             <!-- Scale quality per key -->
-            <div class="gs-label" class="u-mb-1">Include chord qualities</div>
+            <div class="gs-label u-mb-1">Include chord qualities</div>
             <div class="u-row-wrap" id="quality-toggles">
               <label class="u-inline-key">
                 <input type="checkbox" id="q-major" checked onchange="rebuildGameDeck()"> Major (I)
@@ -755,7 +755,7 @@
             </div>
 
             <!-- Current deck preview -->
-            <div class="gs-label" class="u-mb-1">Active chord deck</div>
+            <div class="gs-label u-mb-1">Active chord deck</div>
             <div id="deck-preview" class="deck-preview"></div>
 
             <!-- Key info -->
@@ -917,7 +917,7 @@
        FLASHCARDS — chord flashcard quiz (relocated from CAGED/Reference)
   ═══════════════════════════════════════════════════════════════ -->
   <div class="subtab-panel active" id="study-subtab-flashcards">
-    <div class="ctrl-group" class="u-mb-4">
+    <div class="ctrl-group u-mb-4">
       <div class="ctrl-label">Key</div>
       <div class="btn-row" id="study-flashcard-key-btns"></div>
     </div>
@@ -1005,7 +1005,7 @@
        THEORY — circle of 5ths, key relationships, scale theory cards
   ═══════════════════════════════════════════════════════════════ -->
   <div class="subtab-panel" id="study-subtab-theory">
-    <div class="bottom-section" class="u-mt-0">
+    <div class="bottom-section u-mt-0">
       <div class="circle-panel">
         <h2>Circle of 5ths</h2>
         <svg id="theory-circle-svg" width="220" height="220"></svg>
@@ -1058,7 +1058,7 @@
       </div>
       <!-- BY PLAYER STYLE -->
       <div class="lr-mode-controls" data-lr-mode="player" style="display:none">
-        <div class="ctrl-group" class="u-flex-1">
+        <div class="ctrl-group u-flex-1">
           <div class="ctrl-label">Player</div>
           <select id="lr-player-select"></select>
           <div class="lr-player-desc" id="lr-player-desc"></div>

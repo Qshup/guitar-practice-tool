@@ -2723,7 +2723,14 @@
   /* Chord tones read loud, colour tones softer, tension as a tint — the
      visual weight is the point: what you can see most easily is what is
      safest to land on. */
-  .note-dot.harmony-on { transition: background var(--ease-fade), border-color var(--ease-fade), color var(--ease-fade); }
+  /* NO transition on the harmony colours, deliberately. The whole point of
+     this overlay is that the neck changes AT the chord change — a 200ms
+     colour fade puts the visual up to a fifth of a second behind the music,
+     which is exactly backwards for a tool teaching you to hear the change.
+     It also created real churn: applyHarmonyColouring re-classes every dot on
+     every bar, so a transition here restarts on ~100 elements per chord and
+     leaves transitions permanently in flight. */
+  .note-dot.harmony-on { transition: none; }
   .h-root, .h-swatch.h-root       { background: var(--text) !important; color: #14110a !important; border-color: var(--amber) !important; box-shadow: 0 0 10px 2px var(--amber-glow) !important; }
   .h-third, .h-swatch.h-third     { background: #4a9eff !important; color: #14110a !important; border-color: #7ab8ff !important; }
   .h-fifth, .h-swatch.h-fifth     { background: #3fbf76 !important; color: #14110a !important; border-color: #6fd79a !important; }
@@ -2733,3 +2740,5 @@
   .h-eleventh, .h-swatch.h-eleventh { background: #b8a840 !important; color: #14110a !important; border-color: #d4c460 !important; }
   .h-avoid, .h-swatch.h-avoid     { background: #4a2622 !important; color: #c88a80 !important; border-color: #7a3a32 !important; }
   button#harmony-toggle-btn.active { background: var(--amber); color: #14110a; border-color: var(--amber); }
+  /* Muted-string swatch in the chord legend — matches .note-dot.chord-muted */
+  .legend-dot.legend-muted { background: transparent; color: var(--text-mute); border: 1px solid var(--border); }
