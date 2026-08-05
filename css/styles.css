@@ -2621,28 +2621,49 @@
     font-family: var(--font-body); font-size: var(--fs-xs); font-weight: 600; color: var(--text);
   }
   .triad-voicing-head span { font-weight: 400; font-size: var(--fs-micro); color: var(--text-mute); font-family: var(--font-mono); }
-  .triad-neck { display: inline-flex; flex-direction: column; gap: 1px; }
-  .triad-neck-fretnums { display: flex; gap: 1px; margin-left: 20px; }
+  /* Chord-box: strings horizontal (matching the main fretboard), frets as
+     vertical rules so position is readable from the grid itself. */
+  .triad-neck { display: inline-flex; flex-direction: column; }
+  .triad-neck-fretnums { display: flex; }
   .triad-neck-fretnums span {
     width: 26px; text-align: center; font-family: var(--font-mono);
-    font-size: var(--fs-micro); color: var(--text-mute);
+    font-size: var(--fs-micro); color: var(--text-mute); padding-bottom: 2px;
   }
-  .triad-neck-row { display: flex; gap: 1px; align-items: center; }
+  .triad-neck-fretnums span.is-nut { color: var(--text-dim); font-weight: 600; }
+  .triad-neck-row { display: flex; align-items: stretch; }
+  .triad-neck-row.unused { height: 9px; }              /* thin line, not an empty row */
   .triad-neck-string {
-    width: 20px; font-family: var(--font-heading); font-size: var(--fs-micro);
-    color: var(--text-mute); text-align: right; padding-right: 3px;
+    width: 20px; flex-shrink: 0; text-align: right; padding-right: 4px;
+    font-family: var(--font-heading); font-size: var(--fs-micro);
+    color: var(--text-dim); align-self: center;
   }
-  .triad-cell, .triad-dot {
-    width: 26px; height: 22px; display: inline-flex; align-items: center; justify-content: center;
-    border-bottom: 1px solid var(--border);
+  .triad-neck-string.dim { color: var(--text-mute); opacity: .5; }
+  .triad-cell {
+    width: 26px; height: 30px; flex-shrink: 0; position: relative;
+    display: flex; align-items: center; justify-content: center;
+    border-left: 1px solid var(--border);
   }
+  .triad-cell:last-child { border-right: 1px solid var(--border); }
+  /* The string itself, drawn through the middle of each cell. */
+  .triad-cell::after {
+    content: ''; position: absolute; left: 0; right: 0; top: 50%;
+    height: 1px; background: var(--border-hover);
+  }
+  .triad-neck-row.unused .triad-cell { height: 9px; }
+  .triad-neck-row.unused .triad-cell::after { background: var(--border); opacity: .6; }
   .triad-dot {
+    position: relative; z-index: 1;
+    width: 21px; height: 21px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--font-body); font-size: var(--fs-micro); font-weight: 700;
-    border-radius: 50%; height: 22px; width: 22px; margin: 0 2px;
   }
-  .triad-dot.role-0 { background: var(--text); color: #14110a; box-shadow: 0 0 8px var(--amber-glow); border: 1px solid var(--amber); }
+  /* Chord-tone colouring. Also used by the legend swatches, which are bare
+     .triad-dot spans outside any .triad-cell — so these must not depend on
+     the cell wrapper. */
+  .triad-dot.role-0 { background: var(--text); color: #14110a; border: 1px solid var(--amber); box-shadow: 0 0 8px var(--amber-glow); }
   .triad-dot.role-1 { background: var(--blue); color: #14110a; }
   .triad-dot.role-2 { background: var(--success); color: #14110a; }
+
   .triad-play { margin-top: var(--sp-2); width: 100%; min-height: 30px; font-size: var(--fs-micro); }
   .triad-hint {
     font-family: var(--font-body); font-size: var(--fs-micro); color: var(--text-mute);

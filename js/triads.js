@@ -247,22 +247,38 @@ function loadTriadState() {
   if (t) Object.assign(triadState, t);
 }
 
-// A compact 6-string mini-neck showing one voicing in context.
+// A compact chord-box for one voicing.
+//
+// Three things this has to get right that the first version did not:
+//   1. Vertical fret lines. Without them you cannot read which fret a dot sits
+//      on without checking the number row, which defeats the point of a
+//      diagram — a guitarist reads position from the grid.
+//   2. The three strings the set does not use are drawn as thin muted lines
+//      rather than full-height empty rows. You still need to see WHICH strings
+//      the voicing is on (top three vs bottom three is the whole distinction
+//      between the sets), but they were eating half the height of every card.
+//   3. Orientation matches the main fretboard — strings horizontal, frets
+//      vertical — so the two read the same way round.
 function triadMiniNeck(voicing, opts) {
   const o = Object.assign({ frets: 5 }, opts || {});
   const start = Math.max(0, voicing.lowFret - 1);
-  let html = `<div class="triad-neck" role="img" aria-label="${voicing.inversionLabel}">`;
-  html += `<div class="triad-neck-fretnums">`;
-  for (let f = start; f < start + o.frets; f++) html += `<span>${f}</span>`;
-  html += `</div>`;
-  for (let s = 5; s >= 0; s--) {                     // high e at the top, as you look at it
-    html += `<div class="triad-neck-row"><span class="triad-neck-string">${STRING_LABELS[s]}</span>`;
-    for (let f = start; f < start + o.frets; f++) {
-      const n = voicing.notes.find(x => x.string === s && x.fret === f);
+  const used = new Set(voicing.notes.map(n => n.string));
+  const fretList = [];
+  for (let f = start; f < start + o.frets; f++) fretList.push(f);
+
+  let html = `<div class="triad-neck" role="img" aria-label="${voicing.inversionLabel}, frets ${voicing.lowFret} to ${voicing.highFret}">`;
+  html += `<div class="triad-neck-fretnums"><span class="triad-neck-string"></span>` +
+          fretList.map(f => `<span${f === 0 ? ' class="is-nut"' : ''}>${f}</span>`).join('') + `</div>`;
+  for (let sIdx = 5; sIdx >= 0; sIdx--) {                 // high e at the top, as you look down at the neck
+    const isUsed = used.has(sIdx);
+    html += `<div class="triad-neck-row${isUsed ? '' : ' unused'}">` +
+            `<span class="triad-neck-string${isUsed ? '' : ' dim'}">${STRING_LABELS[sIdx]}</span>`;
+    fretList.forEach(f => {
+      const n = voicing.notes.find(x => x.string === sIdx && x.fret === f);
       html += n
-        ? `<span class="triad-dot role-${n.role}" title="${['Root','Third','Fifth'][n.role]} · fret ${f}">${['R','3','5'][n.role]}</span>`
+        ? `<span class="triad-cell"><span class="triad-dot role-${n.role}" title="${['Root','Third','Fifth'][n.role]} · ${STRING_LABELS[sIdx]} string, fret ${f}">${['R','3','5'][n.role]}</span></span>`
         : `<span class="triad-cell"></span>`;
-    }
+    });
     html += `</div>`;
   }
   return html + `</div>`;
