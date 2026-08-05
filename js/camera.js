@@ -284,7 +284,14 @@ function finishCalibration() {
   const el = document.getElementById('camera-calibration-status');
   if (calibrationSamples.length < 10) {
     calibration = null;
-    if (el) el.textContent = 'Calibration needs a clearer view of your hand — press Recalibrate and try again.';
+    if (el) {
+      el.textContent = 'Hand calibration skipped — no clear view of your hand. Note reading and neck calibration still work.';
+      // MUST self-hide. This branch used to leave the banner up forever, and
+      // it is the EXPECTED branch when the camera is aimed at a fretboard
+      // rather than at a flat spread hand. Combined with the overlay covering
+      // the canvas, that permanently blocked neck calibration.
+      setTimeout(() => { if (el) el.style.display = 'none'; }, 4000);
+    }
     return;
   }
   calibrationSamples.sort((a, b) => a - b);
@@ -351,6 +358,11 @@ if (typeof lrHandleHandUpdate === 'function') onHandUpdate(lrHandleHandUpdate);
 // Expose what index.html's inline onclick handlers and other classic scripts need.
 window.toggleCamera = toggleCamera;
 window.recalibrateCamera = recalibrateCamera;
+// `cameraEnabled` is a module-scoped `let`, so classic scripts cannot see it —
+// fretboard-vision.js guarded on `typeof cameraEnabled !== 'undefined'`, which
+// is ALWAYS false from outside this module, making that guard dead code. It
+// silently let neck calibration start with no camera running.
+window.isCameraEnabled = () => cameraEnabled;
 window.onHandUpdate = onHandUpdate;
 window.offHandUpdate = offHandUpdate;
 window.analyzeHandCurl = analyzeHandCurl;

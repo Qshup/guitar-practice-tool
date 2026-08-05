@@ -1235,6 +1235,71 @@ You calibrate once by clicking four corners of **your** neck in the preview
 3. Fingertips inside the quad → (string, fret) → note names → matched against
    `GAME_CHORDS`.
 
+### Why the neck would not calibrate at all, and the rule that follows
+
+Three defects stacked, and the first is the important one.
+
+1. **`.camera-calibration-status` covered the canvas and ate every click.** It
+   is `position: absolute; inset: 0` over the video area with default
+   `pointer-events: auto`. Neck calibration works by clicking four corners *on
+   the canvas underneath it*, so not one click ever landed. Worse, the branch
+   that left it up is the **expected** one when the camera is aimed at a
+   fretboard: `finishCalibration()` bails when it collects fewer than 10 hand
+   samples, and it used to set an error message and `return` **without hiding
+   the element** — your hand is not flat, spread and facing the camera when you
+   are pointing it at a neck. Both status overlays are now
+   `pointer-events: none` (they are readouts, never interactive) and the
+   failure branch self-hides after 4s.
+2. **The "camera is off" guard was dead code.** `fvStartNeckCalibration` read a
+   bare `cameraEnabled`, which is a module-scoped `let` inside camera.js and
+   therefore always `undefined` to a classic script — `typeof cameraEnabled
+   !== 'undefined'` can never be true from outside the module, so calibration
+   started happily with no video and four clicks into a black canvas. camera.js
+   now exports `window.isCameraEnabled()`. It also used `alert()`, which blocks
+   the page; it is an inline status now.
+3. **The canvas click listener was bound only inside `enableCamera()`**, so any
+   route that did not pass through the enable path left the canvas inert.
+   `fvBindCanvas()` runs at load; camera.js keeps its `dataset.fvBound` guard so
+   whichever runs first wins.
+
+**The rule, now the second time it has bitten:** a full-bleed absolutely
+positioned element is a click-catcher unless you say otherwise. This is exactly
+the practice-planner bug in a different place. When a handler appears not to
+fire, check `document.elementFromPoint` on the target's centre *before* reading
+the handler's code.
+
+### Camera-informed note capture (`fvPositionForPitch`)
+
+The microphone can say **what** and **when**. It cannot say **where**: a pitch
+does not identify a string, because E4 exists on four of them. Lick capture
+originally solved for the most economical fingering, which is a fair guess and
+routinely the wrong string — E4 played at the 14th fret of the D string came
+back as an open high e. That is the "capture didn't match the string I was
+playing" report, and it was pitch-only capture working as designed rather than
+a detection failure.
+
+`fvRecordReading` keeps a 40s history of stable camera readings timestamped on
+the **AudioContext clock** — the same clock as mic onsets — so a reading and an
+onset can be lined up directly. `fvPositionForPitch(midi, time)` then answers
+"where was this actually played":
+
+- The correlation window is **asymmetric** (−0.18s / +0.35s). The camera runs
+  at ~30fps and holds a reading over 5 frames to beat MediaPipe's jitter, so
+  the frame confirming a note usually lands *after* the pick attack the mic
+  timestamped.
+- An **octave-off** camera sighting is accepted and the camera's octave wins.
+  Pitch detectors slip octaves on the wound strings; the camera is measuring
+  geometry rather than interpreting a waveform. Exact matches always outrank
+  octave matches.
+- It returns **null** when the camera cannot corroborate the pitch, and the
+  caller falls back to the solve. Silence is the correct answer — asserting a
+  string the camera did not see would be worse than admitting a guess.
+
+Every note carries `source: 'camera' | 'inferred'`, the analysis carries a
+`placement` tally, and both the explanation and a badge on the card say which
+notes were **seen** and which were **estimated**. A measured position and a
+guessed one must never look alike.
+
 **Curl is not a contact gate — do not make it one again.** `fingerCurl`
 measures tip-vs-base distance from the *wrist*; it answers "which fingers are
 engaged in this shape", not "is this fingertip on the board". Used as a hard

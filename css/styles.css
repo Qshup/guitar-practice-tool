@@ -668,9 +668,18 @@
     width: 320px; height: 240px; background: #000; border: 1px solid var(--border); border-radius: var(--radius);
     transform: scaleX(-1); /* mirror — reads naturally, like looking in a mirror */
   }
+  /* Both of these lie across the whole video area. They are STATUS READOUTS,
+     never interactive, so they must not intercept clicks — the neck
+     calibration works by clicking four corners ON THE CANVAS UNDERNEATH, and
+     with pointer-events left at auto the hand-calibration status swallowed
+     every one of them. That is what made the fretboard impossible to
+     calibrate: hand calibration fails when you point the camera at a neck
+     (your hand is not flat and spread), its failure path left the message up,
+     and the message covered the canvas permanently. */
   .camera-loading, .camera-calibration-status {
     position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; align-items: center; justify-content: center;
     text-align: center; padding: 10px; background: rgba(0,0,0,0.75); font-family: var(--font-body); font-size: var(--fs-sm); color: var(--amber);
+    pointer-events: none;
   }
   .camera-side-panel { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 8px; }
   .camera-confidence { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text-dim); }
@@ -2897,3 +2906,14 @@
     .lick-vocab-row { flex-direction: column; gap: 0; }
     .lick-vocab-row span { min-width: 0; }
   }
+
+  /* Provenance badge on a captured lick's transcription: a camera-measured
+     position and a pitch-inferred one must not look alike. */
+  .lick-source {
+    display: inline-block; margin-top: 4px; padding: 2px 7px;
+    font-family: var(--font-body); font-size: var(--fs-micro); font-weight: 600;
+    letter-spacing: .04em; border: 1px solid var(--border); color: var(--text-dim);
+  }
+  .lick-source.seen { color: var(--success); border-color: var(--success); }
+  .lick-source.mixed { color: var(--warning); border-color: var(--warning); }
+  .lick-source.inferred { color: var(--text-mute); border-style: dashed; }

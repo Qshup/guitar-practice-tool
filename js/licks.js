@@ -298,15 +298,75 @@ function lickExplain(a) {
   if (a.techniques.length) {
     parts.push(`Technique detected: ${a.techniques.join(', ')}.`);
   }
+
+  // Say plainly where the fingering came from. A pitch does not identify a
+  // string, so without the camera the tab below is a reasonable solve and not
+  // a record of what your hand did — and the difference matters if you are
+  // going to read it back.
+  const p = a.placement;
+  if (p && p.total) {
+    if (p.seen === p.total) {
+      parts.push(`Positions: all ${p.total} notes were seen on the neck by the camera, so the tab is where you actually played them.`);
+    } else if (p.seen) {
+      parts.push(`Positions: ${p.seen} of ${p.total} notes were seen by the camera; the other ${p.total - p.seen} are placed by the most economical fingering, so those strings are an estimate.`);
+    } else {
+      parts.push('Positions: the camera did not corroborate these notes, so the tab shows the easiest fingering for the pitches — a pitch alone cannot say which string you used. Calibrate the neck to capture the real positions.');
+    }
+    if (p.octaveFixed) {
+      parts.push(`${p.octaveFixed} note${p.octaveFixed > 1 ? 's were' : ' was'} corrected by an octave against what the camera saw — pitch detectors slip octaves on the wound strings.`);
+    }
+  }
   return parts;
 }
 
 // ── Orchestrator ──────────────────────────────────────────────────────────
+// Resolve each note's position, preferring what the camera actually SAW over
+// what the pitch implies.
+//
+// This is the fix for "the capture didn't match the string I was playing". The
+// mic gives what and when; it cannot give where, because a pitch does not
+// identify a string (E4 exists on four). lickFretPositions solves for the
+// most economical fingering, which is a sensible guess and frequently the
+// wrong string — if you played E4 on the low E string at fret 12, the solver
+// will happily place it at fret 0 of the high e.
+//
+// So: if the neck is calibrated and the camera corroborated a note at that
+// moment, use its string and fret. Otherwise fall back to the solve, and MARK
+// which notes were seen versus inferred so the UI can say so rather than
+// presenting a guess with the same confidence as a measurement.
+function lickResolvePositions(notes) {
+  const midis = notes.map(n => n.midi);
+  const inferred = lickFretPositions(midis);
+  const canSee = typeof fvPositionForPitch === 'function';
+  let seen = 0, octaveFixed = 0;
+  notes.forEach((n, i) => {
+    const cam = canSee && typeof n.absTime === 'number' ? fvPositionForPitch(n.midi, n.absTime) : null;
+    if (cam) {
+      n.string = cam.string; n.fret = cam.fret; n.source = 'camera';
+      n.camConfidence = cam.confidence;
+      if (cam.match === 'octave') {
+        // The camera saw this note an octave from what the detector reported.
+        // Geometry beats waveform interpretation here: trust the camera and
+        // correct the pitch, which also fixes the note name.
+        n.midi = cam.midi;
+        n.noteName = CHROMATIC[((cam.midi % 12) + 12) % 12];
+        octaveFixed++;
+      }
+      seen++;
+    } else {
+      const p = inferred[i];
+      n.string = p ? p.string : null;
+      n.fret = p ? p.fret : null;
+      n.source = 'inferred';
+    }
+  });
+  return { seen, octaveFixed, total: notes.length };
+}
+
 function lickAnalyse(rawNotes) {
   const notes = rawNotes.filter(n => n && typeof n.midi === 'number');
+  const placement = lickResolvePositions(notes);
   const midis = notes.map(n => n.midi);
-  const positions = lickFretPositions(midis);
-  notes.forEach((n, i) => { const p = positions[i]; n.string = p ? p.string : null; n.fret = p ? p.fret : null; });
   const techniques = [...new Set(notes.map(n => n.technique).filter(Boolean))];
   // Chord roles are resolved BEFORE scale identification so the harmonic
   // context can inform which root the line is really in — see the note on
@@ -324,6 +384,7 @@ function lickAnalyse(rawNotes) {
     contour: lickContour(midis),
     rhythm: lickRhythm(notes),
     techniques,
+    placement,
   };
   a.explanation = lickExplain(a);
   return a;
@@ -637,7 +698,7 @@ async function captureLick() {
       midi: o.midi, noteName: o.noteName, cents: o.cents,
       technique: o.technique, time: o.time - t0, absTime: o.time,
     }));
-    const analysis = lickAnalyse(notes.map(n => ({ ...n, time: n.absTime })));
+    const analysis = lickAnalyse(notes.map(n => ({ ...n, time: n.absTime, absTime: n.absTime })));
     // lickAnalyse works in absolute time (it has to, to line notes up against
     // the chord history); re-base afterwards for storage.
     analysis.notes.forEach((n, i) => { n.time = notes[i].time; });
@@ -651,12 +712,13 @@ async function captureLick() {
       notes: analysis.notes.map(n => ({
         midi: n.midi, noteName: n.noteName, cents: n.cents,
         technique: n.technique, time: n.time, string: n.string, fret: n.fret,
+        source: n.source, camConfidence: n.camConfidence,
       })),
       analysis: {
         scaleMatches: analysis.scaleMatches, intervals: analysis.intervals,
         chordRoles: analysis.chordRoles, contour: analysis.contour,
         rhythm: analysis.rhythm, techniques: analysis.techniques,
-        explanation: analysis.explanation,
+        placement: analysis.placement, explanation: analysis.explanation,
       },
       tags: {
         player: '—', mood: '—',
@@ -794,6 +856,11 @@ function renderLickCard(l) {
     <div class="lick-section">
       <div class="lick-section-title">What you played</div>
       <div class="lick-notes">${noteLine}</div>
+      ${(() => { const p = a.placement; if (!p || !p.total) return '';
+        const cls = p.seen === p.total ? 'seen' : p.seen ? 'mixed' : 'inferred';
+        const txt = p.seen === p.total ? 'Positions seen by camera'
+                  : p.seen ? `${p.seen}/${p.total} positions seen by camera` : 'Positions estimated from pitch';
+        return `<span class="lick-source ${cls}" title="A pitch does not identify a string — only the camera can say which one you played.">${txt}</span>`; })()}
       ${ivLine ? `<div class="lick-intervals">${ivLine}</div>` : ''}
       <pre class="lick-tab">${lickTabLines(l.notes)}</pre>
     </div>

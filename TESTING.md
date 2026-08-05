@@ -95,6 +95,25 @@ On any saved lick, press **▶ Hear it** on each of the three variations.
 
 ---
 
+## 1d. Capture with the camera on — the string fix
+
+Pitch alone cannot tell which string you played. With the neck calibrated,
+capture uses what the camera SAW instead of guessing.
+
+**The test that proves it:** play the **same pitch on two different strings**.
+E4 is fret 14 on the D string and open on the high e. Play it at fret 14, on
+the D string, with the neck calibrated, and capture.
+
+- The tab must show it on the **D string at fret 14**, not open high e.
+- The badge under the note row must read **"Positions seen by camera"** (green).
+- With the camera off or the neck uncalibrated, the same capture shows
+  **"Positions estimated from pitch"** (dashed) — that is the honest fallback,
+  not a failure.
+
+If the badge says estimated while the camera is on, the neck calibration is not
+being matched to your notes: recalibrate, and check the drawn fret lines land
+on your real frets.
+
 ## 2. Camera — the fix from this session
 
 The camera failure was never the camera; the practice-planner overlay was
@@ -108,9 +127,20 @@ covering the nav bar and swallowing the click.
 skeleton overlay tracks your hand. Every other nav button should also work
 with the planner open — that was the actual bug and it affected all nine.
 
-Then calibrate the neck: click the four corners of *your* fretboard in the
-preview (nut/low-E, nut/high-e, 12th/high-e, 12th/low-E) and confirm the drawn
-fret lines land on your real frets. They should get closer together going up
+### Neck calibration — this was completely blocked before
+
+Press **Calibrate neck** and click the four corners of *your* fretboard in the
+preview, in the order prompted: nut/low-E, nut/high-e, 12th/high-e, 12th/low-E.
+
+The status block must step **1/4 → 2/4 → 3/4 → 4/4** as you click. If it does
+not advance, the clicks are not reaching the canvas — that was the original
+bug and it should now be impossible.
+
+Note the hand-calibration banner ("Hold your hand flat…") may fail when you are
+pointing the camera at a neck. That is expected and no longer matters: it
+self-hides and never blocks the canvas.
+
+Confirm the drawn fret lines land on your real frets. They should get closer together going up
 the neck — if they are evenly spaced, the geometry is wrong.
 
 Fret a chord and check it names it. Known limit: a monocular camera cannot tell

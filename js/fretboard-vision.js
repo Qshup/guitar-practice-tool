@@ -231,6 +231,7 @@ function fvHandleHandUpdate(hand) {
   }
   const chord = fvIdentifyChord(notes);
   fvLastReading = { notes, chord };
+  fvRecordReading(notes);
   const noteChips = notes.map(n =>
     `<span class="fv-note${n.confidence < 0.68 ? ' low-conf' : ''}"${n.confidence < 0.68 ? ' title="Low confidence — fingertip is near the edge of a string"' : ''}>` +
     `<em>${n.note}</em><span class="fv-pos">${STRING_LABELS[n.string]}${n.fret}</span></span>`
@@ -243,8 +244,16 @@ function fvHandleHandUpdate(hand) {
 
 // ── Neck calibration ───────────────────────────────────────────────────────
 function fvStartNeckCalibration() {
-  if (typeof cameraEnabled !== 'undefined' && !cameraEnabled) {
-    alert('Turn the camera on first, then point it at your fretboard.');
+  // Uses camera.js's exported accessor. The old guard read a bare
+  // `cameraEnabled`, which is module-scoped inside camera.js and therefore
+  // always `undefined` here — the check could never fire, so calibration
+  // started happily with no video and four clicks into a black canvas.
+  const camOn = typeof isCameraEnabled === 'function' ? isCameraEnabled() : false;
+  if (!camOn) {
+    // Inline, not alert(): a modal dialog blocks the page and there is nothing
+    // to decide here.
+    fvSetStatus('blocked', 'Camera is off',
+      'Turn the camera on with the Camera button in the nav bar, point it at your fretboard, then press Calibrate neck.');
     return;
   }
   fvCalibrating = true;
@@ -252,6 +261,24 @@ function fvStartNeckCalibration() {
   fvRenderCalibrationUI();
   const canvas = document.getElementById('camera-overlay-canvas');
   if (canvas) canvas.classList.add('fv-calibrating');
+}
+
+// One place that writes the calibration status block.
+function fvSetStatus(cls, title, sub) {
+  const el = document.getElementById('fv-calibration-status');
+  if (el) { el.className = 'fv-cal-status ' + cls; el.innerHTML = `<strong>${title}</strong><span>${sub}</span>`; }
+}
+
+// Bound here at load, not only from camera.js's enableCamera(). The canvas is
+// static markup that exists from first paint, and binding it inside the
+// enable path meant the listener was simply absent on any route that did not
+// go through it. camera.js keeps its own dataset.fvBound guard, so whichever
+// runs first wins and there is never a double binding.
+function fvBindCanvas() {
+  const canvas = document.getElementById('camera-overlay-canvas');
+  if (!canvas || canvas.dataset.fvBound) return;
+  canvas.addEventListener('click', fvHandleCanvasClick);
+  canvas.dataset.fvBound = '1';
 }
 
 function fvHandleCanvasClick(e) {
@@ -389,3 +416,87 @@ window.fvStringAt = fvStringAt;
 window.fvComputeHomography = fvComputeHomography;
 window.fvApplyHomography = fvApplyHomography;
 window.fvDistanceToFret = fvDistanceToFret;
+
+// ── Reading history — what your hand was actually doing, and when ──────────
+//
+// This is the half of note capture the microphone cannot supply. A pitch
+// detector hears WHAT and WHEN; it cannot hear WHERE, because a pitch does not
+// identify a string — E4 exists on four of them. Everything downstream was
+// therefore guessing the fingering from the pitch alone (a minimum-travel
+// solve), which is a reasonable guess and routinely the wrong string.
+//
+// Timestamps are taken on the AudioContext clock, the same clock mic.js uses
+// for onsets, so a camera reading and a mic onset can be lined up directly.
+const FV_HISTORY_SEC = 40;
+let fvReadingHistory = [];
+
+function fvNowTime() {
+  try { return getAudioCtx().currentTime; } catch (e) { return performance.now() / 1000; }
+}
+
+function fvRecordReading(notes) {
+  if (!notes || !notes.length) return;
+  const time = fvNowTime();
+  fvReadingHistory.push({
+    time,
+    notes: notes.map(n => ({
+      string: n.string, fret: n.fret, note: n.note,
+      midi: STRING_MIDI[n.string] + n.fret, confidence: n.confidence,
+    })),
+  });
+  const cutoff = time - FV_HISTORY_SEC;
+  while (fvReadingHistory.length && fvReadingHistory[0].time < cutoff) fvReadingHistory.shift();
+}
+function fvRecentReadings(seconds) {
+  const now = fvNowTime();
+  return fvReadingHistory.filter(r => r.time >= now - seconds);
+}
+function fvClearReadingHistory() { fvReadingHistory = []; }
+
+// Resolve a heard pitch to the position it was ACTUALLY played at.
+//
+// Window is deliberately asymmetric and generous: the camera runs at ~30fps
+// and holds a reading over 5 frames to beat MediaPipe's jitter, so the frame
+// confirming a note commonly lands slightly AFTER the pick attack that the mic
+// timestamps.
+//
+// Returns null when the camera cannot corroborate the pitch, and the caller
+// falls back to the pitch-only estimate. Silence is the right answer here —
+// asserting a string the camera did not see would be worse than admitting a
+// guess.
+function fvPositionForPitch(midi, time, opts) {
+  if (!fvHomography || !fvReadingHistory.length) return null;
+  const before = (opts && opts.before) || 0.18;
+  const after  = (opts && opts.after)  || 0.35;
+  const inWindow = fvReadingHistory.filter(r => r.time >= time - before && r.time <= time + after);
+  if (!inWindow.length) return null;
+
+  let best = null;
+  for (const r of inWindow) {
+    const dt = Math.abs(r.time - time);
+    for (const n of r.notes) {
+      let kind = null;
+      if (n.midi === midi) kind = 'exact';
+      // Monophonic pitch detectors octave-slip regularly, especially on the
+      // wound strings. If the camera shows a finger on a note exactly an
+      // octave from what was heard, the camera's octave is the better
+      // evidence — it is measuring geometry, not interpreting a waveform.
+      else if (Math.abs(n.midi - midi) === 12) kind = 'octave';
+      if (!kind) continue;
+      const score = n.confidence - dt * 0.6 - (kind === 'octave' ? 0.25 : 0);
+      if (!best || score > best.score) {
+        best = { string: n.string, fret: n.fret, midi: n.midi, confidence: n.confidence, match: kind, dt, score };
+      }
+    }
+  }
+  return best;
+}
+
+fvBindCanvas();
+
+window.fvBindCanvas = fvBindCanvas;
+window.fvSetStatus = fvSetStatus;
+window.fvRecordReading = fvRecordReading;
+window.fvRecentReadings = fvRecentReadings;
+window.fvClearReadingHistory = fvClearReadingHistory;
+window.fvPositionForPitch = fvPositionForPitch;
