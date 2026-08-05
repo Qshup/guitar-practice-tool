@@ -349,6 +349,10 @@ function buildFretGrid(container, decorate, fretsCount) {
     for(let f=0;f<fretsCount;f++){
       const cell=document.createElement('div'); cell.className='fret-cell'; cell.style.width=FRET_W+'px';
       const dot=document.createElement('div'); dot.className='note-dot';
+      // Every dot carries its own coordinates so overlays (harmony colouring,
+      // quiz targeting, mic matching) can address one without re-deriving it
+      // from DOM position. quiz.js already assumed these existed.
+      dot.dataset.string=si; dot.dataset.fret=f;
       decorate(cell,dot,si,f);
       cell.appendChild(dot); fd.appendChild(cell);
     }
@@ -386,7 +390,9 @@ function buildFretInlays(container, fretsCount) {
 // ── Fretboard ─────────────────────────────────────────────────────────────────
 function render() {
   saveScalesState();
-  syncScalePickerSummary(); // function declaration below is hoisted — available here regardless of textual order
+  syncScalePickerSummary();
+  // Harmony colouring is applied on top of the freshly built grid.
+  if (typeof harmonyReapplyAfterRender === 'function') setTimeout(harmonyReapplyAfterRender, 0); // function declaration below is hoisted — available here regardless of textual order
   const sc=currentScale();
   const fb=document.getElementById('fretboard');
   const allNotes=allScaleFrets(state.key,sc.intervals);

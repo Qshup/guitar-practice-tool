@@ -687,6 +687,12 @@ function scheduleMetro() {
       const patBeat = metroBeat % (patLen * beats);
       const barIdx = Math.floor(patBeat / beats);
       const chord = chords[barIdx % chords.length][0];
+      // Publish the chord so the harmony overlay can recolour the neck in
+      // time with the backing track. Guarded by its own enabled flag, and a
+      // repeat of the same chord is a no-op, so this costs nothing when off.
+      if (beatInBar === 0 && typeof harmonySetChord === 'function' && typeof harmonyChordFromVamp === 'function') {
+        harmonySetChord(harmonyChordFromVamp(state.key, chord));
+      }
 
       if (chord) {
         const chordRoot = chord.notes[0];

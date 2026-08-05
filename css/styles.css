@@ -2694,3 +2694,42 @@
   .triad-cm-row { display: flex; gap: var(--sp-3); font-family: var(--font-mono); font-size: var(--fs-xs); padding: 2px 0; }
   .triad-cm-mel { color: var(--amber); width: 110px; }
   .triad-cm-under { color: var(--text-dim); }
+
+  /* ── Harmonic awareness overlay ───────────────────────────────────────── */
+  .harmony-bar { display: none; margin-bottom: var(--sp-2); }
+  .harmony-bar.visible { display: block; }
+  .harmony-readout {
+    display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap;
+    font-family: var(--font-body); font-size: var(--fs-xs); color: var(--text-dim);
+    padding: var(--sp-2) var(--sp-3); background: var(--surface);
+    border: 1px solid var(--border); border-left: 2px solid var(--amber);
+  }
+  .harmony-now strong { font-family: var(--font-heading); font-size: var(--fs-lg); color: var(--amber); }
+  .harmony-sub, .harmony-idle { color: var(--text-mute); font-size: var(--fs-micro); }
+  .harmony-legend {
+    display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center;
+    padding: var(--sp-2) var(--sp-3); background: var(--surface-2);
+    border: 1px solid var(--border); border-top: none;
+  }
+  .h-legend-item { display: flex; align-items: center; gap: var(--sp-1); font-family: var(--font-body); font-size: var(--fs-micro); }
+  .h-legend-label { color: var(--text); font-weight: 600; }
+  .h-legend-hint { color: var(--text-mute); }
+  .h-swatch { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1px solid rgba(0,0,0,.4); }
+  .h-legend-hide {
+    margin-left: auto; background: transparent; border: 1px solid var(--border);
+    color: var(--text-mute); font-size: var(--fs-micro); padding: 2px 8px;
+  }
+
+  /* Chord tones read loud, colour tones softer, tension as a tint — the
+     visual weight is the point: what you can see most easily is what is
+     safest to land on. */
+  .note-dot.harmony-on { transition: background var(--ease-fade), border-color var(--ease-fade), color var(--ease-fade); }
+  .h-root, .h-swatch.h-root       { background: var(--text) !important; color: #14110a !important; border-color: var(--amber) !important; box-shadow: 0 0 10px 2px var(--amber-glow) !important; }
+  .h-third, .h-swatch.h-third     { background: #4a9eff !important; color: #14110a !important; border-color: #7ab8ff !important; }
+  .h-fifth, .h-swatch.h-fifth     { background: #3fbf76 !important; color: #14110a !important; border-color: #6fd79a !important; }
+  .h-seventh, .h-swatch.h-seventh { background: #c8863c !important; color: #14110a !important; border-color: #e0a45c !important; }
+  .h-ninth, .h-swatch.h-ninth     { background: #8b6fd0 !important; color: var(--text) !important; border-color: #a68ee0 !important; }
+  .h-sixth, .h-swatch.h-sixth     { background: #c98a4b !important; color: #14110a !important; border-color: #e0a86c !important; }
+  .h-eleventh, .h-swatch.h-eleventh { background: #b8a840 !important; color: #14110a !important; border-color: #d4c460 !important; }
+  .h-avoid, .h-swatch.h-avoid     { background: #4a2622 !important; color: #c88a80 !important; border-color: #7a3a32 !important; }
+  button#harmony-toggle-btn.active { background: var(--amber); color: #14110a; border-color: var(--amber); }

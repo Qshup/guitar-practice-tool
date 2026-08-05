@@ -332,6 +332,7 @@
     <div class="ctrl-group">
       <div class="ctrl-label">Overlay</div>
       <div class="btn-row">
+        <button class="finger-btn" id="harmony-toggle-btn" onclick="harmonyToggle()" title="Colour the neck by what each note does against the chord that is sounding">Harmony</button>
         <button class="finger-btn" id="finger-toggle-btn" onclick="toggleFingers(this)"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-hand"/></svg><span class="finger-btn-label">Fingers</span></button>
       </div>
     </div>
@@ -402,6 +403,11 @@
   </div>
 
   <div class="mic-scale-match-status" id="mic-scale-match-status">Turn on the mic above and play a note to see it matched here</div>
+  <div class="harmony-bar" id="harmony-bar">
+    <div class="harmony-readout" id="harmony-readout"></div>
+    <div class="harmony-legend" id="harmony-legend"></div>
+  </div>
+
   <div class="fretboard-wrap">
     <div class="fretboard" id="fretboard">
       <div class="nut"></div>
@@ -1380,6 +1386,7 @@
 <script src="js/nav.js"></script>
 <script src="js/rhythm.js"></script>
 <script src="js/shortcuts.js"></script>
+<script src="js/harmony.js"></script>
 <script src="js/triads.js"></script>
 <script src="js/trends.js"></script>
 <script src="js/session.js"></script>
