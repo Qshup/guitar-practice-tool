@@ -594,6 +594,84 @@ If you bump `IDB_VERSION` again, re-verify that the `kv` store and boot
 recovery still work afterwards — that was checked for v1→v2 and is the main
 risk of a schema change here.
 
+## Mixer (audio.js) — master → bus → source
+
+Every trigger site used to read `#vol-slider` and apply its own multiplier
+(`vol*0.6`, `vol*0.85`, bare `vol`). Those were tuned against the **old
+synthesised engine** and carried over unchanged when playback moved to
+samples, which is why levels did not sit together.
+
+`mixVol(sourceKey, scale)` is now the only way to ask "how loud". Three
+stages: master (`#vol-slider`) → bus (`click` / `instrument` / `backing`,
+user-controllable, persisted in `ui.mixer`) → fixed per-source level.
+
+Shipped levels: metronome 0.70, scale run 0.75, chord strum 0.65, backing bass
+0.45, backing chords 0.35, Listen & Repeat 0.75, riff 0.75, song 0.70.
+Percussion sits at **21–37% of the instrument level** — the guitar you are
+playing must always be the loudest thing.
+
+All buses default to **unity**. Do not discount the backing bus "for safety":
+the source levels already put backing under the instrument, and an 0.85 bus
+double-applied it and pushed backing to 0.383/0.297 instead of 0.45/0.35.
+`loadMixerSettings()` always rebuilds from defaults — only assigning when a
+saved value existed left stale in-memory gains and broke Reset.
+
+Relative accents *within* a source stay as the `scale` argument (a bent riff
+note is still 1.15× its neighbours); absolute level comes from the mixer.
+
+## Motion
+
+- **Mode switches overlap**: outgoing lifts 8px and fades on an ease-IN over
+  160ms while incoming rises from 8px below on an ease-OUT over 200ms, so
+  there is no blank frame. Sub-tabs: 120/100ms, 5px.
+- **`.exiting` is absolutely positioned**, so it needs an explicit `top` or it
+  jumps to the top of the document (measured 2288px vs an incoming panel at
+  130px). And that top must be **measured before any class is mutated** —
+  `NAV_MODES` puts `scales` before `songs`, so measuring inside the loop read
+  the outgoing panel's position *after* the incoming one was already in flow.
+- **Sliding nav indicator** (`moveNavIndicator`) travels between tabs instead
+  of a border toggling; re-measures on resize.
+- **Feedback**: `springStreak()` (overshoot 1.15 then settle),
+  `pulseSuccess()`/`pulseError()`, `playSuccessChime()`/`playErrorThud()`.
+  Wrong-answer branches previously had no feedback at all.
+- **Collapse** uses a `.collapsible` max-height transition, not `display:none`.
+
+## Songs library — Guitar Pro only
+
+`SONG_LIBRARY` is **deliberately empty**. Ten hand-written songs were removed:
+they were stylistically-composed approximations, not transcriptions, and an
+inaccurate chart teaches the wrong notes until they are muscle memory. Old
+data is in git history at `5b5ef50`.
+
+Guitar Pro is the first and default upload format. **Verified**: the AlphaTab
+CDN module loads and exposes `AlphaTabApi`, and a corrupt buffer is rejected
+with "No compatible importer found for file" rather than hanging. Still
+unverified: `scoreToSongData`'s mapping of a real parsed score.
+
+## Trend charts (js/trends.js)
+
+Four hand-drawn SVG charts. **Not all the data existed**: practice time and
+scale coverage come from `days[].scaleSeconds`/`scalesPracticed`, but
+`chordPairs` stores no tempo and no dates, and quiz/LR kept only lifetime
+totals. Chord BPM and per-session accuracy therefore start accumulating from
+this build, and the empty state says so rather than showing a blank chart.
+
+One point per series per day — BPM keeps the day's best, accuracy the latest.
+Charts state direction in words ("up 22", "down 4") because a 74px sparkline
+is easy to misread.
+
+## Field names that have bitten twice
+
+- `chordPairs[k]` = `{ attempts, correct, bestStreak, curStreak }` — **not**
+  `success`/`fail`. session.js read the wrong names, so "your X → Y transition
+  is weakest" never appeared in a real plan.
+- `days[k]` = `{ scaleSeconds, scalesPracticed, riffsPlayed, gameSessions,
+  listenRepeatSequences, songSessions }` — **not** `totalSeconds`. The import
+  merge compared the wrong field, so both sides were always 0 and an imported
+  day with more practice could never win.
+- `riffTotals[k]` is keyed `` `${groupIndex}-${riffIndex}` `` with
+  `{ playCount, title, lastPlayed }` — riffs have no `id`.
+
 ## Audio Architecture
 
 ### Two engines, split by mode
