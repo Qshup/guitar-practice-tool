@@ -74,6 +74,38 @@ function harmonyChordFromVamp(keyName, chord) {
   return { label: chord.label, rootPc, rootName: CHROMATIC[rootPc], intervals };
 }
 
+// ── Chord history ─────────────────────────────────────────────────────────
+// What was sounding, and when. Recorded from the scheduler at the moment each
+// bar is SCHEDULED, so `time` is an AudioContext timestamp on the same clock
+// as mic.js's onset times — which is what makes "was that note a chord tone"
+// answerable after the fact, per note, rather than only for whatever chord
+// happens to be up when you press the button.
+//
+// Deliberately NOT gated on harmonyState.enabled, unlike harmonySetChord
+// below. The overlay is a display choice; lick capture and the chord-tone
+// trainer need the harmonic context whether or not the neck is painted.
+const HARMONY_HISTORY_SEC = 90;
+let harmonyChordHistory = [];
+
+function harmonyRecordChord(chordObj, time) {
+  if (!chordObj) return;
+  const last = harmonyChordHistory[harmonyChordHistory.length - 1];
+  if (last && last.time === time) return;
+  harmonyChordHistory.push({ time, chord: chordObj });
+  const cutoff = time - HARMONY_HISTORY_SEC;
+  while (harmonyChordHistory.length && harmonyChordHistory[0].time < cutoff) harmonyChordHistory.shift();
+}
+
+// The chord sounding at `time` — the most recent one scheduled at or before
+// it. Returns null when nothing was playing, which is a real answer: it means
+// the lick was played unaccompanied and has no harmonic context to report.
+function harmonyChordAt(time) {
+  let found = null;
+  for (const e of harmonyChordHistory) { if (e.time <= time) found = e.chord; else break; }
+  return found;
+}
+function harmonyClearHistory() { harmonyChordHistory = []; }
+
 // Called by the metronome scheduler each time the vamp moves to a new bar.
 function harmonySetChord(chordObj) {
   if (!harmonyState.enabled) return;

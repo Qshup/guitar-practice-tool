@@ -690,8 +690,16 @@ function scheduleMetro() {
       // Publish the chord so the harmony overlay can recolour the neck in
       // time with the backing track. Guarded by its own enabled flag, and a
       // repeat of the same chord is a no-op, so this costs nothing when off.
-      if (beatInBar === 0 && typeof harmonySetChord === 'function' && typeof harmonyChordFromVamp === 'function') {
-        harmonySetChord(harmonyChordFromVamp(state.key, chord));
+      //
+      // harmonyRecordChord is deliberately NOT behind that flag: it timestamps
+      // the chord onto the AudioContext clock so lick capture and the
+      // chord-tone trainer can ask "what was sounding when I played that note"
+      // per note, long after the fact. The overlay being off is a display
+      // choice and shouldn't erase the harmonic context.
+      if (beatInBar === 0 && typeof harmonyChordFromVamp === 'function') {
+        const vampChord = harmonyChordFromVamp(state.key, chord);
+        if (typeof harmonyRecordChord === 'function') harmonyRecordChord(vampChord, t);
+        if (typeof harmonySetChord === 'function') harmonySetChord(vampChord);
       }
 
       if (chord) {

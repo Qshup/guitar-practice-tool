@@ -28,27 +28,77 @@
 const IDB_NAME = 'gpt_store';
 const IDB_STORE = 'kv';
 const IDB_TAKES = 'takes';
-const IDB_VERSION = 2;   // v2 adds the 'takes' store for recorded audio blobs
+const IDB_LICKS = 'licks';
+const IDB_VERSION = 3;   // v2 added 'takes'; v3 adds 'licks' (captured lick audio + analysis)
 
-let _idbPromise = null;
-function idbOpen() {
-  if (_idbPromise) return _idbPromise;
-  _idbPromise = new Promise((resolve, reject) => {
+// Every store this app needs. Creation is guarded by contains() rather than
+// keyed off the old version number, so arriving from v1, v2 or a fresh install
+// all take the same path.
+const IDB_REQUIRED_STORES = [IDB_STORE, IDB_TAKES, IDB_LICKS];
+
+function idbCreateMissingStores(db) {
+  if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
+  // Audio blobs live in their own stores: they are large, binary, and must
+  // never be swept by the gpt_-prefixed key logic that mirrors to
+  // localStorage — a few MB of audio would blow its ~5MB budget instantly.
+  if (!db.objectStoreNames.contains(IDB_TAKES)) {
+    db.createObjectStore(IDB_TAKES, { keyPath: 'id', autoIncrement: true });
+  }
+  if (!db.objectStoreNames.contains(IDB_LICKS)) {
+    db.createObjectStore(IDB_LICKS, { keyPath: 'id', autoIncrement: true });
+  }
+}
+
+function idbRawOpen(version) {
+  return new Promise((resolve, reject) => {
     if (!self.indexedDB) { reject(new Error('IndexedDB unavailable')); return; }
-    const req = indexedDB.open(IDB_NAME, IDB_VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE);
-      // Audio blobs live in their own store: they are large, binary, and must
-      // never be swept by the gpt_-prefixed key logic that mirrors to
-      // localStorage — a few MB of audio would blow its ~5MB budget instantly.
-      if (!db.objectStoreNames.contains(IDB_TAKES)) {
-        db.createObjectStore(IDB_TAKES, { keyPath: 'id', autoIncrement: true });
-      }
-    };
+    const req = version ? indexedDB.open(IDB_NAME, version) : indexedDB.open(IDB_NAME);
+    req.onupgradeneeded = () => idbCreateMissingStores(req.result);
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => reject(req.error);
   });
+}
+
+let _idbPromise = null;
+// SELF-HEALING SCHEMA, and it is not defensive programming for its own sake —
+// this was hit for real. An IndexedDB version is a one-way door per browser
+// profile: once the database reaches version N, onupgradeneeded never fires
+// for version N again. So if a page load ever happens while IDB_VERSION has
+// been bumped but the matching createObjectStore has not shipped yet — a
+// partial deploy, a half-saved file with live-reload watching, a cached JS
+// file paired with fresh HTML — the database lands on the new version
+// permanently MISSING a store, and no amount of reloading fixes it.
+//
+// It failed silently too: every accessor here ends in .catch(() => []), so a
+// missing store read as an empty library rather than an error.
+//
+// So after opening, verify the stores actually exist and reopen one version
+// higher if any are absent. That turns an unrecoverable state into a
+// self-correcting one on the next load.
+// A repair leaves the database ABOVE IDB_VERSION, so opening at the hardcoded
+// constant afterwards throws VersionError ("requested version 3 is less than
+// the existing version 4") and every subsequent load fails outright — a worse
+// bug than the one being repaired. So the open is always version-less first,
+// which lands on whatever version actually exists (and creates every store via
+// onupgradeneeded for a brand-new database), and the constant is treated as a
+// FLOOR to upgrade to rather than an exact version to demand.
+function idbOpen() {
+  if (_idbPromise) return _idbPromise;
+  _idbPromise = (async () => {
+    let db = await idbRawOpen();                       // whatever version is there now
+    if (db.version < IDB_VERSION) {                    // normal upgrade path (v1/v2 -> v3)
+      db.close();
+      db = await idbRawOpen(IDB_VERSION);
+    }
+    const missing = IDB_REQUIRED_STORES.filter(s => !db.objectStoreNames.contains(s));
+    if (missing.length) {                              // repair path, see the note above
+      console.warn('IndexedDB is missing stores', missing, '— upgrading to repair');
+      const next = db.version + 1;
+      db.close();
+      db = await idbRawOpen(next);
+    }
+    return db;
+  })();
   return _idbPromise;
 }
 
@@ -195,6 +245,42 @@ function updateTake(id, patch) {
   return idbOpen().then(db => new Promise(resolve => {
     const tx = db.transaction(IDB_TAKES, 'readwrite');
     const store = tx.objectStore(IDB_TAKES);
+    const g = store.get(id);
+    g.onsuccess = () => { const rec = g.result; if (rec) { Object.assign(rec, patch); store.put(rec); } };
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  })).catch(() => {});
+}
+
+// ── Captured licks ─────────────────────────────────────────────────────────
+// Same store shape as takes: blob + metadata in IndexedDB only, never
+// mirrored to localStorage.
+function saveLick(record) {
+  return idbOpen().then(db => new Promise((resolve, reject) => {
+    const tx = db.transaction(IDB_LICKS, 'readwrite');
+    const req = tx.objectStore(IDB_LICKS).add(record);
+    req.onsuccess = () => resolve(req.result);
+    tx.onerror = () => reject(tx.error);
+  }));
+}
+function listLicks() {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_LICKS, 'readonly');
+    const r = tx.objectStore(IDB_LICKS).getAll();
+    r.onsuccess = () => resolve((r.result || []).sort((a, b) => b.createdAt - a.createdAt));
+    r.onerror = () => resolve([]);
+  })).catch(() => []);
+}
+function deleteLick(id) {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_LICKS, 'readwrite');
+    tx.objectStore(IDB_LICKS).delete(id);
+    tx.oncomplete = resolve; tx.onerror = resolve;
+  })).catch(() => {});
+}
+function updateLick(id, patch) {
+  return idbOpen().then(db => new Promise(resolve => {
+    const tx = db.transaction(IDB_LICKS, 'readwrite');
+    const store = tx.objectStore(IDB_LICKS);
     const g = store.get(id);
     g.onsuccess = () => { const rec = g.result; if (rec) { Object.assign(rec, patch); store.put(rec); } };
     tx.oncomplete = resolve; tx.onerror = resolve;

@@ -84,8 +84,125 @@ async function initMic() {
   micSourceNode.connect(micAnalyser);
   micPitchDetector = PitchyBundle.PitchDetector.forFloat32Array(micAnalyser.fftSize);
   micPitchDetector.minVolumeDecibels = -45;
+  startMicRingBuffer(ctx);
   return true;
 }
+
+// ── Rolling PCM ring buffer — "give me the last N seconds" ─────────────────
+// Lick capture is retroactive: you play something good and only then decide to
+// keep it, so the audio has to already be in hand. That rules out starting a
+// MediaRecorder on the button press.
+//
+// It also rules out the obvious alternative of running MediaRecorder
+// continuously with a timeslice and keeping the tail: webm/ogg chunks after
+// the first carry no container header, so a trimmed chunk list is not a
+// decodable file. Ping-ponging two recorders works but only guarantees a
+// variable window.
+//
+// So this keeps raw PCM in a ring and encodes a WAV on demand — exact,
+// gapless, and playable with no container trickery. 12s of headroom over the
+// 8s capture window is ~2MB of Float32 at 44.1kHz, which is nothing, and the
+// buffer is allocated once.
+//
+// ScriptProcessorNode is deprecated in favour of AudioWorklet. It is used
+// deliberately anyway: the worklet path needs a separate module file fetched
+// over the network, and this project is a flat no-build static site whose one
+// hard rule is that assets stay local. The work done per callback here is a
+// single Float32Array copy, so the main-thread cost that motivates the
+// deprecation does not really apply. If this ever grows real DSP, move it.
+const MIC_RING_SECONDS = 12;
+let micRing = null;        // Float32Array ring
+let micRingWrite = 0;      // next write index
+let micRingFilled = 0;     // how much of the ring holds real audio
+let micRingNode = null;
+let micRingSink = null;
+let micRingRate = 44100;
+
+function startMicRingBuffer(ctx) {
+  if (micRingNode) return;
+  micRingRate = ctx.sampleRate;
+  micRing = new Float32Array(Math.ceil(MIC_RING_SECONDS * micRingRate));
+  micRingWrite = 0; micRingFilled = 0;
+  micRingNode = ctx.createScriptProcessor(4096, 1, 1);
+  micRingNode.onaudioprocess = (e) => {
+    if (!micEnabled) return;              // master switch gates capture, same as every other loop
+    const src = e.inputBuffer.getChannelData(0);
+    for (let i = 0; i < src.length; i++) {
+      micRing[micRingWrite] = src[i];
+      micRingWrite = (micRingWrite + 1) % micRing.length;
+    }
+    micRingFilled = Math.min(micRing.length, micRingFilled + src.length);
+  };
+  // Chrome only fires onaudioprocess for a node connected to the destination,
+  // so it goes through a silent gain rather than actually being audible.
+  micRingSink = ctx.createGain();
+  micRingSink.gain.value = 0;
+  micSourceNode.connect(micRingNode);
+  micRingNode.connect(micRingSink);
+  micRingSink.connect(ctx.destination);
+}
+
+// Newest `seconds` of audio, oldest-first. Shorter than asked for if the mic
+// has not been on that long — callers get what actually exists.
+function micReadLastSeconds(seconds) {
+  if (!micRing || !micRingFilled) return null;
+  const want = Math.min(Math.ceil(seconds * micRingRate), micRingFilled);
+  const out = new Float32Array(want);
+  let read = (micRingWrite - want + micRing.length) % micRing.length;
+  for (let i = 0; i < want; i++) { out[i] = micRing[read]; read = (read + 1) % micRing.length; }
+  return { samples: out, sampleRate: micRingRate, duration: want / micRingRate };
+}
+
+// 16-bit mono WAV. Written out by hand because the alternative is an encoder
+// dependency for ~30 lines of header.
+function micPcmToWavBlob(samples, sampleRate) {
+  const buf = new ArrayBuffer(44 + samples.length * 2);
+  const view = new DataView(buf);
+  const str = (off, s) => { for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i)); };
+  str(0, 'RIFF'); view.setUint32(4, 36 + samples.length * 2, true); str(8, 'WAVE');
+  str(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+  str(36, 'data'); view.setUint32(40, samples.length * 2, true);
+  let off = 44;
+  for (let i = 0; i < samples.length; i++, off += 2) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+function micCaptureLastSeconds(seconds) {
+  const pcm = micReadLastSeconds(seconds);
+  if (!pcm) return null;
+  return { blob: micPcmToWavBlob(pcm.samples, pcm.sampleRate), duration: pcm.duration };
+}
+
+// ── Rolling onset history — "what did I just play" ────────────────────────
+// The pitch counterpart to the ring buffer, and for the same reason: the notes
+// have to already be recorded when you decide to keep them. Kept here rather
+// than in licks.js so the phrasing and chord-tone trainers read the same
+// history instead of each accumulating their own.
+// NOTE: this handler is registered at the BOTTOM of this file, not here.
+// onMicOnset is a hoisted function declaration so calling it from up here
+// would look fine, but its body pushes onto `onsetListeners`, a `let` declared
+// further down — registering at this point throws a temporal-dead-zone
+// ReferenceError. Same load-order trap as saveScalesState/loadMicCalibration,
+// just within one file instead of across two.
+const MIC_ONSET_HISTORY_SEC = 40;
+let micOnsetHistory = [];
+function micRecordOnsetHistory(evt) {
+  if (!evt || evt.early || !evt.freq) return;   // confirmed, pitched notes only
+  micOnsetHistory.push({ time: evt.time, freq: evt.freq, midi: evt.midi,
+                         noteName: evt.noteName, cents: evt.cents, technique: evt.technique || null });
+  const cutoff = evt.time - MIC_ONSET_HISTORY_SEC;
+  while (micOnsetHistory.length && micOnsetHistory[0].time < cutoff) micOnsetHistory.shift();
+}
+function micRecentOnsets(seconds) {
+  const now = getAudioCtx().currentTime;
+  return micOnsetHistory.filter(o => o.time >= now - seconds);
+}
+function micClearOnsetHistory() { micOnsetHistory = []; }
 
 function micComputeRMS(buf) {
   let sum = 0;
@@ -576,3 +693,9 @@ function renderMicCalSummary() {
 // order), so loadProgress does not exist yet and this would silently skip —
 // the same load-order trap that made saveScalesState throw. nav.js's
 // initNav() calls loadMicCalibration() once every file is loaded.
+
+// ── Deferred registrations ────────────────────────────────────────────────
+// Everything below runs after every `let` in this file is initialised, so
+// handlers whose bodies touch the subscriber arrays are safe to attach here
+// and nowhere earlier. See the TDZ note above micRecordOnsetHistory.
+onMicOnset(micRecordOnsetHistory);

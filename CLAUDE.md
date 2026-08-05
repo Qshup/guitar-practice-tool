@@ -475,6 +475,122 @@ nothing incoming lowers an existing value and re-importing the same file twice
 is a no-op. `ui` state is deliberately not merged — panel collapse is a local
 device preference, not history.
 
+## Lick Capture & Vocabulary Builder (js/licks.js, Study > Licks)
+
+Capture is **retroactive** — you decide a phrase was worth keeping *after*
+playing it — so both the audio and the notes are already in hand when the
+button is pressed. Two rolling histories in `mic.js` make that possible:
+
+- **PCM ring buffer** (`micCaptureLastSeconds`). 12s of raw Float32 in a ring,
+  encoded to a 16-bit mono WAV on demand. MediaRecorder cannot do this:
+  webm/ogg chunks after the first carry no container header, so keeping "the
+  tail" of a continuous recording does not give a decodable file. Uses a
+  `ScriptProcessorNode` — deprecated in favour of AudioWorklet, taken
+  deliberately because a worklet needs a separate fetched module file and this
+  project's rule is local, no-build assets; the per-callback work is one array
+  copy. Gated on `micEnabled` like every other loop.
+- **Onset history** (`micRecentOnsets`). Last 40s of confirmed pitched onsets.
+  Lives in mic.js, not licks.js, so the phrasing and chord-tone trainers read
+  the same history rather than each accumulating their own.
+
+**Everything is derived, never tabulated.** Scale fit, intervals, chord-tone
+roles, the three variations — all interval arithmetic, which can be checked.
+A hand-typed table of "licks that fit Dorian" can be silently wrong forever.
+
+### Scale identification is the hard part, and it has two traps
+
+1. **Identical pitch-class sets.** E minor pentatonic and G major pentatonic
+   are the *same five notes*. Nothing in the set separates them — only which
+   note behaves like home. Root evidence is scored explicitly: where the line
+   ends, where it starts, most frequent, lowest.
+2. **Bigger scales trivially contain smaller ones**, and Chromatic contains
+   everything. So a scale is rewarded for being small (`specificity`) and for
+   having its degrees actually *used* (`coverage`), and Chromatic is excluded
+   from the top answer unless nothing else fits.
+
+**The final-note weight was too high and produced a wrong answer**: E-G-B-D
+over an Em→G vamp came back as *B Natural Minor* purely because the line ended
+on B. Ending on the 5th is completely ordinary. Two fixes — the last-note
+weight dropped (0.45 → 0.30) and `coverage` rose (18 → 24) so a scale the line
+*fills* beats a larger one that merely contains it; and `lickIdentifyScales`
+now takes the **chord roots that were actually sounding**, which is the
+strongest tonic evidence available and was being ignored. The vamp's first
+chord is treated as a near-declaration of the tonic.
+
+It deliberately does **not** let chord context steamroll melodic evidence: a
+line starting on E, ending on E, with E lowest and most frequent still reads as
+E-centred over a G chord — they are the same five notes. G is raised into the
+offered alternatives instead of overriding.
+
+### Chord context is recorded independently of the overlay
+
+`harmonyRecordChord(chord, time)` timestamps each vamp bar onto the
+**AudioContext clock**, the same clock as mic onsets, so "was that note a chord
+tone" is answerable *per note* long afterwards — including across a chord
+change mid-lick. It is deliberately **not** gated on `harmonyState.enabled`
+(unlike `harmonySetChord`): painting the neck is a display choice, but the
+harmonic context is data every analysis feature needs.
+
+Roles come from `harmonicRole()` in harmony.js — the same classifier the neck
+overlay paints with, so the two can never disagree.
+
+### Fret placement is a dynamic program
+
+A pitch does not say where it was played; E4 exists on four strings.
+`lickFretPositions` minimises total fret travel with a small DP (greedy commits
+to a cheap first note and pays for it across the whole phrase). It accepts an
+optional string set and a **position floor**, both needed by the variations.
+
+**Notes outside the guitar's range are kept with a null position**, not
+dropped — usually an octave error from the detector, and hiding it would make
+the transcription look cleaner than it is.
+
+### The three variations, and why the string-set one was hard
+
+- **Sequence** — `lickDiatonicShift` moves by scale *degrees*, not semitones,
+  so the intervals genuinely change (C-E-G → D-F-A is M3+m3 → m3+M3). That
+  difference is the whole point of the device; semitone transposition would
+  just be the same lick elsewhere. Non-scale notes keep their chromatic offset
+  from the degree below so a passing tone stays a passing tone.
+- **Rhythm** — same pitches, proportional gap patterns so they read the same
+  at any tempo. Picks whichever pattern is least like what you actually played.
+- **String set** — searching 3-string windows alone found **no alternative at
+  all** for an octave-spanning line: any window containing the original strings
+  just reproduces the original placement (it *is* the minimum-travel one), and
+  windows that exclude them need a 9-fret span. Fixed by searching **position
+  floors** as well as string windows — "play it in 5th position" is the
+  relocation a guitarist actually wants, and the new string set falls out of it.
+
+### Storage: the IndexedDB version bump that bit
+
+Licks live in their own `licks` store (blob + notes + analysis), never mirrored
+to localStorage. Bumping `IDB_VERSION` to 3 exposed a hazard worth keeping in
+mind:
+
+**An IndexedDB version is a one-way door per browser profile.** Once the
+database reaches version N, `onupgradeneeded` never fires for N again. During
+this session live-server auto-reloaded the page after the version bump was
+saved but *before* the matching `createObjectStore` was — so the database
+landed on v3 permanently missing the `licks` store, and no reload could fix it.
+It failed **silently**, because every accessor ends in `.catch(() => [])`, so a
+missing store read as an empty library.
+
+Two fixes, both worth keeping:
+- `idbOpen()` verifies the required stores exist after opening and reopens at
+  `version + 1` to create any that are missing — an unrecoverable state becomes
+  self-correcting on the next load.
+- The open is **version-less first**, landing on whatever version actually
+  exists, with `IDB_VERSION` treated as a floor. The first repair attempt
+  hardcoded the version and left the DB at v4, so every subsequent load threw
+  `VersionError: requested version (3) is less than the existing version (4)` —
+  a worse bug than the one being repaired.
+
+### Honest limits
+
+A monophonic detector hears one note at a time, so a lick with two notes
+ringing together is transcribed as whichever the detector locked onto. This is
+single-note-line capture, which is what soloing is. Stated in the UI too.
+
 ## Spaced Repetition (fretboard quiz)
 
 `recordFretboardQuizAnswer` records **every** answer with a timestamp, not

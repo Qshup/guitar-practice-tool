@@ -2782,3 +2782,118 @@
   button#harmony-toggle-btn.active { background: var(--amber); color: #14110a; border-color: var(--amber); }
   /* Muted-string swatch in the chord legend — matches .note-dot.chord-muted */
   .legend-dot.legend-muted { background: transparent; color: var(--text-mute); border: 1px solid var(--border); }
+
+  /* ── Lick capture & vocabulary builder ─────────────────────────────────── */
+  .lick-toolbar {
+    display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap;
+    margin-bottom: var(--sp-3);
+  }
+  .lick-toolbar-hint { font-size: var(--fs-xs); color: var(--text-dim); }
+  .lick-toolbar-hint.lick-hint-error { color: var(--error); }
+  .lick-filter-group { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; }
+  .lick-capture-btn { border-left: 2px solid var(--amber); }
+
+  .lick-vocab {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid var(--blue);
+    padding: var(--sp-3); margin-bottom: var(--sp-3);
+  }
+  .lick-vocab-title {
+    font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-md);
+    color: var(--text); margin-bottom: var(--sp-2);
+  }
+  .lick-vocab-row {
+    display: flex; gap: var(--sp-2); font-size: var(--fs-sm);
+    padding: 3px 0; border-top: 1px solid var(--border);
+  }
+  .lick-vocab-row span { color: var(--text-dim); min-width: 190px; }
+  .lick-vocab-row b { color: var(--text); font-weight: 600; }
+
+  .lick-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-left: 2px solid var(--amber);
+    padding: var(--sp-4); margin-bottom: var(--sp-3);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .lick-card.lick-flash { border-color: var(--amber); box-shadow: 0 0 0 2px var(--amber-glow); }
+  .lick-card-head { display: flex; justify-content: space-between; gap: var(--sp-3); align-items: flex-start; }
+  .lick-title {
+    font-family: var(--font-heading); font-weight: 700; font-size: var(--fs-lg);
+    color: var(--text); outline: none;
+  }
+  .lick-title:focus { border-bottom: 1px solid var(--amber); }
+  .lick-meta { font-size: var(--fs-xs); color: var(--text-dim); margin-top: 2px; }
+  .lick-card-actions { display: flex; align-items: center; gap: var(--sp-2); }
+  .lick-stars { display: inline-flex; }
+  .lick-star {
+    background: none; border: none; color: var(--text-mute); cursor: pointer;
+    font-size: var(--fs-lg); line-height: 1; padding: 0 1px;
+    transition: color var(--ease-hover);
+  }
+  .lick-star.on { color: var(--amber); }
+  .lick-star:hover { color: var(--amber); }
+  .lick-star-clear { font-size: var(--fs-md); color: var(--text-mute); }
+  .lick-delete:hover { color: var(--error); border-color: var(--error); }
+
+  .lick-audio { width: 100%; margin: var(--sp-3) 0; height: 34px; }
+  .lick-noaudio { font-size: var(--fs-xs); color: var(--text-dim); margin: var(--sp-2) 0; }
+
+  .lick-section { margin-top: var(--sp-3); padding-top: var(--sp-2); border-top: 1px solid var(--border); }
+  .lick-section-title {
+    font-family: var(--font-heading); font-size: var(--fs-sm); font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: var(--sp-2);
+  }
+  .lick-notes {
+    font-family: var(--font-mono); font-size: var(--fs-lg); color: var(--amber);
+    letter-spacing: .1em;
+  }
+  .lick-intervals {
+    font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-dim);
+    margin-top: 3px; letter-spacing: .06em;
+  }
+  .lick-tab {
+    font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text);
+    background: var(--bg); border: 1px solid var(--border);
+    padding: var(--sp-2); margin-top: var(--sp-2);
+    overflow-x: auto; white-space: pre; line-height: 1.45;
+  }
+  .lick-explain { margin: 0; padding-left: 18px; }
+  .lick-explain li { font-size: var(--fs-sm); color: var(--text); margin-bottom: 5px; line-height: 1.5; }
+  .lick-alt-scales, .lick-roles { margin-top: var(--sp-2); font-size: var(--fs-xs); color: var(--text-dim); }
+  .lick-roles { display: flex; flex-wrap: wrap; gap: 4px; }
+  .lick-role {
+    display: inline-flex; flex-direction: column; align-items: center;
+    padding: 3px 7px; border: 1px solid var(--border); background: var(--surface-2);
+    font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text);
+  }
+  .lick-role small { font-size: var(--fs-micro); color: var(--text-dim); }
+
+  .lick-tags { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+  .lick-tags label { font-size: var(--fs-xs); color: var(--text-dim); }
+  .lick-tag-select { min-height: 30px; }
+  .lick-tag-static { font-size: var(--fs-xs); color: var(--text-dim); }
+  .lick-tag-static b { color: var(--text); font-weight: 600; }
+
+  .lick-variations { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--sp-3); }
+  .lick-variation { background: var(--surface-2); border: 1px solid var(--border); padding: var(--sp-3); }
+  .lick-var-title { font-weight: 600; font-size: var(--fs-sm); color: var(--amber); margin-bottom: 4px; }
+  .lick-var-why { font-size: var(--fs-xs); color: var(--text-dim); line-height: 1.5; margin-bottom: var(--sp-2); }
+  .lick-var-notes { font-family: var(--font-mono); font-size: var(--fs-sm); color: var(--text); letter-spacing: .08em; }
+
+  .lick-connections { display: flex; flex-direction: column; gap: 6px; }
+  .lick-connection { display: flex; gap: var(--sp-2); align-items: baseline; flex-wrap: wrap; }
+  .lick-conn-link {
+    background: none; border: none; padding: 0; cursor: pointer;
+    color: var(--blue); font-family: var(--font-body); font-size: var(--fs-sm);
+    font-weight: 600; text-align: left;
+  }
+  .lick-conn-link:hover { color: var(--amber); }
+  .lick-conn-why { font-size: var(--fs-xs); color: var(--text-dim); }
+
+  @media (max-width: 768px) {
+    .lick-filter-group { margin-left: 0; }
+    .lick-variations { grid-template-columns: 1fr; }
+    .lick-vocab-row { flex-direction: column; gap: 0; }
+    .lick-vocab-row span { min-width: 0; }
+  }

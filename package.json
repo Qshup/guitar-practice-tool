@@ -5,7 +5,8 @@
   "description": "Guitar scale/chord/riff practice tool",
   "scripts": {
     "start": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --open=index.html",
-    "serve": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --no-browser"
+    "serve": "live-server --port=8080 --no-css-inject --ignore=node_modules,.git --no-browser",
+    "test": "for f in tests/*.test.js; do echo \"--- $f\"; node \"$f\" || exit 1; done"
   },
   "devDependencies": {
     "live-server": "^1.2.2"

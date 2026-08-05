@@ -32,6 +32,7 @@ function switchStudySubtab(tab) {
   if (tab !== 'rhythm' && typeof rhyStop === 'function') rhyStop();
   if (tab === 'rhythm' && typeof rhyRenderAll === 'function') rhyRenderAll();
   if (tab === 'triads' && typeof renderTriads === 'function') { loadTriadState(); renderTriads(); }
+  if (tab === 'licks' && typeof loadLickLibrary === 'function') loadLickLibrary();
   const data = loadProgress();
   data.ui.activeStudySubtab = tab;
   saveProgress(data);

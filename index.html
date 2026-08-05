@@ -230,6 +230,7 @@
     <div class="prac-row">
       <button class="big-btn btn-go" id="mic-enable-btn" onclick="toggleMicEnabled()">▶ MIC ON</button>
       <span class="mic-status-text" id="mic-status-text">Off — enable to hear note matching, tuning, and technique detection</span>
+      <button class="quiz-mode-btn lick-capture-btn" id="lick-capture-btn" onclick="captureLick()" title="Keep the last 8 seconds you played, and analyse it"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-save"/></svg>Capture Lick</button>
       <button class="quiz-mode-btn" onclick="runMicCalibration()" title="Measure your room and guitar instead of guessing at the sliders"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-refresh"/></svg>Calibrate</button>
     </div>
     <div class="prac-row">
@@ -630,6 +631,7 @@
     <button class="subtab-btn" data-subtab="game" onclick="switchStudySubtab('game')">Chord Game</button>
     <button class="subtab-btn" data-subtab="rhythm" onclick="switchStudySubtab('rhythm')">Rhythm</button>
     <button class="subtab-btn" data-subtab="triads" onclick="switchStudySubtab('triads')">Triads</button>
+    <button class="subtab-btn" data-subtab="licks" onclick="switchStudySubtab('licks')">Licks</button>
   </div>
 
   <div class="subtab-panel" id="study-subtab-triads">
@@ -641,6 +643,25 @@
       <button data-tview="exercises" onclick="triadSetView('exercises')">Exercises</button>
     </div>
     <div id="triads-body"></div>
+  </div>
+
+  <div class="subtab-panel" id="study-subtab-licks">
+    <div class="rhythm-intro">Your own vocabulary. Play freely with the mic on, and when something sounds good hit <strong>Capture Lick</strong> in the mic bar — it keeps the last 8 seconds you played and works out what you did. Everything here is derived from the notes themselves, so it can be checked rather than taken on trust.</div>
+    <div class="lick-toolbar">
+      <button class="big-btn btn-go" onclick="captureLick()"><svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#ico-save"/></svg>Capture last 8 seconds</button>
+      <span class="lick-toolbar-hint" id="lick-toolbar-hint">The mic has to be on for this to hear anything.</span>
+      <span class="lick-filter-group">
+        <label class="prac-label" for="lick-filter-scale">Scale</label>
+        <select id="lick-filter-scale" onchange="renderLickLibrary()"><option value="">All</option></select>
+        <label class="prac-label" for="lick-filter-star">Rating</label>
+        <select id="lick-filter-star" onchange="renderLickLibrary()">
+          <option value="0">All</option><option value="1">★ 1+</option><option value="2">★ 2+</option>
+          <option value="3">★ 3+</option><option value="4">★ 4+</option><option value="5">★ 5</option>
+        </select>
+      </span>
+    </div>
+    <div id="lick-vocab-summary"></div>
+    <div id="lick-library"></div>
   </div>
 
   <div class="subtab-panel" id="study-subtab-rhythm">
@@ -1388,6 +1409,7 @@
 <script src="js/shortcuts.js"></script>
 <script src="js/harmony.js"></script>
 <script src="js/triads.js"></script>
+<script src="js/licks.js"></script>
 <script src="js/trends.js"></script>
 <script src="js/session.js"></script>
 <script src="js/fretboard-vision.js"></script>
