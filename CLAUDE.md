@@ -508,6 +508,35 @@ as a 60-minute one rather than a truncated version. The planner is an
 **option, never a gate**: skip dismisses it for an hour, an active plan never
 blocks navigation, and the nav bar only reports progress.
 
+**`.session-start` must never cover the nav — this is what broke the camera.**
+The planner shows unprompted on load as a `position: fixed` overlay. It was
+written `inset: 0; z-index: 400` against a nav at `z-index: 200`, so it laid a
+full-viewport click-catcher across the whole nav bar. `elementFromPoint` at
+the Camera button's centre returned `#session-start`, not the button, so
+`toggleCamera()` was never called and the camera looked completely dead —
+while camera.js, its `window` exports, the vendored MediaPipe assets and
+`getUserMedia` were all fine the entire time. It is now
+`inset: var(--nav-h) 0 0 0`, so it dims and blocks the page content it is
+asking about while the nav stays live.
+
+Nav height is now a single token, `--nav-h` (62px, 56px under the 768px
+breakpoint), read by `.app-nav`, `.nav-spacer` and this overlay — it had been
+a bare `62px`/`56px` in three places, and an overlay hard-coding its own
+geometry is precisely how this happened.
+
+The distinction to preserve: `.shortcuts-overlay` and `.mic-cal-overlay`
+(both `z-index: 500`, full `inset: 0`) are **user-invoked** and genuinely
+modal, so covering the nav is correct for them. Anything that appears on its
+own must not trap the user. If you add a self-opening overlay, inset it below
+`--nav-h`.
+
+The general lesson, since this is the second class of "the code is right but
+the click never arrives" bug here: when a handler appears not to fire, check
+that the click actually reaches the element (`document.elementFromPoint` on
+its centre) *before* reading the handler's code. Both this and the duplicate
+`class=` attribute bugs were invisible to code review and obvious to one
+measurement.
+
 Riffs have **no `id` field** — riffs.js identifies them positionally as
 `` `${groupIndex}-${riffIndex}` `` and `recordRiffPlayed` stores
 `{ playCount, title, lastPlayed }`. Reading `r.id` made "least played" return

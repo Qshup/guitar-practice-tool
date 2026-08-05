@@ -71,6 +71,11 @@
     --ease-panel: 250ms cubic-bezier(.2,.8,.2,1);
     --ease-fade: 200ms ease;
     --radius: 0px; /* sharp corners throughout, per design brief */
+    /* Nav height, one definition. .app-nav, .nav-spacer and any overlay that
+       must not cover the nav all read this — it was written as a bare 62px in
+       three places, and an overlay hard-coding its own copy is how the session
+       planner ended up sitting on top of the nav bar. */
+    --nav-h: 62px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { scroll-behavior: smooth; }
@@ -398,10 +403,10 @@
 
   /* ── Nav Bar (5-mode) ────────────────────────────────────── */
   /* ── Fixed, frosted-glass app nav ────────────────────────────────────── */
-  .nav-spacer { height: 62px; } /* pushes page content below the now-fixed header */
+  .nav-spacer { height: var(--nav-h); } /* pushes page content below the now-fixed header */
   .app-nav {
     position: fixed; top: 0; left: 0; right: 0; z-index: 200;
-    display: flex; align-items: center; gap: 18px; height: 62px;
+    display: flex; align-items: center; gap: 18px; height: var(--nav-h);
     /* Full-bleed bar, contents aligned to body's 1680px column */
     padding: 0 max(20px, calc((100vw - 1680px) / 2 + 20px));
     background: rgba(15,14,13,0.72);
@@ -1937,8 +1942,8 @@
 
     /* Nav: tighten spacing so six modes + logo + Progress fit without the
        horizontal scroll they previously triggered. */
-    .app-nav { gap: var(--sp-2); padding: 0 var(--sp-3); height: 56px; }
-    .nav-spacer { height: 56px; }
+    :root { --nav-h: 56px; }
+    .app-nav { gap: var(--sp-2); padding: 0 var(--sp-3); }
     .app-logo { font-size: var(--fs-md); letter-spacing: .12em; }
     .nav-btn { padding: 0 var(--sp-2); gap: var(--sp-1); font-size: var(--fs-xs); }
     .nav-icon { font-size: var(--fs-md); }
@@ -2087,9 +2092,23 @@
 
   /* ── Practice session planner ─────────────────────────────────────────────
      The start screen is an overlay rather than a route, because the planner is
-     an option and never a gate — dismissing it drops straight into the app. */
+     an option and never a gate — dismissing it drops straight into the app.
+
+     `inset: 0` made it exactly the gate this comment says it isn't. It shows
+     unprompted on load at z-index 400 over a z-index 200 nav, so it covered
+     the whole nav bar and swallowed every click on it — elementFromPoint at
+     the Camera button returned #session-start, not the button. That is why
+     the camera appeared "not to turn on at all": toggleCamera was never
+     called. Nav modes looked fine only because clicking them did nothing
+     visible either way.
+
+     It now starts below the nav, so the planner still dims and blocks the
+     page content it is asking about while the nav stays live. Unlike
+     .shortcuts-overlay / .mic-cal-overlay (both z-index 500, full inset),
+     which are user-invoked and genuinely modal, this one appears on its own
+     and must never trap you. */
   .session-start {
-    display: none; position: fixed; inset: 0; z-index: 400;
+    display: none; position: fixed; inset: var(--nav-h) 0 0 0; z-index: 400;
     background: rgba(15,14,13,.86); backdrop-filter: blur(6px);
     align-items: center; justify-content: center; padding: var(--sp-4);
   }
