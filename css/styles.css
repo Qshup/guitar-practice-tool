@@ -2917,3 +2917,22 @@
   .lick-source.seen { color: var(--success); border-color: var(--success); }
   .lick-source.mixed { color: var(--warning); border-color: var(--warning); }
   .lick-source.inferred { color: var(--text-mute); border-style: dashed; }
+
+  /* Shown only on a file:// page — see checkPageOrigin() in nav.js. Deliberately
+     NO position/z-index: it lives in normal flow just under .nav-spacer. An
+     earlier version sat at the top of <body> with z-index 300 and covered the
+     fixed nav, swallowing every nav click — the same click-catcher bug as the
+     practice planner and the camera status overlay. */
+  .origin-warning {
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--surface); border-bottom: 1px solid var(--warning);
+    border-left: 3px solid var(--warning);
+    padding: var(--sp-3) max(20px, calc((100vw - 1680px) / 2 + 20px));
+    font-family: var(--font-body); font-size: var(--fs-sm); color: var(--text-dim);
+  }
+  .origin-warning strong { color: var(--warning); font-weight: 600; font-size: var(--fs-md); }
+  .origin-warning code {
+    font-family: var(--font-mono); color: var(--amber);
+    background: var(--bg); padding: 1px 5px; border: 1px solid var(--border);
+  }
+  .nav-btn-disabled { opacity: .45; }

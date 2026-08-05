@@ -5,7 +5,25 @@ arithmetic or in a browser, and what needs ears and an instrument. The first
 pile is covered — `npm test` runs 87 unit tests, and every feature is checked
 in a real browser before it ships. This file is the second pile.
 
-Run `npm start`, allow the mic when Brave asks, and work down the list.
+## Open it the right way first
+
+**Do not double-click `index.html`.** That gives a `file://` page where the
+browser blocks the module loading the camera needs — the camera will not turn
+on no matter what you do, while everything else works, which is maximally
+confusing. The app now detects this and says so in a banner.
+
+Instead, either:
+
+- **Double-click `Start Guitar Tool.command`** in the project folder. It starts
+  the server and opens your browser. Keep the Terminal window it opens; closing
+  it stops the server. (First time, macOS may block it — right-click → Open →
+  Open.)
+- Or run `npm start` in Terminal from the project folder.
+
+Either way you end up on `http://localhost:8080`, which is a real origin where
+the camera, MediaPipe and Guitar Pro import all work.
+
+Allow the mic and camera when Brave asks, and work down the list.
 
 **The mic must be on for any of this.** The master switch is the mic bar —
 `▶ MIC ON`, or the mic button in the compact toolbar. Nothing captures,

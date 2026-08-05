@@ -70,7 +70,59 @@ function switchMode(mode) {
 // ── Init: restore persisted mode + per-mode state on load ──────────────────
 // (survives a page reload, not just switching tabs within the running page —
 // see saveScalesState()/saveChordsState() in scales.js/chords.js)
+// ── file:// detection ──────────────────────────────────────────────────────
+// Opening index.html by double-clicking it in Finder gives a file:// page, and
+// the camera then fails in a way that looks exactly like a broken feature:
+//
+//   camera.js is the app's ONE <script type="module">. Module scripts are
+//   CORS-checked, and a file:// page is an opaque origin, so the browser
+//   refuses the import of vendor/mediapipe/vision_bundle.mjs. camera.js never
+//   executes, so it never runs the window.toggleCamera = toggleCamera line at
+//   its bottom, so the nav button's onclick throws ReferenceError into the
+//   console and nothing visible happens.
+//
+// The 27 CLASSIC scripts load fine from file://, which is what makes this so
+// confusing: scales, chords, the mic and lick capture all work, and only the
+// camera is dead. MediaPipe's wasm/model fetches and the AlphaTab dynamic
+// import are blocked for the same reason.
+//
+// So say it, loudly, instead of leaving a silent ReferenceError.
+function checkPageOrigin() {
+  if (location.protocol !== 'file:') return;
+  showOriginWarning();
+}
+
+// Split out from the protocol check so it can be exercised without actually
+// being on a file:// page (the browser extension used for testing cannot
+// navigate to file:// URLs at all).
+function showOriginWarning() {
+  if (document.querySelector('.origin-warning')) return;
+  const bar = document.createElement('div');
+  bar.className = 'origin-warning';
+  bar.innerHTML =
+    '<strong>Opened as a file — the camera and Guitar Pro import cannot work.</strong>' +
+    '<span>Browsers block module and asset loading on <code>file://</code> pages, so the hand-tracking module never loads. ' +
+    'Everything else (scales, chords, mic, lick capture) works fine here.</span>' +
+    '<span>To get the camera: double-click <code>Start Guitar Tool.command</code> in the project folder, ' +
+    'or run <code>npm start</code> in Terminal, then use the <code>localhost:8080</code> tab it opens.</span>';
+  // Inserted AFTER .nav-spacer, in normal flow, so it sits below the fixed nav
+  // rather than on top of it. Putting it at document.body's start with a
+  // z-index above the nav made it cover the nav and swallow every click —
+  // the third time that exact pattern has appeared in this app. A full-width
+  // element near the top of the page is a click-catcher unless you place it
+  // in flow and give it no stacking context.
+  const spacer = document.querySelector('.nav-spacer');
+  if (spacer && spacer.parentNode) spacer.parentNode.insertBefore(bar, spacer.nextSibling);
+  else document.body.insertBefore(bar, document.body.firstChild);
+  const btn = document.getElementById('camera-toggle-btn');
+  if (btn) {
+    btn.classList.add('nav-btn-disabled');
+    btn.title = 'Unavailable on a file:// page — start the local server instead';
+  }
+}
+
 (function initNav() {
+  checkPageOrigin();
   if (typeof restoreScalesState === 'function') restoreScalesState();
   if (typeof restoreChordsState === 'function') restoreChordsState();
   if (typeof syncInstrumentSelectors === 'function') syncInstrumentSelectors();

@@ -4,6 +4,26 @@ A browser-based practice tool built for a ~7-month guitarist (Yamaha Pacifica)
 studying the vocabulary of Mark Knopfler, Mick Ronson, Eddie Hazel, Frank
 Zappa, and Dean Ween. Pure static HTML/CSS/JS — no build step.
 
+**This app must be SERVED, not opened as a file.** Double-clicking
+`index.html` in Finder gives a `file://` page where the camera silently cannot
+work, and the failure is very confusing because almost everything else does:
+
+- `camera.js` is the app's one `<script type="module">`. Module scripts are
+  CORS-checked and a `file://` page is an opaque origin, so the import of
+  `vendor/mediapipe/vision_bundle.mjs` is refused. The file never executes, so
+  the `window.toggleCamera = toggleCamera` line at its bottom never runs, and
+  the nav button's `onclick` throws `ReferenceError` into the console.
+- MediaPipe's wasm/model fetches and AlphaTab's dynamic `import()` fail for the
+  same reason.
+- The **27 classic `<script src>` tags load fine**, which is exactly why this
+  is hard to diagnose: scales, chords, the mic, and lick capture all work, and
+  only the camera and Guitar Pro import are dead.
+
+`checkPageOrigin()` in nav.js detects `location.protocol === 'file:'` and shows
+a banner explaining it, rather than leaving a silent ReferenceError.
+`Start Guitar Tool.command` is a double-clickable launcher for anyone who does
+not want to use a terminal.
+
 - `npm start` — `live-server` on :8080, opens your default browser. (It used
   to hardcode a Windows Brave path, `C:\Program Files\BraveSoftware\…`, which
   simply fails on macOS; it now just uses the system default browser so the
@@ -1262,8 +1282,11 @@ Three defects stacked, and the first is the important one.
    `fvBindCanvas()` runs at load; camera.js keeps its `dataset.fvBound` guard so
    whichever runs first wins.
 
-**The rule, now the second time it has bitten:** a full-bleed absolutely
-positioned element is a click-catcher unless you say otherwise. This is exactly
+**The rule, now the THIRD time it has bitten** (planner over the nav, camera
+status over the canvas, and the file:// banner over the nav while adding it —
+caught by its own test before shipping): a full-bleed element near the top of
+the page is a click-catcher unless you place it in normal flow with no stacking
+context of its own. This is exactly
 the practice-planner bug in a different place. When a handler appears not to
 fire, check `document.elementFromPoint` on the target's centre *before* reading
 the handler's code.
