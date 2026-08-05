@@ -106,19 +106,36 @@ function hzToNoteInfo(freq) {
   return midiToNoteInfo(69 + 12 * Math.log2(freq / 440));
 }
 
+// ── Mic on/off state broadcast ─────────────────────────────────────────────
+// Any consumer that shows its own mic UI (the mic bar, Listen & Repeat's
+// panel) subscribes here instead of tracking enabled-ness itself. This is what
+// makes "turn the mic off in the mic bar and input stops everywhere" true:
+// before this, Listen & Repeat called initMic() directly, which opens the
+// stream WITHOUT setting micEnabled or starting the shared loops — so LR ran
+// its own capture entirely outside the master switch and the bar's off button
+// had no effect on it.
+let micStateListeners = [];
+function onMicState(fn) { micStateListeners.push(fn); }
+function offMicState(fn) { micStateListeners = micStateListeners.filter(f => f !== fn); }
+function isMicEnabled() { return micEnabled; }
+
 // ── Master on/off — starts/stops every loop below together ─────────────────
 async function micSetEnabled(enabled) {
   if (enabled) {
+    if (micEnabled) return true;
     const ok = await initMic();
     if (!ok) return false;
     micEnabled = true;
     startMicMeterLoop();
     startOnsetDetection();
+    micStateListeners.forEach(fn => fn(true));
     return true;
   }
+  if (!micEnabled) return true;
   micEnabled = false;
   stopMicMeterLoop();
   stopOnsetDetection();
+  micStateListeners.forEach(fn => fn(false));
   return true;
 }
 
@@ -316,29 +333,38 @@ function toggleMicBar() {
   applyMicBarCollapsedState(data.ui.micBarCollapsed);
 }
 
-async function toggleMicEnabled() {
+// The bar's own rendering, split out of toggleMicEnabled and driven by the
+// state broadcast instead of by the click handler. The bar must show the truth
+// no matter who flipped the switch — Listen & Repeat's "Connect mic" button
+// turns the mic on through the same micSetEnabled(), and the bar has to follow.
+function syncMicBarUI() {
   const btn = document.getElementById('mic-enable-btn');
   const status = document.getElementById('mic-status-text');
   const compactBtn = document.getElementById('compact-mic-btn');
   if (micEnabled) {
-    await micSetEnabled(false);
+    if (btn) { btn.textContent = '■ MIC OFF'; btn.classList.add('running'); }
+    if (compactBtn) compactBtn.classList.add('active');
+    if (status) status.textContent = '🎙️ Listening — play a note to see note matching, tuning, and technique detection live.';
+  } else {
     if (btn) { btn.textContent = '▶ MIC ON'; btn.classList.remove('running'); }
     if (compactBtn) compactBtn.classList.remove('active');
     if (status) status.textContent = '🎤 Off — enable to hear note matching, tuning, and technique detection';
     updateMicTunerReadout(null);
-    return;
   }
+}
+onMicState(syncMicBarUI);
+
+async function toggleMicEnabled() {
+  const btn = document.getElementById('mic-enable-btn');
+  const status = document.getElementById('mic-status-text');
+  if (micEnabled) { await micSetEnabled(false); return; } // syncMicBarUI runs via onMicState
   if (btn) { btn.textContent = '… connecting'; btn.disabled = true; }
   const ok = await micSetEnabled(true);
   if (btn) btn.disabled = false;
   if (!ok) {
     if (status) status.textContent = '🎤 ' + micUnavailableMessage('microphone features');
     if (btn) btn.textContent = '▶ MIC ON';
-    return;
   }
-  if (btn) { btn.textContent = '■ MIC OFF'; btn.classList.add('running'); }
-  if (compactBtn) compactBtn.classList.add('active');
-  if (status) status.textContent = '🎙️ Listening — play a note to see note matching, tuning, and technique detection live.';
 }
 
 // ═══════════════════════════════════════════════════════════════════════════

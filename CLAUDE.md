@@ -1025,6 +1025,40 @@ consumers just add/remove callbacks:
   `showMicTechniqueLabel` subscriber) naturally only react to the late one
   without needing an explicit `early` check.
 
+**Mic ownership: `micSetEnabled()` is the only way in.** `initMic()` opens the
+stream but does *not* set `micEnabled` or start the shared loops — it is an
+internal helper, not an entry point. Listen & Repeat used to call it directly
+from four places, which meant LR held a live mic entirely outside the master
+switch: **turning the mic off in the mic bar had no effect on it**, and the bar
+showed "off" while LR was still capturing. (The single-permission-prompt
+property was never at risk — LR always shared the one stream — but the on/off
+state was never shared at all.)
+
+Everything now goes through `micSetEnabled(true|false)`, which broadcasts to
+`onMicState(fn)` subscribers. Two consequences worth preserving:
+
+- `syncMicBarUI()` is an `onMicState` subscriber rather than inline in the
+  click handler, so the bar reflects the truth no matter who flipped the
+  switch — LR's own "Connect Mic" button turns the mic on and the bar follows.
+  It deliberately reads `micEnabled` rather than the broadcast argument, so it
+  cannot be desynced by a stray call.
+- `lrHandleMicState(false)` stops LR listening, zeroes its meter, stops the
+  mic monitor (otherwise you still *hear* yourself after "mic off") and stops
+  an in-progress recording via `micRecorder.stop()`, which preserves the take
+  rather than discarding it.
+
+`micSetEnabled` is idempotent — it early-returns if already in the requested
+state, so it does not re-fire the broadcast or restart the loop.
+
+**LR admits notes by onset time, not arrival time.** `lrHandleMicOnset` checks
+`evt.time >= lrListenWindowStart`. mic.js's full-envelope event lands ~450ms
+after the attack, so a note played just before the response window closes
+arrives just after it; judging by arrival dropped exactly the notes at the end
+of a phrase. LR's old local capture had the same bug in a different form (its
+sampler bailed the instant `lrListening` went false, discarding the note
+mid-capture). LR also records `technique` per note now, which it never had —
+it comes free from the shared envelope.
+
 **Technique classification** (`classifyTechnique` in `mic.js`) reads the
 onset envelope's pitch trace in cents-from-attack:
 - **Vibrato** — the trace changes direction ≥3 times (regular oscillation).
@@ -1383,17 +1417,15 @@ Songs' self-grade flow already provides for free.
   camera nav-button click), `loadAlphaTab()`'s dynamic `import()` only runs
   from `parseGuitarProFile()` (choosing GP format + clicking Parse). Neither
   loads anything at page load.
-- **Known remaining redundancy, not fixed this pass**: Listen & Repeat runs
-  its *own* onset-capture loop (`lrMicPollTick`) and level-meter loop
-  (`lrStartMeterLoop` in `listenrepeat.js`) independently of `mic.js`'s
-  shared loop — a deliberate scope boundary from the Task 2 mic work (LR
-  keeps its pre-existing, tested polling logic rather than being folded
-  into the pub/sub system other modes use). If the global Mic bar is also
-  on while an LR round is running, that's 2-3 loops reading the same
-  analyser per frame. Fully unifying this would mean giving LR's
-  quiz-grading logic the same subscriber treatment Scales/Chords get —
-  real follow-up work, deliberately not risked this late in a long session
-  against LR's existing working behavior.
+- **Listen & Repeat's duplicate loops — fixed.** LR used to run its own
+  onset-capture loop (`lrMicPollTick`) and level-meter loop
+  (`lrStartMeterLoop`) over `mic.js`'s shared analyser, so with the mic bar
+  on during a round that was three RAF loops and up to three `findPitch`
+  calls per frame on the same buffer. Both are gone; LR is now a plain
+  `onMicOnset`/`onMicLevel` subscriber like Scales and Chords, and `mic.js`
+  is the only file that touches `micAnalyser`/`micPitchDetector` at all
+  (verified by grep). See "Mic ownership" below for the behavioural half of
+  that fix, which mattered more.
 - No 60fps jank measurements were actually taken (no browser tools this
   session) — the above are structural fixes based on code review, not
   profiler output. Verify with real usage.

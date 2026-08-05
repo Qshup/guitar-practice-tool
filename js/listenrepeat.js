@@ -68,59 +68,53 @@ let lrListenTimeout = null;
 let lrChordSelfGradeIdx = 0;
 
 // ── Mic engine ──────────────────────────────────────────────────────────
-// Uses the shared engine in js/mic.js (single getUserMedia stream/analyser/
-// pitch detector, and the shared sensitivity/noise-gate calibration, for the
-// whole app) — only the quiz-specific onset accumulation below (grading a
-// full played-back sequence against what was expected) is local to Listen &
-// Repeat; Scales/Chords/Tuner use mic.js's onMicOnset()/onMicLevel() directly.
-let micDetectedNotes = []; // {time, freq, noteName, cents} — absolute AudioContext time
+// Listen & Repeat is a plain subscriber to js/mic.js, like Scales and Chords.
+//
+// It always shared mic.js's stream/analyser/detector, so there was only ever
+// one getUserMedia and one permission prompt. What it also did was run TWO of
+// its own requestAnimationFrame loops over that shared analyser — an onset
+// poll (lrMicPollTick) and a level meter (lrStartMeterLoop) — each calling
+// getFloatTimeDomainData + findPitch every frame. With the mic bar on and an
+// LR round running that was three loops and up to three pitch detections per
+// frame on the same buffer, and findPitch over a 2048-sample window is the
+// expensive part.
+//
+// Worse than the cost: LR reached the mic through initMic() directly, which
+// opens the stream WITHOUT setting micEnabled or starting the shared loops.
+// LR therefore lived entirely outside the master switch, and turning the mic
+// off in the mic bar did nothing to it. It now goes through micSetEnabled()
+// like everything else and subscribes to onMicState, so off means off.
+//
+// Only the quiz-specific accumulation (grading a played sequence against what
+// was expected) is still local here — that is genuinely LR's own logic, not
+// duplicated signal processing.
+let micDetectedNotes = []; // {time, freq, noteName, cents, technique} — absolute AudioContext time
 let lrListening = false;
-let lrLastOnsetTime = -1;
+let lrListenWindowStart = 0;
 
-function lrMicPollTick() {
-  if (!lrListening) return;
-  const ctx = getAudioCtx();
-  micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-  const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
-  const now = ctx.currentTime;
-  if (rms > micNoiseGate && (now - lrLastOnsetTime) > MIC_MIN_ONSET_GAP) {
-    lrLastOnsetTime = now;
-    lrCaptureOnsetPitch(now);
-  }
-  requestAnimationFrame(lrMicPollTick);
+// Notes are admitted by their ONSET time, not their arrival time. mic.js's
+// full-envelope event lands ~450ms after the attack, so a note played just
+// before the response window closes arrives just after it — judging by arrival
+// dropped exactly the notes at the end of a phrase. (LR's old local capture
+// had the same bug in a different form: its sampler bailed the moment
+// lrListening went false, so trailing notes were discarded mid-capture.)
+function lrHandleMicOnset(evt) {
+  if (!lrListening || !evt || evt.time < lrListenWindowStart) return;
+  if (evt.early) { lrUpdateLiveCaptureFeedback(evt); return; } // fast path: live "heard X" text only
+  if (!evt.freq) return;                                       // late firing with no clean pitch (mute/noise)
+  micDetectedNotes.push({
+    time: evt.time, freq: evt.freq, noteName: evt.noteName,
+    cents: evt.cents, technique: evt.technique || null,
+  });
+  lrUpdateLiveCaptureFeedback();
 }
-
-function lrCaptureOnsetPitch(onsetTime) {
-  const ctx = getAudioCtx();
-  const samples = [];
-  let count = 0;
-  const maxSamples = 4;
-  function sampleOnce() {
-    if (!lrListening) return;
-    micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-    const [freq, clarity] = micPitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
-    if (freq > 60 && freq < 1400 && clarity > 0.85) samples.push({ freq, clarity });
-    count++;
-    if (count < maxSamples) setTimeout(sampleOnce, 15);
-    else finalize();
-  }
-  function finalize() {
-    if (!samples.length) return; // too noisy/unclear — treat as no detectable note
-    samples.sort((a, b) => b.clarity - a.clarity);
-    const best = samples[0];
-    const info = hzToNoteInfo(best.freq);
-    micDetectedNotes.push({ time: onsetTime, freq: best.freq, noteName: info.noteName, cents: info.cents });
-    lrUpdateLiveCaptureFeedback();
-  }
-  setTimeout(sampleOnce, 40); // let the initial pluck transient pass before sampling pitch
-}
+onMicOnset(lrHandleMicOnset);
 
 function lrStartListening() {
   micDetectedNotes = [];
-  lrLastOnsetTime = -1;
   lrListening = true;
+  lrListenWindowStart = getAudioCtx().currentTime;
   lrHandSamples = [];
-  requestAnimationFrame(lrMicPollTick);
 }
 
 function lrStopListening() {
@@ -157,56 +151,62 @@ function lrCameraMicSummary(fullyCorrect, results) {
 
 // ── Live mic level meter — lets the user visually confirm the mic is
 // actually picking up sound, independent of onset/note grading above ──
+//
+// This was a second RAF loop re-reading the shared analyser and re-running
+// findPitch every frame. mic.js's meter loop already computes exactly this
+// ({rms, active, reading}) once per frame for every subscriber, so LR now just
+// renders what it is handed. The panel-active check that used to end the loop
+// is now the subscriber's early return — it stays subscribed for the app's
+// lifetime, the same pattern Scales' and Chords' onset handlers use.
 const MIC_METER_RMS_CEILING = 0.25; // rms value that reads as a "full" meter bar
-let lrMeterRAF = null;
 
-function lrStartMeterLoop() {
-  if (lrMeterRAF) return;
-  const tick = () => {
-    const panel = document.getElementById('study-subtab-listen');
-    if (!panel || !panel.classList.contains('active') || !micAnalyser) { lrMeterRAF = null; return; }
-    micAnalyser.getFloatTimeDomainData(micSampleBuffer);
-    const rms = micComputeRMS(micSampleBuffer) * micSensitivity;
-    const level = Math.min(1, rms / MIC_METER_RMS_CEILING);
-    const fill = document.getElementById('lr-mic-meter-fill');
-    if (fill) fill.style.width = `${Math.round(level * 100)}%`;
-    const meterEl = document.getElementById('lr-mic-meter');
-    const active = rms > micNoiseGate;
-    if (meterEl) meterEl.classList.toggle('lr-mic-active', active);
-
-    const readout = document.getElementById('lr-mic-readout');
-    if (readout) {
-      if (active) {
-        const ctx = getAudioCtx();
-        const [freq, clarity] = micPitchDetector.findPitch(micSampleBuffer, ctx.sampleRate);
-        readout.textContent = (freq > 60 && freq < 1400 && clarity > 0.8)
-          ? `Hearing: ${hzToNoteInfo(freq).noteName} (${Math.round(freq)} Hz)`
-          : 'Hearing sound (pitch unclear)';
-      } else {
-        readout.textContent = 'Listening… play a note or talk to test the mic';
-      }
-    }
-    lrMeterRAF = requestAnimationFrame(tick);
-  };
-  lrMeterRAF = requestAnimationFrame(tick);
+function lrHandleMicLevel({ rms, active, reading }) {
+  const panel = document.getElementById('study-subtab-listen');
+  if (!panel || !panel.classList.contains('active')) return;
+  const fill = document.getElementById('lr-mic-meter-fill');
+  if (fill) fill.style.width = `${Math.round(Math.min(1, rms / MIC_METER_RMS_CEILING) * 100)}%`;
+  const meterEl = document.getElementById('lr-mic-meter');
+  if (meterEl) meterEl.classList.toggle('lr-mic-active', active);
+  const readout = document.getElementById('lr-mic-readout');
+  if (!readout) return;
+  readout.textContent = !active ? 'Listening… play a note or talk to test the mic'
+    : reading ? `Hearing: ${reading.noteName} (${Math.round(reading.freq)} Hz)`
+    : 'Hearing sound (pitch unclear)';
 }
+onMicLevel(lrHandleMicLevel);
 
-function lrStopMeterLoop() {
-  if (lrMeterRAF) cancelAnimationFrame(lrMeterRAF);
-  lrMeterRAF = null;
+// When the mic is switched off anywhere (the mic bar, the compact toolbar, or
+// LR's own button) the meter stops being fed, so it would otherwise freeze at
+// whatever it last showed and read as "still listening". Clear it, and abandon
+// any round that was mid-capture rather than grading a half-heard response.
+function lrHandleMicState(enabled) {
+  const panel = document.getElementById('study-subtab-listen');
+  const btn = document.getElementById('lr-check-mic-btn');
+  if (btn) btn.textContent = enabled ? '🎤 Mic Connected' : '🎤 Connect Mic';
+  if (enabled) return;
+  lrListening = false;
+  const fill = document.getElementById('lr-mic-meter-fill');
+  if (fill) fill.style.width = '0%';
+  const meterEl = document.getElementById('lr-mic-meter');
+  if (meterEl) meterEl.classList.remove('lr-mic-active');
+  if (micMonitorGain) lrToggleMicMonitor();          // stop routing mic to the speakers
+  if (micRecorder && micRecorder.state === 'recording') micRecorder.stop(); // keeps the take
+  if (!panel || !panel.classList.contains('active')) return;
+  const readout = document.getElementById('lr-mic-readout');
+  if (readout) readout.textContent = 'Mic is off — turn it on in the mic bar to use Listen & Repeat.';
 }
+onMicState(lrHandleMicState);
 
 async function lrCheckMic() {
   const btn = document.getElementById('lr-check-mic-btn');
   const readout = document.getElementById('lr-mic-readout');
   if (readout) readout.textContent = 'Requesting microphone access…';
-  const ok = await initMic();
+  const ok = await micSetEnabled(true); // master switch, not bare initMic — see the Mic engine note above
   if (!ok) {
     if (readout) readout.textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
   if (btn) btn.textContent = '🎤 Mic Connected';
-  lrStartMeterLoop();
 }
 
 // ── Live mic monitor — hear your own mic input through the speakers/headphones
@@ -223,12 +223,11 @@ async function lrToggleMicMonitor() {
     if (hint) hint.style.display = 'none';
     return;
   }
-  const ok = await initMic();
+  const ok = await micSetEnabled(true); // master switch, not bare initMic — see the Mic engine note above
   if (!ok) {
     document.getElementById('lr-mic-readout').textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
-  lrStartMeterLoop();
   const ctx = getAudioCtx();
   micMonitorGain = ctx.createGain();
   micMonitorGain.gain.value = 0.85;
@@ -251,12 +250,11 @@ async function lrToggleRecording() {
     micRecorder.stop();
     return;
   }
-  const ok = await initMic();
+  const ok = await micSetEnabled(true); // master switch, not bare initMic — see the Mic engine note above
   if (!ok) {
     status.textContent = micUnavailableMessage('recording');
     return;
   }
-  lrStartMeterLoop();
   micRecordedChunks = [];
   try {
     micRecorder = new MediaRecorder(micStream);
@@ -775,9 +773,18 @@ function lrReplaySequence() {
   });
 }
 
-function lrUpdateLiveCaptureFeedback() {
+// Called twice per note now: once from mic.js's early (pitch-only) firing
+// ~30-90ms after the attack, and once from the full-envelope firing that
+// actually records the note. The early call names the pitch straight away so
+// the readout tracks your playing instead of trailing it by the ~450ms the
+// envelope window takes; the late call updates the confirmed count.
+function lrUpdateLiveCaptureFeedback(earlyEvt) {
   const el = document.getElementById('lr-live-capture');
-  if (el) el.textContent = `Heard ${micDetectedNotes.length} note(s)...`;
+  if (!el) return;
+  const n = micDetectedNotes.length;
+  el.textContent = earlyEvt && earlyEvt.noteName
+    ? `Heard ${n} note(s)… (${earlyEvt.noteName})`
+    : `Heard ${n} note(s)...`;
 }
 
 // ── Feedback rendering (note modes) ─────────────────────────────────────────
@@ -927,12 +934,11 @@ async function lrToggleListenRepeat() {
     lrSetPhase('idle');
     return;
   }
-  const ok = await initMic();
+  const ok = await micSetEnabled(true); // master switch, not bare initMic — see the Mic engine note above
   if (!ok) {
     document.getElementById('lr-status').textContent = micUnavailableMessage('Listen & Repeat');
     return;
   }
-  lrStartMeterLoop();
   const micBtn = document.getElementById('lr-check-mic-btn');
   if (micBtn) micBtn.textContent = '🎤 Mic Connected';
   btn.disabled = true;
