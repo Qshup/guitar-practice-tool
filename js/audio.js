@@ -517,62 +517,114 @@ function getStyleBeatEvents(style, beatInBar, beats, chordRoot) {
   const events = [];
   if (style === 'none') return events;
 
-  const backbeatIdx = beats <= 3 ? 1 : 2;
-  if (beatInBar === 0) events.push({ offset: 0, type: 'kick' });
-  if (beatInBar === backbeatIdx) events.push({ offset: 0, type: 'snare' });
-  if (style === 'blues') {
-    if (beatInBar === 1 || beatInBar === 3) events.push({ offset: 0, type: 'hihat' });
-  } else {
-    events.push({ offset: 0, type: 'hihat' });
-    events.push({ offset: 0.5, type: 'hihat' });
-  }
-
   const fifth = chordRoot + 7;
   const third = chordRoot + 4;
   const minorThird = chordRoot + 3;
+  const fourth = chordRoot + 5;
   const flat7 = chordRoot + 10;
+  const octave = chordRoot + 12;
+  const sixth = chordRoot + 9;
+
+  // ── Percussion baseline ──────────────────────────────────────────────────
+  // Kick on 1 AND 3 (it was only on 1), snare on the backbeat — beat 3 in 4/4
+  // and up, beat 2 in 3/4 where there is no beat 3 to land on. Hi-hat keeps
+  // the subdivision. Levels come from the mixer, where percussion sits at
+  // 21-37% of the instrument so the guitar stays on top.
+  const backbeatIdx = beats <= 3 ? 1 : 2;
+  const kickBeats = beats >= 4 ? [0, 2] : [0];
+  if (kickBeats.includes(beatInBar)) events.push({ offset: 0, type: 'kick' });
+  if (beatInBar === backbeatIdx) events.push({ offset: 0, type: 'snare' });
 
   if (style === 'blues') {
-    // Shuffle: root/5th alternating bass, comp chord stab pushed to the swung "and."
-    const bassNote = (beatInBar % 2 === 0) ? chordRoot : fifth;
-    events.push({ offset: 0, type: 'bass', note: bassNote });
-    events.push({ offset: 0.667, type: 'chord', notes: [third, fifth], velocity: 0.55 });
+    // ── Genuine triplet shuffle ──────────────────────────────────────────
+    // Not straight eighths with a swing percentage: the hat plays the first
+    // and THIRD triplet of each beat (0 and 2/3), which is what makes a
+    // shuffle a shuffle. 0.667 is that third triplet exactly.
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 2 / 3, type: 'hihat', velocity: 0.7 });
+    // Root/fifth alternation, deliberately clear: root lands on the odd beats
+    // with full weight, fifth on the even ones slightly under it, so the
+    // movement is audible rather than a uniform pulse.
+    const onRoot = beatInBar % 2 === 0;
+    events.push({ offset: 0, type: 'bass', note: onRoot ? chordRoot : fifth, velocity: onRoot ? 0.95 : 0.8 });
+    // Comp chord pushed onto the swung third triplet — the shuffle push.
+    events.push({ offset: 2 / 3, type: 'chord', notes: [third, fifth, flat7], velocity: 0.5 });
+
   } else if (style === 'minor') {
-    // Walking bass across root/b3/5th/b7, ghost stab leading into a chord hit
-    // that lands just behind the beat.
+    // ── Chord stabs on the "and", walking bass between changes ───────────
+    // The stab was at 0.58 — an approximation of "behind the beat" that is
+    // neither on the beat nor on the and. It now lands exactly on the and
+    // (0.5), which is real rhythmic displacement you can count.
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 0.5, type: 'hihat', velocity: 0.65 });
     const walk = [chordRoot, minorThird, fifth, flat7];
-    events.push({ offset: 0, type: 'bass', note: walk[beatInBar % walk.length] });
-    if (beatInBar % 2 === 1) {
-      events.push({ offset: 0.4, type: 'ghost-chord', notes: [minorThird, fifth] });
-      events.push({ offset: 0.58, type: 'chord', notes: [minorThird, fifth], velocity: 0.7 });
-    }
+    events.push({ offset: 0, type: 'bass', note: walk[beatInBar % walk.length], velocity: 0.9 });
+    // Two-note walking figure INTO the next chord: a passing tone on the and
+    // of every beat, stepping toward wherever the bass goes next.
+    const nextRoot = walk[(beatInBar + 1) % walk.length];
+    const passing = nextRoot > walk[beatInBar % walk.length] ? nextRoot - 1 : nextRoot + 1;
+    events.push({ offset: 0.5, type: 'bass', note: passing, velocity: 0.55 });
+    events.push({ offset: 0.5, type: 'chord', notes: [minorThird, fifth, flat7], velocity: 0.62 });
+
   } else if (style === 'mixo') {
-    // Country-rock straight-eighth "train beat": root-5th bass on the beat and
-    // the off-beat, chord chuck landing with the off-beat bass note.
-    events.push({ offset: 0, type: 'bass', note: chordRoot });
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 0.5, type: 'hihat', velocity: 0.7 });
+    events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.9 });
     events.push({ offset: 0.5, type: 'bass', note: fifth, velocity: 0.7 });
     events.push({ offset: 0.5, type: 'chord', notes: [third, fifth], velocity: 0.5 });
+
   } else if (style === 'knopfler') {
-    // Celtic fingerpicked arpeggio: bass on beat 1, chord tones climbing on 2-3-4.
-    const arp = [chordRoot, third, fifth, fifth + 5];
-    if (beatInBar % 4 === 0) events.push({ offset: 0, type: 'bass', note: arp[0], velocity: 0.8 });
-    else events.push({ offset: 0, type: 'pluck', note: arp[beatInBar % 4], velocity: 0.55 });
+    // ── Genuine fingerpicked arpeggio ────────────────────────────────────
+    // Bass on 1, inner voices on 2 and 3, top note on 4 — each note fired
+    // separately, which is the actual difference between fingerpicking and
+    // strumming. The old version used beatInBar % 4, so in 7/8 or 3/4 the
+    // pattern wrapped mid-figure and the shape was lost; it is now indexed
+    // against the real bar length.
+    // Climb low -> high, then fold back down instead of clamping. Clamping at
+    // the top voice made 7/8 play the octave on beats 4,5,6,7 — a flat tail
+    // rather than a moving figure. Folding keeps the picking pattern alive in
+    // any meter, which is the whole point of indexing against the real bar.
+    const voices = [chordRoot, third, fifth, octave, fifth, third];
+    if (beatInBar === 0) {
+      events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.9 });
+    } else {
+      events.push({ offset: 0, type: 'pluck', note: voices[beatInBar % voices.length], velocity: 0.6 });
+    }
+    // In-between eighths keep the picking hand moving rather than leaving a
+    // gap between quarter notes.
+    const between = [third, fifth, octave, fifth];
+    events.push({ offset: 0.5, type: 'pluck', note: between[beatInBar % between.length], velocity: 0.34 });
+    events.push({ offset: 0, type: 'hihat', velocity: 0.55 });
+
   } else if (style === 'hazel') {
-    // Syncopated 2-chord Dorian vamp: chords on the upbeats, bass on 1 and "and of 3."
-    if (beatInBar === 0) events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.85 });
-    if (beatInBar === 2) events.push({ offset: 0.5, type: 'bass', note: fifth, velocity: 0.8 });
-    events.push({ offset: 0.5, type: 'chord', notes: [minorThird, fifth, flat7], velocity: 0.5 });
+    // ── Funkadelic two-chord Dorian vamp ─────────────────────────────────
+    // Chord hits on the upbeats, bass on 1 and the "and of 3". Sixteenth hats
+    // and a ghost bass note are what stop this reading as a metronome
+    // exercise — the space between the hits is the groove.
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 0.5, type: 'hihat', velocity: 0.6 });
+    events.push({ offset: 0.75, type: 'hihat', velocity: 0.4 });
+    if (beatInBar === 0) events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.95 });
+    if (beatInBar === 2) events.push({ offset: 0.5, type: 'bass', note: fifth, velocity: 0.85 });
+    // Ghost note into the downbeat of the next bar.
+    if (beatInBar === beats - 1) events.push({ offset: 0.75, type: 'bass', note: flat7, velocity: 0.4 });
+    // Upbeat chord stabs, alternating the two Dorian voicings.
+    const voicing = beatInBar % 2 === 0 ? [minorThird, fifth, flat7] : [fourth, sixth, octave];
+    events.push({ offset: 0.5, type: 'chord', notes: voicing, velocity: beatInBar % 2 === 0 ? 0.6 : 0.45 });
+
   } else if (style === 'zappa') {
-    events.push({ offset: 0, type: 'bass', note: chordRoot });
+    events.push({ offset: 0, type: 'hihat' });
+    events.push({ offset: 0.5, type: 'hihat', velocity: 0.6 });
+    events.push({ offset: 0, type: 'bass', note: chordRoot, velocity: 0.9 });
     events.push({ offset: 0, type: 'chord', notes: [third, fifth], velocity: 0.6 });
-    // Odd-meter melody fragment on the "extra" beats of 7/8 and 11/8, hinting
-    // ambiguously at Mixolydian (b7/nat4) vs Lydian (nat7/#4).
     if ((beats === 7 || beats === 11) && beatInBar >= 4) {
-      const frag = [fifth, chordRoot + 9, flat7, chordRoot + 6, third];
+      const frag = [fifth, sixth, flat7, chordRoot + 6, third];
       events.push({ offset: 0, type: 'pluck', note: frag[(beatInBar - 4) % frag.length], velocity: 0.6 });
     }
+
   } else if (style === 'drone') {
     if (beatInBar === 0) events.push({ offset: 0, type: 'bass', note: chordRoot, dur: beats, velocity: 0.9 });
+    events.push({ offset: 0, type: 'hihat', velocity: 0.45 });
   }
   return events;
 }
