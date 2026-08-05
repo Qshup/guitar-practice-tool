@@ -6,6 +6,16 @@
 // Note sequence: [{string (0=low E), fret, duration ms, technique}]
 // Techniques: 'pick','bend','slide','hammer','pulloff','vibrato'
 
+// These are STYLE EXERCISES, not transcriptions. Each one is a short phrase
+// written to teach a technique or a scale colour the named player uses — it is
+// not a note-for-note copy of any recording, and the two that reference a
+// specific song say "… style" in the title for exactly that reason.
+//
+// This is the same standard the song library is held to (see SONG_LIBRARY in
+// songs.js, which is deliberately empty): if something claims to be a
+// particular recording it has to actually be one. A short lick that teaches a
+// technique is genuinely useful practice material; a lick that pretends to be
+// the Sultans of Swing intro is not.
 const RIFF_LIBRARY = [
   // ── MINOR PENTATONIC ────────────────────────────────────────────────────
   {
@@ -227,7 +237,7 @@ E|------------------------------------|`,
     scaleName: 'Major Scale',
     riffs: [
       {
-        title: 'Sultans of Swing Intro Feel',
+        title: 'Fingerpicked Drone — Sultans style',
         key: 'D', mood: ['Knopfler','Fingerpicking','Harp-like'],
         player: ['Knopfler'], tags: ['fingerpicking','vibrato'],
         description: 'Based on Knopfler\'s approach on Sultans of Swing — open string drone on D while the melody climbs above it. Use your fingers, no pick. Thumb on the low D string, index and middle on the melody. Let strings ring into each other.',
@@ -409,7 +419,7 @@ E|---0---0---3---0---2---0---1---0----|`,
     scaleName: 'Lydian',
     riffs: [
       {
-        title: 'Watermelon in Easter Hay Feel',
+        title: 'Lydian Float — Watermelon style',
         key: 'E', mood: ['Zappa','Floating','Otherworldly','Emotional'],
         player: ['Zappa'], tags: ['vibrato','whammy'],
         description: 'The #4 (A# instead of A) is what makes Lydian sound like it\'s floating above the ground. This is the scale Zappa used for Watermelon in Easter Hay — his most emotional piece. Each note should feel weightless. Play it slowly with your eyes closed.',

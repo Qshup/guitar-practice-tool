@@ -648,6 +648,47 @@ CDN module loads and exposes `AlphaTabApi`, and a corrupt buffer is rejected
 with "No compatible importer found for file" rather than hanging. Still
 unverified: `scoreToSongData`'s mapping of a real parsed score.
 
+## Guitar Pro import — verified, and how
+
+The whole Songs mode depends on this path, so it was verified properly by
+generating real `Score` objects with AlphaTab's own **alphaTex** importer
+(`new at.importer.AlphaTexImporter()`), which needs no `.gp` file. Four
+defects were found and fixed:
+
+1. **String mapping was mirrored.** The code did `6 - note.string` on a
+   comment claiming "string 1 = high e". It is the opposite — string 1 reads
+   **E2** and string 6 reads **E4** in standard tuning. Every import came out
+   mirrored. Now `note.string - 1`, verified **by pitch**: AlphaTab's reported
+   MIDI equals what our `(string, fret)` sounds through `fretToHz`, 8/8 notes.
+2. **Duration was inverted.** `beat.duration` is an enum (Whole=1, Half=2,
+   Quarter=4, Eighth=8), not a beat count. Use
+   `playbackDuration / 960`.
+3. **`tracks[0]` was hardcoded.** Real files are multi-track and track 0 is
+   routinely drums. There is now a picker; the default is the 6-string track
+   with the most notes.
+4. **Chords were fabricated** — every bar backfilled with the previous chord
+   or `'E'`. Now reads real chord names or returns none, and says so.
+
+`playbackStart` was already correct: it is **bar-relative**.
+
+If you touch this file, re-verify by pitch rather than by index. Both the
+string and duration bugs looked plausible on inspection and were only visible
+when the numbers were checked against what actually sounds.
+
+## Content accuracy standard
+
+The rule this project now holds: **if something claims to be a particular
+recording, it has to actually be one.**
+
+- `SONG_LIBRARY` is empty. Ten composed approximations were deleted rather
+  than shipped as chord charts.
+- `RIFF_LIBRARY` is kept, because a short lick that teaches a technique is
+  genuinely useful practice material — but it is framed as *style exercises,
+  not transcriptions*, in the section subtitle and in a comment at the head of
+  the array. The two riffs that referenced a specific song were retitled
+  ("Fingerpicked Drone — Sultans style", "Lydian Float — Watermelon style") so
+  the claim is unambiguous in the library grid, where the title is all you see.
+
 ## Trend charts (js/trends.js)
 
 Four hand-drawn SVG charts. **Not all the data existed**: practice time and
